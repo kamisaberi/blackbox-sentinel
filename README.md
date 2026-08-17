@@ -1,7 +1,3 @@
-Here is a complete, detailed, and comprehensive `README.md` for **Blackbox Sentinel**, written professionally without icons or emojis.
-
-***
-
 # Blackbox Sentinel: Commercial Cyber-Physical Defense Appliance
 
 Blackbox Sentinel is a turnkey commercial security software appliance and air-gapped command center built on top of the `libblackbox.so` security engine and the `libxinfer.so` AI runtime. Designed for military installations, critical infrastructure, smart factories, and high-assurance data centers, Blackbox Sentinel provides active, sub-millisecond threat mitigation, a real-time web command dashboard, enterprise RBAC authentication, TPM 2.0 node locking, and automated compliance forensic reporting.
