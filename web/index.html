@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Blackbox Sentinel Command Center</title>
+    <link rel="stylesheet" href="assets/style.css">
+</head>
+<body>
+    <div class="sidebar">
+        <h2>SENTINEL™</h2>
+        <ul>
+            <li class="active">Dashboard</li>
+            <li>Threat Logs</li>
+            <li>eBPF Firewall</li>
+            <li>Rules Editor</li>
+            <li>Compliance Exporter</li>
+        </ul>
+    </div>
+    <div class="main-content">
+        <header>
+            <h1>Air-Gapped Active Threat Defense Node</h1>
+            <div id="license-badge">TPM 2.0 LICENSED</div>
+        </header>
+
+        <div class="metrics-grid">
+            <div class="card">
+                <h3>CPU Temp</h3>
+                <p id="cpu-temp">42.0 °C</p>
+            </div>
+            <div class="card">
+                <h3>RAM Usage</h3>
+                <p id="ram-usage">25.0 %</p>
+            </div>
+            <div class="card">
+                <h3>NPU/GPU Load</h3>
+                <p id="npu-load">28.5 %</p>
+            </div>
+        </div>
+
+        <div class="threat-feed">
+            <h2>Real-Time Active Threat Feed (libblackbox.so)</h2>
+            <div id="log-console">
+                <p class="info">[SYSTEM] Blackbox Sentinel Appliance Operational on port 8443.</p>
+                <p class="critical">[ALERT] eBPF Dropped Packet from Malicious IP: 192.168.1.250 (Latency: 0.18 us)</p>
+            </div>
+        </div>
+    </div>
+    <script src="js/dashboard.js"></script>
+</body>
+</html>
