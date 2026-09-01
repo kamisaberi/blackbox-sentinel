@@ -62,4 +62,5 @@ add_library(sentinel_plugin_active_deception SHARED src/plugins/active_deception
 target_link_libraries(sentinel_plugin_active_deception PRIVATE blackbox::blackbox)
 
 
-install(TARGETS sentinel DESTINATION /usr/local/bin)
+# Installation Rules
+install(TARGETS sentinel sentinel_plugin_scada_modbus sentinel_plugin_active_deception DESTINATION /usr/local/bin)
