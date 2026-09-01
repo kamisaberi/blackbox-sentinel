@@ -1,1 +1,0 @@
-/usr/bin/c++ -fPIC -shared -Wl,--dependency-file=CMakeFiles/sentinel_plugin_llm_summarizer.dir/link.d -Wl,-soname,libsentinel_plugin_llm_summarizer.so -o libsentinel_plugin_llm_summarizer.so CMakeFiles/sentinel_plugin_llm_summarizer.dir/src/plugins/llm_summarizer_plugin.cpp.o  -Wl,-rpath,/usr/local/lib: /usr/local/lib/libblackbox.so

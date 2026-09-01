@@ -1,1 +1,0 @@
-/usr/bin/c++ -fPIC -shared -Wl,--dependency-file=CMakeFiles/sentinel_plugin_canary_file.dir/link.d -Wl,-soname,libsentinel_plugin_canary_file.so -o libsentinel_plugin_canary_file.so CMakeFiles/sentinel_plugin_canary_file.dir/src/plugins/canary_file_plugin.cpp.o  -Wl,-rpath,/usr/local/lib: /usr/local/lib/libblackbox.so

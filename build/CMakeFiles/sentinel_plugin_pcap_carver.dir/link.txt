@@ -1,1 +1,0 @@
-/usr/bin/c++ -fPIC -shared -Wl,--dependency-file=CMakeFiles/sentinel_plugin_pcap_carver.dir/link.d -Wl,-soname,libsentinel_plugin_pcap_carver.so -o libsentinel_plugin_pcap_carver.so CMakeFiles/sentinel_plugin_pcap_carver.dir/src/plugins/pcap_carver_plugin.cpp.o  -Wl,-rpath,/usr/local/lib: /usr/local/lib/libblackbox.so

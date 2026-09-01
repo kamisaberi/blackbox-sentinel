@@ -1,1 +1,0 @@
-/usr/bin/c++ -fPIC -shared -Wl,--dependency-file=CMakeFiles/sentinel_plugin_dnp3_grid.dir/link.d -Wl,-soname,libsentinel_plugin_dnp3_grid.so -o libsentinel_plugin_dnp3_grid.so CMakeFiles/sentinel_plugin_dnp3_grid.dir/src/plugins/dnp3_grid_plugin.cpp.o  -Wl,-rpath,/usr/local/lib: /usr/local/lib/libblackbox.so

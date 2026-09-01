@@ -1,1 +1,0 @@
-/usr/bin/c++ -fPIC -shared -Wl,--dependency-file=CMakeFiles/sentinel_plugin_onvif_tamper.dir/link.d -Wl,-soname,libsentinel_plugin_onvif_tamper.so -o libsentinel_plugin_onvif_tamper.so CMakeFiles/sentinel_plugin_onvif_tamper.dir/src/plugins/onvif_tamper_plugin.cpp.o  -Wl,-rpath,/usr/local/lib: /usr/local/lib/libblackbox.so

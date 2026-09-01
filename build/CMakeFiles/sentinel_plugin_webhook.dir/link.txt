@@ -1,1 +1,0 @@
-/usr/bin/c++ -fPIC -shared -Wl,--dependency-file=CMakeFiles/sentinel_plugin_webhook.dir/link.d -Wl,-soname,libsentinel_plugin_webhook.so -o libsentinel_plugin_webhook.so CMakeFiles/sentinel_plugin_webhook.dir/src/plugins/webhook_dispatcher_plugin.cpp.o  -Wl,-rpath,/usr/local/lib: /usr/local/lib/libblackbox.so
