@@ -52,15 +52,47 @@ set_target_properties(sentinel PROPERTIES
     INSTALL_RPATH "/usr/local/lib"
 )
 
-# ----------------------------------------------------
-# COMMERCIAL ADD-ON PLUGINS (.so files)
-# ----------------------------------------------------
-add_library(sentinel_plugin_scada_modbus SHARED src/plugins/scada_modbus_plugin.cpp)
-target_link_libraries(sentinel_plugin_scada_modbus PRIVATE blackbox::blackbox)
+# Helper macro for Commercial Plugins
+macro(add_sentinel_plugin PLUGIN_TARGET SOURCE_FILE)
+    add_library(${PLUGIN_TARGET} SHARED ${SOURCE_FILE})
+    target_link_libraries(${PLUGIN_TARGET} PRIVATE blackbox::blackbox)
+endmacro()
 
-add_library(sentinel_plugin_active_deception SHARED src/plugins/active_deception_plugin.cpp)
-target_link_libraries(sentinel_plugin_active_deception PRIVATE blackbox::blackbox)
 
+# ----------------------------------------------------
+# BUILD ALL COMMERCIAL PLUGINS (.so files)
+# ----------------------------------------------------
+add_sentinel_plugin(sentinel_plugin_scada_modbus src/plugins/scada_modbus_plugin.cpp)
+add_sentinel_plugin(sentinel_plugin_active_deception src/plugins/active_deception_plugin.cpp)
+add_sentinel_plugin(sentinel_plugin_pcap_carver src/plugins/pcap_carver_plugin.cpp)
+add_sentinel_plugin(sentinel_plugin_dnp3_grid src/plugins/dnp3_grid_plugin.cpp)
+add_sentinel_plugin(sentinel_plugin_profinet src/plugins/profinet_inspector_plugin.cpp)
+add_sentinel_plugin(sentinel_plugin_s7comm src/plugins/s7comm_opcua_plugin.cpp)
+add_sentinel_plugin(sentinel_plugin_cef_forwarder src/plugins/cef_forwarder_plugin.cpp)
+add_sentinel_plugin(sentinel_plugin_firewall_sync src/plugins/firewall_sync_plugin.cpp)
+add_sentinel_plugin(sentinel_plugin_llm_summarizer src/plugins/llm_summarizer_plugin.cpp)
+add_sentinel_plugin(sentinel_plugin_mavlink src/plugins/mavlink_inspector_plugin.cpp)
+add_sentinel_plugin(sentinel_plugin_ais_maritime src/plugins/ais_maritime_plugin.cpp)
+add_sentinel_plugin(sentinel_plugin_rtsp_correlator src/plugins/rtsp_vision_correlator_plugin.cpp)
+add_sentinel_plugin(sentinel_plugin_gpio_siren src/plugins/gpio_siren_plugin.cpp)
+add_sentinel_plugin(sentinel_plugin_dicom_medical src/plugins/dicom_medical_plugin.cpp)
 
 # Installation Rules
-install(TARGETS sentinel sentinel_plugin_scada_modbus sentinel_plugin_active_deception DESTINATION /usr/local/bin)
+install(TARGETS 
+    sentinel 
+    sentinel_plugin_scada_modbus 
+    sentinel_plugin_active_deception 
+    sentinel_plugin_pcap_carver 
+    sentinel_plugin_dnp3_grid 
+    sentinel_plugin_profinet 
+    sentinel_plugin_s7comm 
+    sentinel_plugin_cef_forwarder 
+    sentinel_plugin_firewall_sync 
+    sentinel_plugin_llm_summarizer 
+    sentinel_plugin_mavlink 
+    sentinel_plugin_ais_maritime 
+    sentinel_plugin_rtsp_correlator 
+    sentinel_plugin_gpio_siren 
+    sentinel_plugin_dicom_medical 
+    DESTINATION /usr/local/bin
+)
