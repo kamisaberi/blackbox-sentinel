@@ -1,0 +1,18 @@
+{
+  "rules": [
+    {
+      "rule_id": "RULE-101",
+      "name": "Correlated Cyber-Physical Breach",
+      "description": "Triggers when physical camera detects intruder near server rack during port scan",
+      "anomaly_threshold": 0.85,
+      "action": "EBPFBlockIP"
+    },
+    {
+      "rule_id": "RULE-102",
+      "name": "Anomalous Network Burst",
+      "description": "Triggers when packet features exceed anomaly threshold",
+      "anomaly_threshold": 0.65,
+      "action": "LogOnly"
+    }
+  ]
+}
