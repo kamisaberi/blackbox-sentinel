@@ -110,5 +110,21 @@ install(TARGETS
     sentinel_plugin_rtsp_correlator 
     sentinel_plugin_gpio_siren 
     sentinel_plugin_dicom_medical 
+    sentinel_plugin_bacnet 
+    sentinel_plugin_ad_correlator 
+    sentinel_plugin_webhook 
+    sentinel_plugin_plc_decoy 
+    sentinel_plugin_evidence_locker 
+    sentinel_plugin_memory_dump 
+    sentinel_plugin_auditd_reconstructor 
+    sentinel_plugin_admin_portal_trap 
+    sentinel_plugin_canary_file 
+    sentinel_plugin_stanag_link16 
+    sentinel_plugin_eta_traffic 
+    sentinel_plugin_ueba_analytics 
+    sentinel_plugin_dns_tunneling 
+    sentinel_plugin_onvif_tamper 
+    sentinel_plugin_nmea_marine 
+    sentinel_plugin_hl7_hospital 
     DESTINATION /usr/local/bin
 )
