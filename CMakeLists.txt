@@ -52,4 +52,14 @@ set_target_properties(sentinel PROPERTIES
     INSTALL_RPATH "/usr/local/lib"
 )
 
+# ----------------------------------------------------
+# COMMERCIAL ADD-ON PLUGINS (.so files)
+# ----------------------------------------------------
+add_library(sentinel_plugin_scada_modbus SHARED src/plugins/scada_modbus_plugin.cpp)
+target_link_libraries(sentinel_plugin_scada_modbus PRIVATE blackbox::blackbox)
+
+add_library(sentinel_plugin_active_deception SHARED src/plugins/active_deception_plugin.cpp)
+target_link_libraries(sentinel_plugin_active_deception PRIVATE blackbox::blackbox)
+
+
 install(TARGETS sentinel DESTINATION /usr/local/bin)
