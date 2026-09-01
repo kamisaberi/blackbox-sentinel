@@ -1,0 +1,1 @@
+/usr/bin/c++ -fPIC -shared -Wl,--dependency-file=CMakeFiles/sentinel_plugin_admin_portal_trap.dir/link.d -Wl,-soname,libsentinel_plugin_admin_portal_trap.so -o libsentinel_plugin_admin_portal_trap.so CMakeFiles/sentinel_plugin_admin_portal_trap.dir/src/plugins/admin_portal_trap_plugin.cpp.o  -Wl,-rpath,/usr/local/lib: /usr/local/lib/libblackbox.so

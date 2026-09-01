@@ -1,0 +1,1 @@
+/usr/bin/c++ -fPIC -shared -Wl,--dependency-file=CMakeFiles/sentinel_plugin_active_deception.dir/link.d -Wl,-soname,libsentinel_plugin_active_deception.so -o libsentinel_plugin_active_deception.so CMakeFiles/sentinel_plugin_active_deception.dir/src/plugins/active_deception_plugin.cpp.o  -Wl,-rpath,/usr/local/lib: /usr/local/lib/libblackbox.so

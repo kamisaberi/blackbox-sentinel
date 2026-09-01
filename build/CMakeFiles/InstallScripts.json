@@ -1,0 +1,7 @@
+{
+	"InstallScripts" : 
+	[
+		"/home/kami/blackbox-sentinel/build/cmake_install.cmake"
+	],
+	"Parallel" : false
+}

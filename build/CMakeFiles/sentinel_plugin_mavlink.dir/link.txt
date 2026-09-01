@@ -1,0 +1,1 @@
+/usr/bin/c++ -fPIC -shared -Wl,--dependency-file=CMakeFiles/sentinel_plugin_mavlink.dir/link.d -Wl,-soname,libsentinel_plugin_mavlink.so -o libsentinel_plugin_mavlink.so CMakeFiles/sentinel_plugin_mavlink.dir/src/plugins/mavlink_inspector_plugin.cpp.o  -Wl,-rpath,/usr/local/lib: /usr/local/lib/libblackbox.so

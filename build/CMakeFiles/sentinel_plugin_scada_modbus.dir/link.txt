@@ -1,0 +1,1 @@
+/usr/bin/c++ -fPIC -shared -Wl,--dependency-file=CMakeFiles/sentinel_plugin_scada_modbus.dir/link.d -Wl,-soname,libsentinel_plugin_scada_modbus.so -o libsentinel_plugin_scada_modbus.so CMakeFiles/sentinel_plugin_scada_modbus.dir/src/plugins/scada_modbus_plugin.cpp.o  -Wl,-rpath,/usr/local/lib: /usr/local/lib/libblackbox.so

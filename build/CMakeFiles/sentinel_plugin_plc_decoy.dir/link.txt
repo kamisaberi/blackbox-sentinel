@@ -1,0 +1,1 @@
+/usr/bin/c++ -fPIC -shared -Wl,--dependency-file=CMakeFiles/sentinel_plugin_plc_decoy.dir/link.d -Wl,-soname,libsentinel_plugin_plc_decoy.so -o libsentinel_plugin_plc_decoy.so CMakeFiles/sentinel_plugin_plc_decoy.dir/src/plugins/plc_decoy_plugin.cpp.o  -Wl,-rpath,/usr/local/lib: /usr/local/lib/libblackbox.so

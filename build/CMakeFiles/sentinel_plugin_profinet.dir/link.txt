@@ -1,0 +1,1 @@
+/usr/bin/c++ -fPIC -shared -Wl,--dependency-file=CMakeFiles/sentinel_plugin_profinet.dir/link.d -Wl,-soname,libsentinel_plugin_profinet.so -o libsentinel_plugin_profinet.so CMakeFiles/sentinel_plugin_profinet.dir/src/plugins/profinet_inspector_plugin.cpp.o  -Wl,-rpath,/usr/local/lib: /usr/local/lib/libblackbox.so

@@ -1,0 +1,1 @@
+/usr/bin/c++ -fPIC -shared -Wl,--dependency-file=CMakeFiles/sentinel_plugin_bacnet.dir/link.d -Wl,-soname,libsentinel_plugin_bacnet.so -o libsentinel_plugin_bacnet.so CMakeFiles/sentinel_plugin_bacnet.dir/src/plugins/bacnet_inspector_plugin.cpp.o  -Wl,-rpath,/usr/local/lib: /usr/local/lib/libblackbox.so

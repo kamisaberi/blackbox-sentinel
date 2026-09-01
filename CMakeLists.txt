@@ -8,11 +8,23 @@ set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 # Optimization Flags
 add_compile_options(-O3 -Wall -Wextra -pthread -march=native)
 
+
+# RPATH Settings so binaries find libblackbox.so and libxinfer.so at runtime
+set(CMAKE_SKIP_BUILD_RPATH FALSE)
+set(CMAKE_BUILD_WITH_INSTALL_RPATH FALSE)
+set(CMAKE_INSTALL_RPATH "/usr/local/lib")
+set(CMAKE_INSTALL_RPATH_USE_LINK_PATH TRUE)
+
+
 # Include Directories
 include_directories(
+    ${CMAKE_CURRENT_SOURCE_DIR}/include
     ${CMAKE_CURRENT_SOURCE_DIR}/src
     /usr/local/include
 )
+
+
+
 
 # Find System & Shared Library Dependencies
 find_package(Threads REQUIRED)
@@ -20,6 +32,16 @@ find_library(BLACKBOX_LIB blackbox REQUIRED PATHS /usr/local/lib /usr/lib)
 find_library(XINFER_LIB xinfer REQUIRED PATHS /usr/local/lib /usr/lib)
 find_library(SQLITE3_LIB sqlite3 REQUIRED)
 find_package(OpenSSL REQUIRED)
+
+
+# Create Imported CMake Target Alias for blackbox::blackbox
+if(NOT TARGET blackbox::blackbox)
+    add_library(blackbox::blackbox SHARED IMPORTED)
+    set_target_properties(blackbox::blackbox PROPERTIES
+        IMPORTED_LOCATION "${BLACKBOX_LIB}"
+        INTERFACE_INCLUDE_DIRECTORIES "/usr/local/include"
+    )
+endif()
 
 # Source Files
 set(SENTINEL_SOURCES
