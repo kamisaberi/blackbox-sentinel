@@ -24,6 +24,7 @@ find_package(OpenSSL REQUIRED)
 # Source Files
 set(SENTINEL_SOURCES
     src/main.cpp
+    src/plugin_manager.cpp       # <--- ADDED PLUGIN MANAGER
     src/api/auth_manager.cpp
     src/api/rest_controller.cpp
     src/hardware/hw_monitor.cpp
