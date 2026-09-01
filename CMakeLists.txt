@@ -60,7 +60,7 @@ endmacro()
 
 
 # ----------------------------------------------------
-# BUILD ALL COMMERCIAL PLUGINS (.so files)
+# BUILD ALL 30 COMMERCIAL PLUGINS (.so files)
 # ----------------------------------------------------
 add_sentinel_plugin(sentinel_plugin_scada_modbus src/plugins/scada_modbus_plugin.cpp)
 add_sentinel_plugin(sentinel_plugin_active_deception src/plugins/active_deception_plugin.cpp)
@@ -76,6 +76,22 @@ add_sentinel_plugin(sentinel_plugin_ais_maritime src/plugins/ais_maritime_plugin
 add_sentinel_plugin(sentinel_plugin_rtsp_correlator src/plugins/rtsp_vision_correlator_plugin.cpp)
 add_sentinel_plugin(sentinel_plugin_gpio_siren src/plugins/gpio_siren_plugin.cpp)
 add_sentinel_plugin(sentinel_plugin_dicom_medical src/plugins/dicom_medical_plugin.cpp)
+add_sentinel_plugin(sentinel_plugin_bacnet src/plugins/bacnet_inspector_plugin.cpp)
+add_sentinel_plugin(sentinel_plugin_ad_correlator src/plugins/ad_correlator_plugin.cpp)
+add_sentinel_plugin(sentinel_plugin_webhook src/plugins/webhook_dispatcher_plugin.cpp)
+add_sentinel_plugin(sentinel_plugin_plc_decoy src/plugins/plc_decoy_plugin.cpp)
+add_sentinel_plugin(sentinel_plugin_evidence_locker src/plugins/evidence_locker_plugin.cpp)
+add_sentinel_plugin(sentinel_plugin_memory_dump src/plugins/memory_dump_plugin.cpp)
+add_sentinel_plugin(sentinel_plugin_auditd_reconstructor src/plugins/auditd_reconstructor_plugin.cpp)
+add_sentinel_plugin(sentinel_plugin_admin_portal_trap src/plugins/admin_portal_trap_plugin.cpp)
+add_sentinel_plugin(sentinel_plugin_canary_file src/plugins/canary_file_plugin.cpp)
+add_sentinel_plugin(sentinel_plugin_stanag_link16 src/plugins/stanag_link16_plugin.cpp)
+add_sentinel_plugin(sentinel_plugin_eta_traffic src/plugins/eta_traffic_plugin.cpp)
+add_sentinel_plugin(sentinel_plugin_ueba_analytics src/plugins/ueba_analytics_plugin.cpp)
+add_sentinel_plugin(sentinel_plugin_dns_tunneling src/plugins/dns_tunneling_plugin.cpp)
+add_sentinel_plugin(sentinel_plugin_onvif_tamper src/plugins/onvif_tamper_plugin.cpp)
+add_sentinel_plugin(sentinel_plugin_nmea_marine src/plugins/nmea_marine_plugin.cpp)
+add_sentinel_plugin(sentinel_plugin_hl7_hospital src/plugins/hl7_hospital_plugin.cpp)
 
 # Installation Rules
 install(TARGETS 
