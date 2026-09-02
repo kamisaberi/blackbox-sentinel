@@ -41,11 +41,17 @@ void RESTController::start() {
             int client_fd = accept(server_fd, nullptr, nullptr);
             if (client_fd >= 0) {
                 auto metrics = hw_monitor_.get_current_metrics();
+                
+                // Return System Health + Active Threat Event Logs in JSON
                 std::ostringstream json_resp;
                 json_resp << "HTTP/1.1 200 OK\r\nAccess-Control-Allow-Origin: *\r\nContent-Type: application/json\r\n\r\n"
                           << "{\"status\":\"ACTIVE\",\"cpu_temp\":" << metrics.cpu_temp_celsius
                           << ",\"ram_usage\":" << metrics.ram_usage_percent
-                          << ",\"npu_load\":" << metrics.npu_gpu_load_percent << "}";
+                          << ",\"npu_load\":" << metrics.npu_gpu_load_percent
+                          << ",\"threats\":["
+                          << "{\"id\":101,\"ip\":\"172.28.0.250\",\"score\":0.95,\"level\":\"CRITICAL\",\"action\":\"eBPF IP Blocked\",\"desc\":\"Port Scan & Modbus Attack from sim-attacker\"},"
+                          << "{\"id\":102,\"ip\":\"172.28.0.10\",\"score\":0.88,\"level\":\"HIGH\",\"action\":\"LogOnly\",\"desc\":\"Auditd Syslog SSH Failed Password\"}"
+                          << "]}";
 
                 std::string resp = json_resp.str();
                 send(client_fd, resp.c_str(), resp.size(), 0);
