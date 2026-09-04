@@ -7,15 +7,14 @@
     "enable_tls": false
   },
   "ai_engine": {
-    "comment": "Supported Targets: TensorRT, OpenVINO, RKNN, VitisAI, QNN, CoreML, Hailo, EdgeTPU, etc.",
     "xinfer_target": "OpenVINO",
-    "model_path": "version-RFB-320.onnx",
+    "model_path": "models/version-RFB-320.onnx",
     "input_tensor_name": "input",
     "output_tensor_name": "scores",
     "anomaly_threshold": 0.85
   },
   "ingestion": {
-    "network_interface": "eth0",
+    "network_interface": "ens33",
     "enable_ebpf_xdp": true,
     "syslog_port": 514
   },
