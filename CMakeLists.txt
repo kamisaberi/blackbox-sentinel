@@ -51,6 +51,7 @@ set(SENTINEL_SOURCES
     src/plugin_manager.cpp       # <--- ADDED PLUGIN MANAGER
     src/api/auth_manager.cpp
     src/api/rest_controller.cpp
+    src/api/ws_streamer.cpp
     src/hardware/hw_monitor.cpp
     src/hardware/tpm_license.cpp
     src/exporter/report_generator.cpp
