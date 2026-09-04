@@ -68,9 +68,7 @@ void RESTController::start() {
 
             std::string response;
 
-            // =============================================================
-            // 1. REST API ROUTING
-            // =============================================================
+            // 1. REST API Routing
             if (path == "/api/v1/system-health") {
                 auto metrics = hw_monitor_.get_current_metrics();
                 std::ostringstream json;
@@ -101,7 +99,6 @@ void RESTController::start() {
                          + std::to_string(body.size()) + "\r\n\r\n" + body;
 
             } else if (path == "/api/v1/unblock-ip" && method == "POST") {
-                // Extract IP address from body if present
                 size_t ip_pos = request.find("\"ip_address\":\"");
                 if (ip_pos != std::string::npos) {
                     size_t start = ip_pos + 14;
@@ -115,27 +112,20 @@ void RESTController::start() {
                          + std::to_string(body.size()) + "\r\n\r\n" + body;
 
             } else if (path == "/api/v1/simulate-attack" && method == "POST") {
-                // Extract attack type
                 if (request.find("\"attack_type\":\"nmap\"") != std::string::npos) {
                     std::system("sudo docker exec -d sim-attacker-ddos nmap -sS -p 22,80,443,502,8443 172.30.0.1 >/dev/null 2>&1 &");
                 } else if (request.find("\"attack_type\":\"modbus\"") != std::string::npos) {
                     std::system("sudo docker exec -d sim-attacker-scada sh -c \"echo 'MALICIOUS_MODBUS' | nc -w 1 172.30.0.1 502\" >/dev/null 2>&1 &");
                 } else if (request.find("\"attack_type\":\"ssh\"") != std::string::npos) {
                     std::system("sudo docker exec -d sim-attacker-bruteforce sh -c \"echo 'SSH_BRUTE' | nc -w 1 172.30.0.1 22\" >/dev/null 2>&1 &");
-                } else if (request.find("\"attack_type\":\"multi\"") != std::string::npos) {
-                    std::system("./scripts/massive_stress_test.sh >/dev/null 2>&1 &");
                 }
                 std::string body = "{\"status\":\"attack_triggered\"}";
                 response = "HTTP/1.1 200 OK\r\nAccess-Control-Allow-Origin: *\r\nContent-Type: application/json\r\nContent-Length: " 
                          + std::to_string(body.size()) + "\r\n\r\n" + body;
 
-            // =============================================================
-            // 2. STATIC FILE SERVING (Serves the web/ folder to browser)
-            // =============================================================
+            // 2. Static Web UI File Serving
             } else {
                 std::string file_path = "web" + (path == "/" ? "/index.html" : path);
-
-                // Fallback check if running from build directory
                 if (!std::filesystem::exists(file_path)) {
                     file_path = "../web" + (path == "/" ? "/index.html" : path);
                 }
