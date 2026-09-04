@@ -2,49 +2,154 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Blackbox Sentinel Command Center</title>
-    <link rel="stylesheet" href="assets/style.css">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Blackbox Sentinel™ | Command Center</title>
+    <link rel="stylesheet" href="css/theme.css">
+    <link rel="stylesheet" href="css/components.css">
+    <link rel="stylesheet" href="css/dashboard.css">
 </head>
 <body>
-    <div class="sidebar">
-        <h2>SENTINEL™</h2>
-        <ul>
-            <li class="active">Dashboard</li>
-            <li>Threat Logs</li>
-            <li>eBPF Firewall</li>
-            <li>Rules Editor</li>
-            <li>Compliance Exporter</li>
-        </ul>
-    </div>
-    <div class="main-content">
-        <header>
-            <h1>Air-Gapped Active Threat Defense Node</h1>
-            <div id="license-badge">TPM 2.0 LICENSED</div>
-        </header>
-
-        <div class="metrics-grid">
-            <div class="card">
-                <h3>CPU Temp</h3>
-                <p id="cpu-temp">42.0 °C</p>
-            </div>
-            <div class="card">
-                <h3>RAM Usage</h3>
-                <p id="ram-usage">25.0 %</p>
-            </div>
-            <div class="card">
-                <h3>NPU/GPU Load</h3>
-                <p id="npu-load">28.5 %</p>
-            </div>
+    <!-- Top Navigation & Control Bar -->
+    <header class="app-header">
+        <div class="brand">
+            <div class="logo-shield"></div>
+            <h1>BLACKBOX SENTINEL<span class="tm">™</span></h1>
+            <span class="badge badge-sub">ACTIVE DEFENSE</span>
         </div>
-
-        <div class="threat-feed">
-            <h2>Real-Time Active Threat Feed (libblackbox.so)</h2>
-            <div id="log-console">
-                <p class="info">[SYSTEM] Blackbox Sentinel Appliance Operational on port 8443.</p>
-                <p class="critical">[ALERT] eBPF Dropped Packet from Malicious IP: 192.168.1.250 (Latency: 0.18 us)</p>
+        <div class="header-controls">
+            <div class="status-indicator">
+                <span id="engine-status-dot" class="dot dot-online"></span>
+                <span id="engine-status-text">OPERATIONAL</span>
             </div>
+            <button id="btn-engine-toggle" class="btn btn-danger">STOP ENGINE</button>
+            <div class="tpm-pill">TPM 2.0 ENCRYPTED</div>
         </div>
-    </div>
-    <script src="js/dashboard.js"></script>
+    </header>
+
+    <!-- Main Dashboard Container -->
+    <main class="dashboard-container">
+        
+        <!-- Hardware Telemetry & Health Metrics -->
+        <section class="metrics-grid">
+            <div class="card metric-card">
+                <span class="card-title">CPU TEMPERATURE</span>
+                <div class="metric-value-wrapper">
+                    <span id="metric-cpu-temp" class="metric-value">42.0</span>
+                    <span class="metric-unit">°C</span>
+                </div>
+                <div class="progress-bar-bg"><div id="progress-cpu" class="progress-bar-fill" style="width: 42%;"></div></div>
+            </div>
+
+            <div class="card metric-card">
+                <span class="card-title">SYSTEM MEMORY (RAM)</span>
+                <div class="metric-value-wrapper">
+                    <span id="metric-ram-usage" class="metric-value">24.8</span>
+                    <span class="metric-unit">%</span>
+                </div>
+                <div class="progress-bar-bg"><div id="progress-ram" class="progress-bar-fill" style="width: 25%;"></div></div>
+            </div>
+
+            <div class="card metric-card">
+                <span class="card-title">ACCELERATOR / NPU LOAD</span>
+                <div class="metric-value-wrapper">
+                    <span id="metric-npu-load" class="metric-value">28.5</span>
+                    <span class="metric-unit">%</span>
+                </div>
+                <div class="progress-bar-bg"><div id="progress-npu" class="progress-bar-fill" style="width: 29%;"></div></div>
+            </div>
+
+            <div class="card metric-card">
+                <span class="card-title">ACTIVE AI RUNTIME</span>
+                <div class="metric-value-wrapper">
+                    <span id="metric-platform" class="metric-platform">Intel OpenVINO</span>
+                </div>
+                <span class="metric-sub">Zero-Copy C++20 Runtime</span>
+            </div>
+        </section>
+
+        <!-- Interactive Attack Simulator Control Panel -->
+        <section class="card simulator-card">
+            <div class="card-header-bar">
+                <span class="card-header-title">INTERACTIVE ATTACK SIMULATION PANEL (EVALUATION TESTBED)</span>
+                <span class="badge badge-info">TEST CONTROLLER</span>
+            </div>
+            <div class="simulator-actions">
+                <button id="sim-btn-nmap" class="btn btn-sim">SIMULATE PORT SCAN</button>
+                <button id="sim-btn-modbus" class="btn btn-sim">SIMULATE MODBUS SABOTAGE</button>
+                <button id="sim-btn-ssh" class="btn btn-sim">SIMULATE SSH BRUTE FORCE</button>
+                <button id="sim-btn-multi" class="btn btn-sim-danger">MULTI-VECTOR ASSAULT</button>
+                <button id="sim-btn-stop" class="btn btn-secondary">STOP ALL ATTACKS</button>
+            </div>
+        </section>
+
+        <!-- Live Threat Feed Console (Sub-Millisecond Telemetry) -->
+        <section class="card console-card">
+            <div class="card-header-bar">
+                <span class="card-header-title">REAL-TIME THREAT DETECTION & INGESTION CONSOLE (libblackbox.so)</span>
+                <div class="console-controls">
+                    <button id="btn-clear-console" class="btn btn-sm btn-secondary">CLEAR LOGS</button>
+                    <label class="toggle-label">
+                        <input type="checkbox" id="chk-autoscroll" checked>
+                        <span>AUTO-SCROLL</span>
+                    </label>
+                </div>
+            </div>
+            <div id="live-threat-console" class="console-body">
+                <div class="log-line log-info">
+                    <span class="log-ts">[INITIALIZATION]</span>
+                    <span class="log-tag tag-info">SYSTEM</span>
+                    <span class="log-msg">Blackbox Sentinel Daemon connected. Ingestion queues active.</span>
+                </div>
+            </div>
+        </section>
+
+        <!-- Active eBPF Kernel Blocked IP Table -->
+        <section class="card table-card">
+            <div class="card-header-bar">
+                <span class="card-header-title">ACTIVE eBPF / XDP KERNEL BLOCKED IP ADDRESSES</span>
+                <div class="table-actions">
+                    <input type="text" id="input-manual-ip" class="input-dark" placeholder="Enter IP address to block...">
+                    <button id="btn-manual-block" class="btn btn-danger btn-sm">MANUAL eBPF DROP</button>
+                </div>
+            </div>
+            <div class="table-wrapper">
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>IP ADDRESS</th>
+                            <th>TIMESTAMP (UTC)</th>
+                            <th>TRIGGER REASON</th>
+                            <th>KERNEL STATUS</th>
+                            <th>ACTION</th>
+                        </tr>
+                    </thead>
+                    <tbody id="ebpf-table-body">
+                        <!-- Dynamic rows populated via JS -->
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+        <!-- Compliance & Export Footer Controls -->
+        <section class="compliance-bar">
+            <span class="compliance-title">AIR-GAPPED COMPLIANCE & FORENSICS</span>
+            <div class="compliance-buttons">
+                <button id="btn-export-cmmc" class="btn btn-outline">EXPORT CMMC LEVEL 2 REPORT (PDF)</button>
+                <button id="btn-export-pcap" class="btn btn-outline">EXPORT FORENSIC AUDIT (CSV)</button>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- Scripts -->
+    <script src="js/api.js"></script>
+    <script src="js/websocket.js"></script>
+    <script src="js/controllers/engine_control.js"></script>
+    <script src="js/controllers/threat_console.js"></script>
+    <script src="js/controllers/ebpf_table.js"></script>
+    <script src="js/controllers/simulator.js"></script>
+    <script src="js/controllers/metrics_gauge.js"></script>
+    <script src="js/controllers/compliance.js"></script>
+    <script src="js/app.js"></script>
 </body>
 </html>
