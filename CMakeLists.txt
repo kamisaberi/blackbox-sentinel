@@ -32,6 +32,8 @@ find_library(BLACKBOX_LIB blackbox REQUIRED PATHS /usr/local/lib /usr/lib)
 find_library(XINFER_LIB xinfer REQUIRED PATHS /usr/local/lib /usr/lib)
 find_library(SQLITE3_LIB sqlite3 REQUIRED)
 find_package(OpenSSL REQUIRED)
+find_library(BPF_LIB bpf REQUIRED)
+find_library(ELF_LIB elf REQUIRED)
 
 
 # Create Imported CMake Target Alias for blackbox::blackbox
