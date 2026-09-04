@@ -65,7 +65,10 @@ target_link_libraries(sentinel PRIVATE
     ${BLACKBOX_LIB}
     ${XINFER_LIB}
     ${SQLITE3_LIB}
-    ${CMAKE_DL_LIBS}               # <--- LINKED DYNAMIC LOADING (-ldl)
+    ${BPF_LIB}
+    ${ELF_LIB}
+    z
+    ${CMAKE_DL_LIBS}
     OpenSSL::SSL
     OpenSSL::Crypto
     Threads::Threads
