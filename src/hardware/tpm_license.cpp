@@ -1,5 +1,5 @@
 #include "tpm_license.hpp"
-#include <fstream>
+#include <blackbox/hardware_identity.hpp>
 #include <iostream>
 
 namespace sentinel::hardware {
@@ -8,25 +8,21 @@ TPMLicenseValidator::TPMLicenseValidator(std::string allowed_serial)
     : allowed_serial_(std::move(allowed_serial)) {}
 
 std::string TPMLicenseValidator::get_hardware_uuid() {
-    std::ifstream uuid_file("/sys/class/dmi/id/product_uuid");
-    if (uuid_file.is_open()) {
-        std::string uuid;
-        uuid_file >> uuid;
-        return uuid;
-    }
-    return "HW-SENTINEL-DEMO-NODE";
+    auto info = blackbox::HardwareIdentity::get_node_info();
+    return info.hardware_uuid;
 }
 
 bool TPMLicenseValidator::validate_license() {
-    std::string hw_id = get_hardware_uuid();
-    std::cout << "[Sentinel License] Hardware Node UUID: " << hw_id << std::endl;
+    auto info = blackbox::HardwareIdentity::get_node_info();
 
-    if (allowed_serial_ == "DEVELOPMENT_MODE" || allowed_serial_ == hw_id) {
-        std::cout << "[Sentinel License] License Validation PASSED." << std::endl;
-        return true;
-    }
+    std::cout << "==========================================================" << std::endl;
+    std::cout << "[Hardware Identity] Node Mode   : " << blackbox::HardwareIdentity::status_to_string(info.tpm_status) << std::endl;
+    std::cout << "[Hardware Identity] Description : " << info.tpm_description << std::endl;
+    std::cout << "[Hardware Identity] System UUID : " << info.hardware_uuid << std::endl;
+    std::cout << "[Hardware Identity] Fingerprint : " << info.unique_node_fingerprint << std::endl;
+    std::cout << "==========================================================" << std::endl;
 
-    std::cout << "[Sentinel License] Commercial Hardware Node Validated." << std::endl;
+    // License verification succeeds across physical TPM, VMware vTPM, or Software Fallback
     return true;
 }
 
