@@ -28,3 +28,7 @@ For an operational commercial deployment, start with these **three pre-trained m
 1. **Network Threat Model:** `darkknight25/ddos_xgboost_onnx` (Direct ONNX, requires zero training, detects volumetric attacks and port scans).
 2. **Perimeter Vision Model:** `yolo11n.onnx` (Official Ultralytics, detects intruders, vehicles, and weapons at 100+ FPS).
 3. **Facial Access Control Model:** `version-RFB-320.onnx` (Official ONNX Model Zoo, 1.27\,MB binary, verified working in your testbed).
+
+
+
+
