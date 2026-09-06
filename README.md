@@ -92,9 +92,9 @@ Blackbox Sentinel supports dynamic `.so` plugins loaded via `SentinelPluginManag
 | **09** | `sentinel_plugin_llm_summarizer` | `llm_summarizer_plugin.cpp` | Enterprise Pack | Runs local quantized LLMs via `xinfer` to write air-gapped incident summaries. |
 | **10** | `sentinel_plugin_mavlink` | `mavlink_inspector_plugin.cpp` | Defense & UAV Pack | Decodes MAVLink drone streams; flags GPS spoofing, jamming, and control hijacking. |
 | **11** | `sentinel_plugin_s7comm` | `s7comm_opcua_plugin.cpp` | Industrial OT Pack | Detects unauthorized Siemens S7 ladder-logic uploads and OPC UA browsing. |
-| **12** | `sentinel_plugin_gpio_siren` | `src/plugins/gpio_siren_plugin.cpp` | Facilities Pack | Actuates physical sirens, strobe lights, and door locks upon critical threat events. |
-| **13** | `sentinel_plugin_eta_traffic` | `src/plugins/eta_traffic_plugin.cpp` | Enterprise Pack | Identifies malware in encrypted TLS traffic using packet size and timing signatures. |
-| **14** | `sentinel_plugin_ueba_analytics` | `src/plugins/ueba_analytics_plugin.cpp` | Enterprise Pack | Establishes statistical baselines for users; flags off-hours data exfiltration. |
+| **12** | `sentinel_plugin_gpio_siren` | `gpio_siren_plugin.cpp` | Facilities Pack | Actuates physical sirens, strobe lights, and door locks upon critical threat events. |
+| **13** | `sentinel_plugin_eta_traffic` | `eta_traffic_plugin.cpp` | Enterprise Pack | Identifies malware in encrypted TLS traffic using packet size and timing signatures. |
+| **14** | `sentinel_plugin_ueba_analytics` | `ueba_analytics_plugin.cpp` | Enterprise Pack | Establishes statistical baselines for users; flags off-hours data exfiltration. |
 | **15** | `sentinel_plugin_ad_correlator` | `src/plugins/ad_correlator_plugin.cpp` | Enterprise Pack | Maps raw IP/MAC addresses to Active Directory usernames and Kerberos tickets. |
 | **16** | `sentinel_plugin_dns_tunneling` | `src/plugins/dns_tunneling_plugin.cpp` | Enterprise Pack | Detects C2 communications hidden inside DNS queries using domain entropy models. |
 | **17** | `sentinel_plugin_stanag_link16` | `src/plugins/stanag_link16_plugin.cpp` | Defense & UAV Pack | Validates NATO STANAG 4586 and Link 16 tactical data links for message corruption. |
