@@ -84,11 +84,11 @@ Blackbox Sentinel supports dynamic `.so` plugins loaded via `SentinelPluginManag
 | **01** | `sentinel_plugin_scada_modbus` | `scada_modbus_plugin.cpp` | Industrial OT Pack | Decodes Modbus TCP function codes; drops unauthorized coil/register writes. |
 | **02** | `sentinel_plugin_active_deception`| `active_deception_plugin.cpp` | Enterprise Pack | Emulates decoy ports (2222, 23, 8080); interaction triggers instant eBPF drop. |
 | **03** | `sentinel_plugin_pcap_carver` | `pcap_carver_plugin.cpp` | Enterprise Pack | Carves 60-second raw PCAP window before/after high-severity alerts into an evidence file. |
-| **04** | `sentinel_plugin_dnp3_grid` | `src/plugins/dnp3_grid_plugin.cpp` | Industrial OT Pack | Inspects DNP3 and IEC 60870-5-104 substation telemetry on ports 20000/2404. |
-| **05** | `sentinel_plugin_rtsp_correlator` | `src/plugins/rtsp_vision_correlator_plugin.cpp`| Facilities Pack | Correlates YOLO camera bounding box events with network anomalies in $<1\,\text{ms}$. |
-| **06** | `sentinel_plugin_profinet` | `src/plugins/profinet_inspector_plugin.cpp` | Industrial OT Pack | Inspects real-time PROFINET and EtherNet/IP communications in assembly lines. |
-| **07** | `sentinel_plugin_cef_forwarder` | `src/plugins/cef_forwarder_plugin.cpp` | Enterprise Pack | Streams normalized threat alerts upstream to central Splunk/QRadar clusters over TLS. |
-| **08** | `sentinel_plugin_firewall_sync` | `src/plugins/firewall_sync_plugin.cpp` | Enterprise Pack | Pushes eBPF blocked IP lists to external Palo Alto / Fortinet firewalls via REST API. |
+| **04** | `sentinel_plugin_dnp3_grid` | `dnp3_grid_plugin.cpp` | Industrial OT Pack | Inspects DNP3 and IEC 60870-5-104 substation telemetry on ports 20000/2404. |
+| **05** | `sentinel_plugin_rtsp_correlator` | `rtsp_vision_correlator_plugin.cpp`| Facilities Pack | Correlates YOLO camera bounding box events with network anomalies in $<1\,\text{ms}$. |
+| **06** | `sentinel_plugin_profinet` | `profinet_inspector_plugin.cpp` | Industrial OT Pack | Inspects real-time PROFINET and EtherNet/IP communications in assembly lines. |
+| **07** | `sentinel_plugin_cef_forwarder` | `cef_forwarder_plugin.cpp` | Enterprise Pack | Streams normalized threat alerts upstream to central Splunk/QRadar clusters over TLS. |
+| **08** | `sentinel_plugin_firewall_sync` | `firewall_sync_plugin.cpp` | Enterprise Pack | Pushes eBPF blocked IP lists to external Palo Alto / Fortinet firewalls via REST API. |
 | **09** | `sentinel_plugin_llm_summarizer` | `src/plugins/llm_summarizer_plugin.cpp` | Enterprise Pack | Runs local quantized LLMs via `xinfer` to write air-gapped incident summaries. |
 | **10** | `sentinel_plugin_mavlink` | `src/plugins/mavlink_inspector_plugin.cpp` | Defense & UAV Pack | Decodes MAVLink drone streams; flags GPS spoofing, jamming, and control hijacking. |
 | **11** | `sentinel_plugin_s7comm` | `src/plugins/s7comm_opcua_plugin.cpp` | Industrial OT Pack | Detects unauthorized Siemens S7 ladder-logic uploads and OPC UA browsing. |
