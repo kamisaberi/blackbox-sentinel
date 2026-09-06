@@ -101,9 +101,9 @@ Blackbox Sentinel supports dynamic `.so` plugins loaded via `SentinelPluginManag
 | **18** | `sentinel_plugin_ais_maritime` | `ais_maritime_plugin.cpp` | Defense & UAV Pack | Monitors AIS vessel position telemetry to detect spoofing and dark fleet activity. |
 | **19** | `sentinel_plugin_bacnet` | `bacnet_inspector_plugin.cpp` | Industrial OT Pack | Monitors BACnet IP protocols controlling HVAC, elevators, and building access. |
 | **20** | `sentinel_plugin_webhook` | `webhook_dispatcher_plugin.cpp` | Enterprise Pack | Dispatches real-time incident payloads to PagerDuty, Slack, Teams, or webhooks. |
-| **21** | `sentinel_plugin_plc_decoy` | `src/plugins/plc_decoy_plugin.cpp` | Industrial OT Pack | Emulates Siemens or Rockwell PLCs on unused IPs to lure and trap industrial attackers. |
-| **22** | `sentinel_plugin_evidence_locker`| `src/plugins/evidence_locker_plugin.cpp` | Defense & UAV Pack | Signs forensic evidence files with SHA-256 and Ed25519 for legal chain-of-custody. |
-| **23** | `sentinel_plugin_memory_dump` | `src/plugins/memory_dump_plugin.cpp` | Enterprise Pack | Triggers volatile RAM memory dumps of compromised host processes on critical alerts. |
+| **21** | `sentinel_plugin_plc_decoy` | `plc_decoy_plugin.cpp` | Industrial OT Pack | Emulates Siemens or Rockwell PLCs on unused IPs to lure and trap industrial attackers. |
+| **22** | `sentinel_plugin_evidence_locker`| `evidence_locker_plugin.cpp` | Defense & UAV Pack | Signs forensic evidence files with SHA-256 and Ed25519 for legal chain-of-custody. |
+| **23** | `sentinel_plugin_memory_dump` | `memory_dump_plugin.cpp` | Enterprise Pack | Triggers volatile RAM memory dumps of compromised host processes on critical alerts. |
 | **24** | `sentinel_plugin_auditd_reconstructor`| `src/plugins/auditd_reconstructor_plugin.cpp`| Enterprise Pack | Reconstructs process parentage and file modifications from Linux Auditd streams. |
 | **25** | `sentinel_plugin_admin_portal_trap`| `src/plugins/admin_portal_trap_plugin.cpp`| Enterprise Pack | Serves fake router/firewall login portals; unauthorized login attempts trigger eBPF drops. |
 | **26** | `sentinel_plugin_canary_file` | `src/plugins/canary_file_plugin.cpp` | Enterprise Pack | Places fake token files on servers; alerts and isolates processes when accessed. |
