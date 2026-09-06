@@ -95,9 +95,9 @@ Blackbox Sentinel supports dynamic `.so` plugins loaded via `SentinelPluginManag
 | **12** | `sentinel_plugin_gpio_siren` | `gpio_siren_plugin.cpp` | Facilities Pack | Actuates physical sirens, strobe lights, and door locks upon critical threat events. |
 | **13** | `sentinel_plugin_eta_traffic` | `eta_traffic_plugin.cpp` | Enterprise Pack | Identifies malware in encrypted TLS traffic using packet size and timing signatures. |
 | **14** | `sentinel_plugin_ueba_analytics` | `ueba_analytics_plugin.cpp` | Enterprise Pack | Establishes statistical baselines for users; flags off-hours data exfiltration. |
-| **15** | `sentinel_plugin_ad_correlator` | `src/plugins/ad_correlator_plugin.cpp` | Enterprise Pack | Maps raw IP/MAC addresses to Active Directory usernames and Kerberos tickets. |
-| **16** | `sentinel_plugin_dns_tunneling` | `src/plugins/dns_tunneling_plugin.cpp` | Enterprise Pack | Detects C2 communications hidden inside DNS queries using domain entropy models. |
-| **17** | `sentinel_plugin_stanag_link16` | `src/plugins/stanag_link16_plugin.cpp` | Defense & UAV Pack | Validates NATO STANAG 4586 and Link 16 tactical data links for message corruption. |
+| **15** | `sentinel_plugin_ad_correlator` | `ad_correlator_plugin.cpp` | Enterprise Pack | Maps raw IP/MAC addresses to Active Directory usernames and Kerberos tickets. |
+| **16** | `sentinel_plugin_dns_tunneling` | `dns_tunneling_plugin.cpp` | Enterprise Pack | Detects C2 communications hidden inside DNS queries using domain entropy models. |
+| **17** | `sentinel_plugin_stanag_link16` | `stanag_link16_plugin.cpp` | Defense & UAV Pack | Validates NATO STANAG 4586 and Link 16 tactical data links for message corruption. |
 | **18** | `sentinel_plugin_ais_maritime` | `src/plugins/ais_maritime_plugin.cpp` | Defense & UAV Pack | Monitors AIS vessel position telemetry to detect spoofing and dark fleet activity. |
 | **19** | `sentinel_plugin_bacnet` | `src/plugins/bacnet_inspector_plugin.cpp` | Industrial OT Pack | Monitors BACnet IP protocols controlling HVAC, elevators, and building access. |
 | **20** | `sentinel_plugin_webhook` | `src/plugins/webhook_dispatcher_plugin.cpp` | Enterprise Pack | Dispatches real-time incident payloads to PagerDuty, Slack, Teams, or webhooks. |
