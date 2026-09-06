@@ -108,9 +108,9 @@ Blackbox Sentinel supports dynamic `.so` plugins loaded via `SentinelPluginManag
 | **25** | `sentinel_plugin_admin_portal_trap`| `admin_portal_trap_plugin.cpp`| Enterprise Pack | Serves fake router/firewall login portals; unauthorized login attempts trigger eBPF drops. |
 | **26** | `sentinel_plugin_canary_file` | `canary_file_plugin.cpp` | Enterprise Pack | Places fake token files on servers; alerts and isolates processes when accessed. |
 | **27** | `sentinel_plugin_onvif_tamper` | `onvif_tamper_plugin.cpp` | Facilities Pack | Flags camera video blinding, signal cutting, or RTSP stream injection attacks. |
-| **28** | `sentinel_plugin_nmea_marine` | `src/plugins/nmea_marine_plugin.cpp` | Defense & UAV Pack | Protects ship navigation systems, gyros, and depth sounders from cyber manipulation. |
-| **29** | `sentinel_plugin_dicom_medical` | `src/plugins/dicom_medical_plugin.cpp` | Healthcare Pack | Inspects PACS hospital medical imaging protocols for ransomware and data tampering. |
-| **30** | `sentinel_plugin_hl7_hospital` | `src/plugins/hl7_hospital_plugin.cpp` | Healthcare Pack | Validates patient health records and medical IoT device data streams for zero-day attacks. |
+| **28** | `sentinel_plugin_nmea_marine` | `nmea_marine_plugin.cpp` | Defense & UAV Pack | Protects ship navigation systems, gyros, and depth sounders from cyber manipulation. |
+| **29** | `sentinel_plugin_dicom_medical` | `dicom_medical_plugin.cpp` | Healthcare Pack | Inspects PACS hospital medical imaging protocols for ransomware and data tampering. |
+| **30** | `sentinel_plugin_hl7_hospital` | `hl7_hospital_plugin.cpp` | Healthcare Pack | Validates patient health records and medical IoT device data streams for zero-day attacks. |
 
 ---
 
