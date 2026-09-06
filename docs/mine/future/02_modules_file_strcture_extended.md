@@ -1,260 +1,213 @@
-To add all major security capabilities (NDR, EDR, CWPP, WAF, UEBA, CPS-Sec, Deception, DFIR, ITDR, AI TRiSM) into **Blackbox Sentinel** without creating spaghetti code or merge conflicts, you must adopt a **Decoupled Event-Driven Micro-Kernel Architecture**.
-
-In this architecture:
-1. The **Sentinel Core** stays small and only manages system startup, the REST API, and the event routing bus.
-2. Every major capability is built inside its own **isolated, independent module folder (`src/modules/<feature>/`)**.
-3. **No module is permitted to include another module's headers directly.** All communication between modules happens through a thread-safe, lock-free **Event Bus**.
-4. Every feature can be independently turned **ON or OFF** in CMake using dedicated flags. If one module has a bug or missing dependency, the rest of the system still compiles and runs cleanly.
+Here is the complete, exhaustive master file structure for **Blackbox Sentinel**, detailing every single file across all 10 isolated modules, configuration directories, core orchestrator components, web command center assets, deployment scripts, and test suites.
 
 ---
 
-### Master File Structure for Modular Blackbox Sentinel
+### Master File Structure: `blackbox-sentinel/`
 
 ```text
 blackbox-sentinel/
-├── CMakeLists.txt                    # Root build script with modular feature toggles
-├── LICENSE                           # Commercial License
-├── README.md                         # Product Documentation
+├── CMakeLists.txt                               # Root build script with modular feature toggles
+├── LICENSE                                      # Commercial Enterprise License
+├── README.md                                    # Comprehensive Product Documentation
 │
-├── configs/                          # Configuration Files
-│   ├── sentinel_config.json          # Main appliance configuration
-│   └── modules/                      # Subsystem-specific configurations
-│       ├── ndr.json                  # Network detection thresholds
-│       ├── edr.json                  # Endpoint monitoring policies
-│       ├── cwpp.json                 # Container eBPF syscall rules
-│       ├── waf.json                  # Web API payload inspection rules
-│       ├── ueba.json                 # User baseline matrix settings
-│       ├── cps_ot.json               # Industrial SCADA/PLC physics thresholds
-│       ├── ddp.json                  # Honeypot decoy port bindings
-│       ├── dfir.json                 # Rolling PCAP memory buffer size
-│       ├── itdr.json                 # Active Directory / Kerberos rule definitions
-│       └── ai_trism.json             # LLM prompt firewall rules
+├── configs/                                     # System Configuration Files
+│   ├── sentinel_config.json                     # Main appliance configuration
+│   ├── default_rules.json                       # Global correlation rules
+│   └── modules/                                 # Subsystem-Specific JSON Configurations
+│       ├── ndr.json                             # NDR flow thresholds & ETA parameters
+│       ├── edr.json                             # Host agent monitoring policies
+│       ├── cwpp.json                            # Container eBPF syscall rules
+│       ├── waf.json                             # Web API payload inspection rules
+│       ├── ueba.json                            # User behavioral baseline thresholds
+│       ├── cps_ot.json                          # Industrial SCADA/PLC physics parameters
+│       ├── ddp.json                             # Honeypot decoy port bindings
+│       ├── dfir.json                            # Rolling PCAP memory buffer size
+│       ├── itdr.json                            # Active Directory / Kerberos rules
+│       └── ai_trism.json                        # LLM prompt firewall rules
 │
 ├── include/
-│   └── sentinel/                     # Public Framework Interfaces
-│       ├── sentinel.hpp              # Master include header
-│       ├── module_interface.hpp      # Unified abstract C++ interface for all modules
-│       ├── event_bus.hpp             # Decoupled thread-safe event publish/subscribe bus
-│       └── config_manager.hpp        # JSON configuration parser
+│   └── sentinel/                                # Public Framework & Interface Headers
+│       ├── sentinel.hpp                         # Master single-include product header
+│       ├── module_interface.hpp                 # ISentinelModule abstract interface
+│       ├── event_bus.hpp                        # Lock-free decoupled Pub/Sub Event Bus
+│       ├── config_manager.hpp                   # Dynamic JSON settings loader header
+│       ├── plugin.hpp                           # ISentinelPlugin commercial plugin interface
+│       └── plugin_manager.hpp                   # SentinelPluginManager dlopen loader header
 │
 ├── src/
-│   ├── main.cpp                      # Appliance entry point
+│   ├── main.cpp                                 # Sentinel Daemon main entry point
 │   │
-│   ├── core/                         # Core Daemon & Orchestration (Stays Lean & Untouched)
-│   │   ├── orchestrator.hpp          # Lifecycle coordinator
-│   │   ├── orchestrator.cpp          # Starts and stops modules dynamically
-│   │   ├── event_bus.cpp             # In-memory pub/sub router
-│   │   └── config_manager.cpp        # Global settings loader
+│   ├── core/                                    # Daemon Orchestration & Internal Bus
+│   │   ├── orchestrator.hpp                     # Master module lifecycle coordinator header
+│   │   ├── orchestrator.cpp                     # Starts and stops modules dynamically
+│   │   ├── event_bus.cpp                        # In-memory lock-free event bus implementation
+│   │   └── config_manager.cpp                   # Global JSON settings loader implementation
 │   │
-│   ├── api/                          # Management Server & Web UI Backend
-│   │   ├── auth_manager.hpp / .cpp   # User RBAC and token validation
-│   │   ├── rest_controller.hpp / .cpp# REST endpoints router
-│   │   └── ws_streamer.hpp / .cpp    # Real-time WebSocket incident pusher
+│   ├── api/                                     # Embedded Management Server & REST API
+│   │   ├── auth_manager.hpp                     # User authentication & RBAC header
+│   │   ├── auth_manager.cpp                     # JWT tokens & role validation implementation
+│   │   ├── rest_controller.hpp                  # REST API controller & file server header
+│   │   ├── rest_controller.cpp                  # REST endpoints & static web server implementation
+│   │   ├── ws_streamer.hpp                      # Real-time WebSocket streamer header
+│   │   └── ws_streamer.cpp                      # Live incident WebSocket broadcaster
 │   │
-│   ├── hardware/                     # Appliance Node Security & Health
-│   │   ├── hw_monitor.hpp / .cpp     # CPU temp, RAM, and NPU utilization
-│   │   └── tpm_license.hpp / .cpp    # TPM 2.0 / Hardware node identity
+│   ├── hardware/                                # Hardware Security & Telemetry
+│   │   ├── hw_monitor.hpp                       # CPU/GPU/NPU sensor monitor header
+│   │   ├── hw_monitor.cpp                       # Linux /proc telemetry implementation
+│   │   ├── tpm_license.hpp                      # TPM 2.0 / Hardware node identity header
+│   │   └── tpm_license.cpp                      # Adaptive TPM/vTPM/fallback validator
 │   │
-│   └── modules/                      # ISOLATED SUBSYSTEM MODULES (Zero Cross-Dependencies)
+│   ├── exporter/                                # Compliance & Forensic Audit Exporter
+│   │   ├── report_generator.hpp                 # CMMC / ISO 27001 report generator header
+│   │   └── report_generator.cpp                 # PDF & CSV compliance audit builder
+│   │
+│   └── modules/                                 # 10 ISOLATED SUBSYSTEM MODULES
 │       │
-│       ├── ndr/                      # [Module 1: NDR / NTA]
-│       │   ├── CMakeLists.txt        # Isolated module build rule
-│       │   ├── ndr_module.hpp        # Module lifecycle header
-│       │   ├── ndr_module.cpp        # Module registration
-│       │   └── flow_analyzer.cpp     # 10Gbps line-rate ETA & flow inspection
+│       ├── ndr/                                 # [Module 1: Network Detection & Response]
+│       │   ├── CMakeLists.txt                   # Module build configuration
+│       │   ├── ndr_module.hpp                   # NDR module lifecycle header
+│       │   ├── ndr_module.cpp                   # NDR module registration
+│       │   ├── flow_analyzer.hpp                # NetFlow / IPFIX flow inspector header
+│       │   ├── flow_analyzer.cpp                # 10Gbps flow feature builder implementation
+│       │   ├── eta_fingerprinter.hpp            # Encrypted Traffic Analysis header
+│       │   └── eta_fingerprinter.cpp            # TLS packet size/timing fingerprinter
 │       │
-│       ├── edr/                      # [Module 2: EDR / Endpoint Host Defense]
-│       │   ├── CMakeLists.txt
-│       │   ├── edr_module.hpp
-│       │   ├── edr_module.cpp
-│       │   ├── process_tracker.cpp   # Host process tree anomaly analyzer
-│       │   └── memory_scanner.cpp    # In-memory beacon hunter
+│       ├── edr/                                 # [Module 2: Endpoint Detection & Response]
+│       │   ├── CMakeLists.txt                   # Module build configuration
+│       │   ├── edr_module.hpp                   # EDR module lifecycle header
+│       │   ├── edr_module.cpp                   # EDR module registration
+│       │   ├── process_tracker.hpp              # Host process tree analyzer header
+│       │   ├── process_tracker.cpp              # Process execution tree tracker implementation
+│       │   ├── memory_scanner.hpp               # In-memory beacon hunter header
+│       │   ├── memory_scanner.cpp               # Volatile process memory inspector
+│       │   ├── file_integrity.hpp               # File integrity monitoring (FIM) header
+│       │   └── file_integrity.cpp               # Real-time file modification detector
 │       │
-│       ├── cwpp/                     # [Module 3: CWPP / Container eBPF Syscall Guard]
-│       │   ├── CMakeLists.txt
-│       │   ├── cwpp_module.hpp
-│       │   ├── cwpp_module.cpp
-│       │   └── syscall_evaluator.cpp # Kernel syscall tensor analyzer
+│       ├── cwpp/                                # [Module 3: Container eBPF Syscall Guard]
+│       │   ├── CMakeLists.txt                   # Module build configuration
+│       │   ├── cwpp_module.hpp                  # CWPP module lifecycle header
+│       │   ├── cwpp_module.cpp                  # CWPP module registration
+│       │   ├── syscall_evaluator.hpp            # Kernel syscall tensor evaluator header
+│       │   ├── syscall_evaluator.cpp            # eBPF kprobe/tracepoint tensor scorer
+│       │   ├── container_watcher.hpp            # Docker/K8s namespace monitor header
+│       │   └── container_watcher.cpp            # Container breakout detector implementation
 │       │
-│       ├── waf/                      # [Module 4: WAF / WAAP Web API Defense]
-│       │   ├── CMakeLists.txt
-│       │   ├── waf_module.hpp
-│       │   ├── waf_module.cpp
-│       │   └── http_payload_eval.cpp # Sub-millisecond SQLi/XSS tensor model
+│       ├── waf/                                 # [Module 4: Web App & API Defense]
+│       │   ├── CMakeLists.txt                   # Module build configuration
+│       │   ├── waf_module.hpp                   # WAF module lifecycle header
+│       │   ├── waf_module.cpp                   # WAF module registration
+│       │   ├── http_payload_eval.hpp            # HTTP payload evaluator header
+│       │   ├── http_payload_eval.cpp            # Sub-millisecond SQLi/XSS tensor scorer
+│       │   ├── api_logic_inspector.hpp          # API business logic inspector header
+│       │   └── api_logic_inspector.cpp          # BOLA/IDOR API exploit detector
 │       │
-│       ├── ueba/                     # [Module 5: UEBA / In-Memory Behavioral Analytics]
-│       │   ├── CMakeLists.txt
-│       │   ├── ueba_module.hpp
-│       │   ├── ueba_module.cpp
-│       │   └── behavior_matrix.cpp   # 100k+ concurrent entity state tracker
+│       ├── ueba/                                # [Module 5: Behavioral Analytics Engine]
+│       │   ├── CMakeLists.txt                   # Module build configuration
+│       │   ├── ueba_module.hpp                  # UEBA module lifecycle header
+│       │   ├── ueba_module.cpp                  # UEBA module registration
+│       │   ├── behavior_matrix.hpp              # In-memory user state matrix header
+│       │   ├── behavior_matrix.cpp              # 100k+ concurrent user tracker implementation
+│       │   ├── anomaly_scorer.hpp               # Statistical deviation calculator header
+│       │   └── anomaly_scorer.cpp               # Gaussian/LSTM anomaly scorer implementation
 │       │
-│       ├── cps_ot/                   # [Module 6: CPS-Sec / Industrial SCADA Defense]
-│       │   ├── CMakeLists.txt
-│       │   ├── cps_module.hpp
-│       │   ├── cps_module.cpp
-│       │   └── physics_validator.cpp # Modbus/DNP3 equipment physics limits
+│       ├── cps_ot/                              # [Module 6: Industrial SCADA Defense]
+│       │   ├── CMakeLists.txt                   # Module build configuration
+│       │   ├── cps_module.hpp                   # CPS module lifecycle header
+│       │   ├── cps_module.cpp                   # CPS module registration
+│       │   ├── physics_validator.hpp            # Physical process constraint validator header
+│       │   ├── physics_validator.cpp            # Pressure/RPM physics limits evaluator
+│       │   ├── modbus_parser.hpp                # Modbus TCP protocol parser header
+│       │   ├── modbus_parser.cpp                # Modbus function code inspector implementation
+│       │   ├── dnp3_parser.hpp                  # DNP3 substation protocol parser header
+│       │   └── dnp3_parser.cpp                  # DNP3 command validator implementation
 │       │
-│       ├── ddp/                      # [Module 7: DDP / Active Deception Honeypots]
-│       │   ├── CMakeLists.txt
-│       │   ├── ddp_module.hpp
-│       │   ├── ddp_module.cpp
-│       │   └── decoy_ports.cpp       # Fake PLC, SSH, & Web trap listeners
+│       ├── ddp/                                 # [Module 7: Active Deception Honeypots]
+│       │   ├── CMakeLists.txt                   # Module build configuration
+│       │   ├── ddp_module.hpp                   # DDP module lifecycle header
+│       │   ├── ddp_module.cpp                   # DDP module registration
+│       │   ├── decoy_ports.hpp                  # Fake service listener header
+│       │   ├── decoy_ports.cpp                  # Emulated SSH/Telnet/Web trap implementation
+│       │   ├── honeypot_trap.hpp                # Honeypot alert dispatcher header
+│       │   └── honeypot_trap.cpp                # Instant eBPF trigger on decoy access
 │       │
-│       ├── dfir/                     # [Module 8: DFIR / Forensics & Evidence Carver]
-│       │   ├── CMakeLists.txt
-│       │   ├── dfir_module.hpp
-│       │   ├── dfir_module.cpp
-│       │   ├── pcap_ring_buffer.cpp  # Rolling 10GB pre/post-breach packet buffer
-│       │   └── evidence_signer.cpp   # SHA-256 / Ed25519 chain-of-custody signer
+│       ├── dfir/                                # [Module 8: Forensics & Evidence Carver]
+│       │   ├── CMakeLists.txt                   # Module build configuration
+│       │   ├── dfir_module.hpp                  # DFIR module lifecycle header
+│       │   ├── dfir_module.cpp                  # DFIR module registration
+│       │   ├── pcap_ring_buffer.hpp             # Rolling PCAP memory buffer header
+│       │   ├── pcap_ring_buffer.cpp             # 60s pre/post-breach packet buffer implementation
+│       │   ├── evidence_signer.hpp              # Chain-of-custody cryptographic signer header
+│       │   └── evidence_signer.cpp              # SHA-256 / Ed25519 evidence signature implementation
 │       │
-│       ├── itdr/                     # [Module 9: ITDR / Identity & Active Directory]
-│       │   ├── CMakeLists.txt
-│       │   ├── itdr_module.hpp
-│       │   ├── itdr_module.cpp
-│       │   └── kerberos_watcher.cpp  # Kerberoasting & privilege escalation detector
+│       ├── itdr/                                # [Module 9: Identity & Active Directory]
+│       │   ├── CMakeLists.txt                   # Module build configuration
+│       │   ├── itdr_module.hpp                  # ITDR module lifecycle header
+│       │   ├── itdr_module.cpp                  # ITDR module registration
+│       │   ├── kerberos_watcher.hpp             # Kerberos ticket inspector header
+│       │   ├── kerberos_watcher.cpp             # Kerberoasting & ticket manipulation detector
+│       │   ├── ad_analyzer.hpp                  # Active Directory event analyzer header
+│       │   └── ad_analyzer.cpp                  # Privilege escalation detector implementation
 │       │
-│       └── ai_trism/                 # [Module 10: AI TRiSM / LLM Prompt Firewall]
-│           ├── CMakeLists.txt
-│           ├── ai_trism_module.hpp
-│           ├── ai_trism_module.cpp
-│           └── prompt_sanitizer.cpp  # Sub-millisecond prompt injection filter
+│       └── ai_trism/                            # [Module 10: AI Prompt Firewall]
+│           ├── CMakeLists.txt                   # Module build configuration
+│           ├── ai_trism_module.hpp              # AI TRiSM module lifecycle header
+│           ├── ai_trism_module.cpp              # AI TRiSM module registration
+│           ├── prompt_sanitizer.hpp             # LLM prompt injection filter header
+│           ├── prompt_sanitizer.cpp             # Sub-millisecond prompt sanitizer implementation
+│           ├── leak_detector.hpp                # PII and API secret leak detector header
+│           └── leak_detector.cpp                # Output token stream inspector implementation
 │
-├── web/                              # Air-Gapped Web Command Center
-│   ├── index.html                    # Dashboard UI
-│   ├── css/                          # CSS stylesheets
-│   └── js/                           # Frontend controllers
+├── web/                                         # Air-Gapped Single-Page Web Application
+│   ├── index.html                               # Command center main layout
+│   ├── favicon.ico                              # Local browser icon
+│   │
+│   ├── assets/                                  # Static Visual Branding (Zero External CDNs)
+│   │   ├── logo.svg                             # Sentinel vector emblem
+│   │   └── icons.svg                            # Bundled SVG sprite map
+│   │
+│   ├── css/                                     # Modular Dark-Theme Stylesheets
+│   │   ├── theme.css                            # Global color tokens & typography
+│   │   ├── components.css                       # Buttons, badges, modals, and tables
+│   │   └── dashboard.css                        # Metrics gauges & live console styling
+│   │
+│   └── js/                                      # Modular JavaScript Controllers & Clients
+│       ├── app.js                               # Master application entry point
+│       ├── api.js                               # REST API client wrapper (port 8443)
+│       ├── websocket.js                         # WebSocket telemetry client (port 8444)
+│       │
+│       └── controllers/                         # Dedicated Feature Controllers
+│           ├── engine_control.js                # Start / Stop engine toggle controller
+│           ├── threat_console.js                # Real-time live threat feed renderer
+│           ├── ebpf_table.js                    # eBPF blocked IP table manager (1-click unblock)
+│           ├── simulator.js                     # Attack simulation trigger controller
+│           ├── metrics_gauge.js                 # Hardware telemetry gauge updater
+│           └── compliance.js                    # CMMC / ISO 27001 report downloader
 │
-└── deploy/                           # Deployment & Packaging
-    ├── install_appliance.sh          # Bare-metal installer
-    └── sentinel.service              # Linux systemd service unit
+├── deploy/                                      # Deployment Automation & System Services
+│   ├── install_appliance.sh                     # Bare-metal turnkey installer script
+│   ├── sentinel.service                         # Linux systemd service unit file
+│   │
+│   ├── docker/                                  # Multi-Device Simulation Environment
+│   │   └── docker-compose.massive.yml           # 12-container simulation testbed
+│   │
+│   └── scripts/                                 # Operational Management Scripts
+│       ├── launch_sentinel.sh                   # Startup wrapper script
+│       ├── stop_sentinel.sh                     # Graceful shutdown script
+│       ├── simulate_attack.sh                   # Quick attack test script
+│       ├── attack_console.py                    # Interactive attack controller console
+│       └── massive_stress_test.sh               # 100k+ EPS stress testing script
+│
+└── tests/                                       # Modular Test Suite & Benchmarks
+    ├── CMakeLists.txt                           # Tests build configuration
+    ├── test_orchestrator.cpp                    # Module orchestrator lifecycle test
+    ├── test_event_bus.cpp                       # Event bus concurrency and throughput test
+    └── benchmark_system.cpp                     # Full appliance microsecond latency benchmarker
 ```
 
 ---
 
-### How Conflict-Free Isolation Works in Code
+### Key Architectural Safeguards in this Structure
 
-#### 1. The Unified Module Contract (`include/sentinel/module_interface.hpp`)
-Every subsystem implements this exact C++ interface. Modules never talk to each other directly; they only implement this contract:
-
-```cpp
-#pragma once
-
-#include <blackbox/event.hpp>
-#include <string>
-
-namespace sentinel {
-
-enum class ModuleID {
-    NDR,      // Network Detection & Response
-    EDR,      // Endpoint Detection & Response
-    CWPP,     // Container eBPF Syscall Guard
-    WAF,      // Web App & API Protection
-    UEBA,     // User & Entity Behavior Analytics
-    CPS_OT,   // Industrial SCADA / Cyber-Physical
-    DDP,      // Active Deception / Honeypot
-    DFIR,     // Digital Forensics & PCAP Carver
-    ITDR,     // Identity Threat Detection
-    AI_TRISM  // LLM Prompt Firewall
-};
-
-class ISentinelModule {
-public:
-    virtual ~ISentinelModule() = default;
-
-    virtual ModuleID get_id() const = 0;
-    virtual const char* get_name() const = 0;
-
-    // Lifecycle
-    virtual bool initialize(const std::string& config_json) = 0;
-    virtual bool start() = 0;
-    virtual void stop() = 0;
-
-    // Event bus callback: Triggered asynchronously when an event flows through Sentinel
-    virtual void on_security_event(blackbox::SecurityEvent& event) = 0;
-
-    // Self-diagnostic check for UI health meters
-    virtual bool is_healthy() const = 0;
-};
-
-} // namespace sentinel
-```
-
-#### 2. The Decoupled Event Bus (`include/sentinel/event_bus.hpp`)
-If the **NDR module** detects a port scan and the **UEBA module** wants to correlate it with user login habits, NDR does **not** call UEBA. 
-
-Instead, NDR publishes an event to the `EventBus`. The `EventBus` delivers it to UEBA asynchronously via lock-free ring buffers:
-
-```cpp
-#pragma once
-
-#include "module_interface.hpp"
-#include <vector>
-#include <memory>
-#include <functional>
-
-namespace sentinel {
-
-class EventBus {
-public:
-    static EventBus& instance() {
-        static EventBus bus;
-        return bus;
-    }
-
-    // Modules subscribe to event streams
-    void subscribe(std::shared_ptr<ISentinelModule> module) {
-        subscribers_.push_back(module);
-    }
-
-    // Any module publishes events here without knowing who is listening
-    void publish(blackbox::SecurityEvent& event) {
-        for (auto& subscriber : subscribers_) {
-            subscriber->on_security_event(event);
-        }
-    }
-
-private:
-    std::vector<std::shared_ptr<ISentinelModule>> subscribers_;
-};
-
-} // namespace sentinel
-```
-
-#### 3. Root `CMakeLists.txt` Feature Toggles
-Each module can be turned on or off with a simple CMake flag. If you are developing the **NDR** module and someone else is modifying the **WAF** module, you can turn off WAF so it never interferes with your build:
-
-```cmake
-# Root CMakeLists.txt Module Feature Toggles
-option(SENTINEL_ENABLE_NDR      "Enable NDR / Network Traffic Analysis Module" ON)
-option(SENTINEL_ENABLE_EDR      "Enable EDR / Endpoint Host Monitoring Module" ON)
-option(SENTINEL_ENABLE_CWPP     "Enable CWPP / Container eBPF Syscall Guard"   ON)
-option(SENTINEL_ENABLE_WAF      "Enable WAF / Inline API Defense Module"       ON)
-option(SENTINEL_ENABLE_UEBA     "Enable UEBA / In-Memory Behavioral Matrix"    ON)
-option(SENTINEL_ENABLE_CPS_OT   "Enable CPS-Sec / Industrial SCADA Module"     ON)
-option(SENTINEL_ENABLE_DDP      "Enable DDP / Active Deception Honeypots"      ON)
-option(SENTINEL_ENABLE_DFIR     "Enable DFIR / Forensic Evidence Carver"       ON)
-option(SENTINEL_ENABLE_ITDR     "Enable ITDR / Active Directory Correlator"    ON)
-option(SENTINEL_ENABLE_AI_TRISM "Enable AI TRiSM / LLM Prompt Firewall"       ON)
-
-# Include modules conditionally
-if(SENTINEL_ENABLE_NDR)
-    add_subdirectory(src/modules/ndr)
-    list(APPEND SENTINEL_LINK_MODULES sentinel_ndr)
-endif()
-
-if(SENTINEL_ENABLE_CPS_OT)
-    add_subdirectory(src/modules/cps_ot)
-    list(APPEND SENTINEL_LINK_MODULES sentinel_cps_ot)
-endif()
-
-# The core appliance daemon only links enabled modules
-target_link_libraries(sentinel PRIVATE ${SENTINEL_LINK_MODULES})
-```
-
----
-
-### Benefits of This Structure
-
-1. **Zero Merge Conflicts:** Engineers can work on `src/modules/waf/` and `src/modules/cps_ot/` at the exact same time without touching each other's C++ code or header files.
-2. **Selective Deployment:** If a defense client wants a lightweight box without WAF or AI TRiSM, you simply disable those flags in CMake and produce a custom, hardened binary in seconds.
-3. **Rock-Solid Reliability:** If a new model or parser in `itdr/` throws an exception, the `EventBus` catches it safely, preventing the core daemon or the eBPF kernel packet dropper from crashing.
+1. **Self-Contained Module Folders (`src/modules/*/`):** Every module has its own `CMakeLists.txt`, lifecycle headers, and internal implementations. Deleting or disabling an entire module folder will not cause compilation errors in any other module.
+2. **Dedicated Configurations (`configs/modules/*.json`):** Individual JSON configuration files ensure that tuning thresholds for one subsystem (e.g. `ndr.json`) never corrupts settings for another (e.g. `cps_ot.json`).
+3. **Decoupled Event Bus (`include/sentinel/event_bus.hpp`):** Modules communicate strictly through asynchronous event publishing and subscriptions (`blackbox::SecurityEvent`), avoiding any direct header cross-inclusion.
