@@ -89,9 +89,9 @@ Blackbox Sentinel supports dynamic `.so` plugins loaded via `SentinelPluginManag
 | **06** | `sentinel_plugin_profinet` | `profinet_inspector_plugin.cpp` | Industrial OT Pack | Inspects real-time PROFINET and EtherNet/IP communications in assembly lines. |
 | **07** | `sentinel_plugin_cef_forwarder` | `cef_forwarder_plugin.cpp` | Enterprise Pack | Streams normalized threat alerts upstream to central Splunk/QRadar clusters over TLS. |
 | **08** | `sentinel_plugin_firewall_sync` | `firewall_sync_plugin.cpp` | Enterprise Pack | Pushes eBPF blocked IP lists to external Palo Alto / Fortinet firewalls via REST API. |
-| **09** | `sentinel_plugin_llm_summarizer` | `src/plugins/llm_summarizer_plugin.cpp` | Enterprise Pack | Runs local quantized LLMs via `xinfer` to write air-gapped incident summaries. |
-| **10** | `sentinel_plugin_mavlink` | `src/plugins/mavlink_inspector_plugin.cpp` | Defense & UAV Pack | Decodes MAVLink drone streams; flags GPS spoofing, jamming, and control hijacking. |
-| **11** | `sentinel_plugin_s7comm` | `src/plugins/s7comm_opcua_plugin.cpp` | Industrial OT Pack | Detects unauthorized Siemens S7 ladder-logic uploads and OPC UA browsing. |
+| **09** | `sentinel_plugin_llm_summarizer` | `llm_summarizer_plugin.cpp` | Enterprise Pack | Runs local quantized LLMs via `xinfer` to write air-gapped incident summaries. |
+| **10** | `sentinel_plugin_mavlink` | `mavlink_inspector_plugin.cpp` | Defense & UAV Pack | Decodes MAVLink drone streams; flags GPS spoofing, jamming, and control hijacking. |
+| **11** | `sentinel_plugin_s7comm` | `s7comm_opcua_plugin.cpp` | Industrial OT Pack | Detects unauthorized Siemens S7 ladder-logic uploads and OPC UA browsing. |
 | **12** | `sentinel_plugin_gpio_siren` | `src/plugins/gpio_siren_plugin.cpp` | Facilities Pack | Actuates physical sirens, strobe lights, and door locks upon critical threat events. |
 | **13** | `sentinel_plugin_eta_traffic` | `src/plugins/eta_traffic_plugin.cpp` | Enterprise Pack | Identifies malware in encrypted TLS traffic using packet size and timing signatures. |
 | **14** | `sentinel_plugin_ueba_analytics` | `src/plugins/ueba_analytics_plugin.cpp` | Enterprise Pack | Establishes statistical baselines for users; flags off-hours data exfiltration. |
