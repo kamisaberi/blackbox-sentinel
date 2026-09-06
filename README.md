@@ -79,11 +79,11 @@ Every major capability within Blackbox Sentinel is implemented as an independent
 
 Blackbox Sentinel supports dynamic `.so` plugins loaded via `SentinelPluginManager` using Linux `dlopen()`. These plugins provide protocol-specific inspectors, enterprise bridges, and forensic extensions without recompiling the core daemon.
 
-| # | Plugin Target Name | File Location | Add-On Package | Functional Description |
+| # | Plugin Target Name | File Location `(src/plugins/*)` | Add-On Package | Functional Description |
 | :-: | :--- | :--- | :--- | :--- |
-| **01** | `sentinel_plugin_scada_modbus` | `src/plugins/scada_modbus_plugin.cpp` | Industrial OT Pack | Decodes Modbus TCP function codes; drops unauthorized coil/register writes. |
-| **02** | `sentinel_plugin_active_deception`| `src/plugins/active_deception_plugin.cpp` | Enterprise Pack | Emulates decoy ports (2222, 23, 8080); interaction triggers instant eBPF drop. |
-| **03** | `sentinel_plugin_pcap_carver` | `src/plugins/pcap_carver_plugin.cpp` | Enterprise Pack | Carves 60-second raw PCAP window before/after high-severity alerts into an evidence file. |
+| **01** | `sentinel_plugin_scada_modbus` | `scada_modbus_plugin.cpp` | Industrial OT Pack | Decodes Modbus TCP function codes; drops unauthorized coil/register writes. |
+| **02** | `sentinel_plugin_active_deception`| `active_deception_plugin.cpp` | Enterprise Pack | Emulates decoy ports (2222, 23, 8080); interaction triggers instant eBPF drop. |
+| **03** | `sentinel_plugin_pcap_carver` | `pcap_carver_plugin.cpp` | Enterprise Pack | Carves 60-second raw PCAP window before/after high-severity alerts into an evidence file. |
 | **04** | `sentinel_plugin_dnp3_grid` | `src/plugins/dnp3_grid_plugin.cpp` | Industrial OT Pack | Inspects DNP3 and IEC 60870-5-104 substation telemetry on ports 20000/2404. |
 | **05** | `sentinel_plugin_rtsp_correlator` | `src/plugins/rtsp_vision_correlator_plugin.cpp`| Facilities Pack | Correlates YOLO camera bounding box events with network anomalies in $<1\,\text{ms}$. |
 | **06** | `sentinel_plugin_profinet` | `src/plugins/profinet_inspector_plugin.cpp` | Industrial OT Pack | Inspects real-time PROFINET and EtherNet/IP communications in assembly lines. |
