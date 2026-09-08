@@ -100,6 +100,9 @@ Building this research platform advances your academic credentials while functio
 ---
 ---
 ---
+
+
+
 # NEWB THOUGHTS
 
 **Yes, I agree with that advice—it accurately describes both the academic landscape and how cybersecurity startups succeed.** 
@@ -188,5 +191,9 @@ Step 5: Leverage the Citations for Startup Credibility & Funding
 ### Summary Verdict
 **I agree with the core vision:** Transitioning Sentinel into an empirical research testbed will make your Master's thesis stand out against typical theoretical papers, and open-sourcing an evaluation harness will build your startup's reputation. Just be sure to **focus on proving one concrete scientific hypothesis first**, rather than getting distracted by trying to build a universal platform for everyone on day one.
 
+---
+---
+---
 
 
+# Q: i am thinking sentinel lab should only support openvino and tensorRT and other platformsshould be available for startup commercial product . what are you thinking about it ?
