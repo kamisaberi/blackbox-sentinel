@@ -96,3 +96,7 @@ Historically, some of the most lucrative cybersecurity companies started as acad
 3. **Publish a Workshop Paper:** Submit the paper we formalized to an upcoming cybersecurity conference or workshop (or upload to arXiv as a preprint).
 
 Building this research platform advances your academic credentials while functioning as a field-tested foundation for your commercial startup.
+
+---
+---
+---
