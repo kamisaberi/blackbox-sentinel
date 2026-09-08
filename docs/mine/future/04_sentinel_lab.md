@@ -268,3 +268,5 @@ This strategy is optimal:
 
 1. **`sentinel-lab` (OpenVINO + TensorRT):** Serves as your academic platform, Master's thesis artifact, and inbound community driver.
 2. **`blackbox-sentinel` (All 15 Platforms):** Serves as your high-margin commercial startup product that monetization-conscious enterprise and defense clients must pay for.
+
+# Q: another though : i am thinking we should add bridges for sentinel-LB to have communication between languages like python and its libraries
