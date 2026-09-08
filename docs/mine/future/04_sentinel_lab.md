@@ -100,3 +100,5 @@ Building this research platform advances your academic credentials while functio
 ---
 ---
 ---
+# NEWB THOUGHTS
+
