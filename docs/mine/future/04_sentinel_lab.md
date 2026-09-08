@@ -462,3 +462,8 @@ To maintain product separation:
 
 ### Summary
 Adding Python bindings via `pybind11` gives `sentinel-lab` **massive academic appeal**. Researchers get the speed and kernel access of C++20 and eBPF, but with the flexibility of writing experiments in Python and Jupyter Notebooks.
+
+---
+---
+---
+# Q:do you think it is worth to add python bridge ?
