@@ -102,6 +102,20 @@
             </div>
         </section>
 
+        <!-- Live Threats Raw JSON Stream Viewer -->
+        <section class="card json-card">
+            <div class="card-header-bar">
+                <span class="card-header-title">LIVE THREATS RAW JSON STREAM (/api/v1/threats)</span>
+                <div class="console-controls">
+                    <button id="btn-copy-json" class="btn btn-sm btn-secondary">COPY JSON</button>
+                    <a href="/api/v1/threats" target="_blank" class="btn btn-sm btn-outline">OPEN RAW ENDPOINT</a>
+                </div>
+            </div>
+            <div class="json-viewer-wrapper">
+                <pre id="json-threats-display" class="json-console">Loading JSON threats stream...</pre>
+            </div>
+        </section>
+
         <!-- Live Threat Feed Console (Sub-Millisecond Telemetry) -->
         <section class="card console-card">
             <div class="card-header-bar">
