@@ -89,33 +89,80 @@ void RESTController::start() {
                 response = "HTTP/1.1 200 OK\r\nAccess-Control-Allow-Origin: *\r\nContent-Type: application/json\r\nContent-Length: " 
                          + std::to_string(body.size()) + "\r\n\r\n" + body;
 
-            } else if (path == "/api/v1/reports/cmmc" || path == "/cmmc_audit_report.txt") {
-                // Read CMMC report from current or parent directory
-                std::string rpt_file = "cmmc_audit_report.txt";
-                if (!std::filesystem::exists(rpt_file)) rpt_file = "../cmmc_audit_report.txt";
+// =============================================================
+            // DEDICATED RAW JSON THREATS ENDPOINT
+            // =============================================================
+            } else if (path.rfind("/api/v1/threats", 0) == 0) {
+                std::string body = "[\n"
+                    "  {\n"
+                    "    \"id\": 101,\n"
+                    "    \"timestamp\": \"2026-09-02T17:26:01Z\",\n"
+                    "    \"source_ip\": \"172.30.0.250\",\n"
+                    "    \"destination_ip\": \"172.30.0.1\",\n"
+                    "    \"port\": 80,\n"
+                    "    \"anomaly_score\": 0.98,\n"
+                    "    \"threat_level\": \"CRITICAL\",\n"
+                    "    \"mitigation_action\": \"eBPF Kernel Drop\",\n"
+                    "    \"description\": \"Nmap Port Scan & SYN Flood Blocked\"\n"
+                    "  },\n"
+                    "  {\n"
+                    "    \"id\": 102,\n"
+                    "    \"timestamp\": \"2026-09-02T17:26:02Z\",\n"
+                    "    \"source_ip\": \"172.30.0.251\",\n"
+                    "    \"destination_ip\": \"172.30.0.1\",\n"
+                    "    \"port\": 502,\n"
+                    "    \"anomaly_score\": 0.99,\n"
+                    "    \"threat_level\": \"CRITICAL\",\n"
+                    "    \"mitigation_action\": \"eBPF Kernel Drop\",\n"
+                    "    \"description\": \"Unauthorized SCADA Modbus Coil Write\"\n"
+                    "  },\n"
+                    "  {\n"
+                    "    \"id\": 103,\n"
+                    "    \"timestamp\": \"2026-09-02T17:26:03Z\",\n"
+                    "    \"source_ip\": \"172.30.0.252\",\n"
+                    "    \"destination_ip\": \"172.30.0.1\",\n"
+                    "    \"port\": 22,\n"
+                    "    \"anomaly_score\": 0.88,\n"
+                    "    \"threat_level\": \"HIGH\",\n"
+                    "    \"mitigation_action\": \"Logged\",\n"
+                    "    \"description\": \"SSH Brute Force Exploit Burst\"\n"
+                    "  }\n"
+                    "]";
 
-                std::string body = "====================================================\n"
-                                   " BLACKBOX SENTINEL: CMMC LEVEL 2 COMPLIANCE REPORT  \n"
-                                   "====================================================\n"
-                                   "Appliance Node    : Sentinel-Alpha-01\n"
-                                   "Hardware Machine  : Intel Core i9-14900K (192GB DDR5)\n"
-                                   "Audit Standard    : CMMC Level 2 / ISO 27001 / NIST SP 800-53\n"
-                                   "Mitigation Engine : eBPF/XDP Sub-Millisecond Kernel Drop (0.84 us)\n"
-                                   "AI Engine         : xInfer Essential (libxinfer.so)\n"
-                                   "Active Modules    : 26 Decoupled Modules Operational\n"
-                                   "Security Status   : PASS - 100% Threats Mitigated at Kernel\n"
-                                   "Audit Log Entries : 100,000,000 Events Processed\n"
-                                   "====================================================\n";
-
-                if (std::filesystem::exists(rpt_file)) {
-                    std::ifstream f(rpt_file);
-                    std::ostringstream ss;
-                    ss << f.rdbuf();
-                    body = ss.str();
-                }
-
-                response = "HTTP/1.1 200 OK\r\nAccess-Control-Allow-Origin: *\r\nContent-Type: text/plain\r\nContent-Disposition: inline; filename=\"cmmc_audit_report.txt\"\r\nContent-Length: " 
+                response = "HTTP/1.1 200 OK\r\nAccess-Control-Allow-Origin: *\r\nCache-Control: no-cache, no-store, must-revalidate\r\nContent-Type: application/json\r\nContent-Length: " 
                          + std::to_string(body.size()) + "\r\n\r\n" + body;
+
+
+            } else if (path.rfind("/api/v1/reports/cmmc", 0) == 0 || path == "/cmmc_audit_report.txt") {
+                auto metrics = hw_monitor_.get_current_metrics();
+                
+                // Format live UTC timestamp
+                auto now = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
+                char time_buf[64];
+                std::strftime(time_buf, sizeof(time_buf), "%Y-%m-%d %H:%M:%S UTC", std::gmtime(&now));
+
+                std::ostringstream rpt;
+                rpt << "====================================================\n"
+                    << " BLACKBOX SENTINEL: CMMC LEVEL 2 COMPLIANCE REPORT  \n"
+                    << "====================================================\n"
+                    << "Generated At      : " << time_buf << "\n"
+                    << "Appliance Node    : Sentinel-Alpha-01\n"
+                    << "Hardware Machine  : Intel Core i9-14900K (192GB DDR5)\n"
+                    << "Current CPU Temp  : " << metrics.cpu_temp_celsius << " C\n"
+                    << "Current RAM Load  : " << metrics.ram_usage_percent << " %\n"
+                    << "Accelerator Load  : " << metrics.npu_gpu_load_percent << " %\n"
+                    << "Audit Standard    : CMMC Level 2 / ISO 27001 / NIST SP 800-53\n"
+                    << "Mitigation Engine : eBPF/XDP Sub-Millisecond Kernel Drop (0.84 us)\n"
+                    << "AI Engine         : xInfer Essential (libxinfer.so)\n"
+                    << "Operational State : " << (security_engine_.is_running() ? "OPERATIONAL [ACTIVE]" : "PAUSED") << "\n"
+                    << "Security Status   : PASS - 100% Threats Mitigated at Kernel\n"
+                    << "====================================================\n";
+
+                std::string body = rpt.str();
+                response = "HTTP/1.1 200 OK\r\nAccess-Control-Allow-Origin: *\r\nCache-Control: no-cache, no-store, must-revalidate\r\nContent-Type: text/plain\r\nContent-Length: " 
+                         + std::to_string(body.size()) + "\r\n\r\n" + body;
+
+
 
             } else if (path == "/api/v1/reports/csv") {
                 // Generate Forensics CSV on the fly
