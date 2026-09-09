@@ -81,6 +81,26 @@
                 <button id="sim-btn-stop" class="btn btn-secondary">STOP ALL ATTACKS</button>
             </div>
         </section>
+        
+        
+        
+        
+        <!-- Compliance & Forensic Report Section with In-App Viewer -->
+        <section class="card report-card">
+            <div class="card-header-bar">
+                <span class="card-header-title">AIR-GAPPED COMPLIANCE & FORENSICS AUDIT VIEWER</span>
+                <div class="compliance-buttons">
+                    <button id="btn-view-report" class="btn btn-sm btn-sim">REFRESH REPORT</button>
+                    <button id="btn-export-cmmc" class="btn btn-sm btn-outline">DOWNLOAD CMMC REPORT (.TXT)</button>
+                    <button id="btn-export-pcap" class="btn btn-sm btn-outline">DOWNLOAD AUDIT (.CSV)</button>
+                </div>
+            </div>
+            
+            <!-- In-App Report Display Box -->
+            <div class="report-viewer-wrapper">
+                <pre id="report-text-display" class="report-console">Loading CMMC Level 2 Compliance Audit Report...</pre>
+            </div>
+        </section>
 
         <!-- Live Threat Feed Console (Sub-Millisecond Telemetry) -->
         <section class="card console-card">
