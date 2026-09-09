@@ -4,53 +4,61 @@ document.addEventListener('DOMContentLoaded', () => {
     const btnExportCMMC = document.getElementById('btn-export-cmmc');
     const btnExportCSV = document.getElementById('btn-export-pcap');
 
-    // Function to fetch and display the report inside the web app
     async function loadCMMCReport() {
         if (!reportDisplay) return;
+
+        // Visual button feedback while fetching
+        if (btnRefresh) {
+            btnRefresh.disabled = true;
+            btnRefresh.innerText = "REFRESHING...";
+        }
+
         try {
-            const resp = await fetch('http://localhost:8443/api/v1/reports/cmmc');
+            // Use relative path + timestamp to bypass browser cache
+            const url = `/api/v1/reports/cmmc?t=${Date.now()}`;
+            const resp = await fetch(url, { cache: 'no-store' });
+
             if (resp.ok) {
                 const text = await resp.text();
                 reportDisplay.innerText = text;
             } else {
-                reportDisplay.innerText = "Error loading report from server (HTTP " + resp.status + ").";
+                reportDisplay.innerText = `Error loading report from server (HTTP ${resp.status}).`;
             }
         } catch (err) {
-            reportDisplay.innerText = 
-`====================================================
- BLACKBOX SENTINEL: CMMC LEVEL 2 COMPLIANCE REPORT  
-====================================================
-Appliance Node    : Sentinel-Alpha-01
-Hardware Machine  : Intel Core i9-14900K (192GB DDR5)
-Audit Standard    : CMMC Level 2 / ISO 27001 / NIST SP 800-53
-Mitigation Engine : eBPF/XDP Sub-Millisecond Kernel Drop (0.84 us)
-AI Engine         : xInfer Essential (libxinfer.so)
-Active Modules    : 26 Decoupled Modules Operational
-Security Status   : PASS - 100% Threats Mitigated at Kernel
-Audit Log Entries : 100,000,000 Events Processed
-====================================================`;
+            console.error("Failed to fetch CMMC report:", err);
+            reportDisplay.innerText = "Unable to reach Sentinel REST API at /api/v1/reports/cmmc";
+        } finally {
+            if (btnRefresh) {
+                btnRefresh.disabled = false;
+                btnRefresh.innerText = "REFRESH REPORT";
+            }
         }
     }
 
-    // Load report immediately when dashboard opens
+    // Load immediately on page open
     loadCMMCReport();
 
-    // Refresh report button
+    // Click handler for Refresh Report button
     if (btnRefresh) {
-        btnRefresh.addEventListener('click', loadCMMCReport);
+        btnRefresh.addEventListener('click', (e) => {
+            e.preventDefault();
+            loadCMMCReport();
+        });
     }
 
     // 1-Click Download for CMMC TXT Report
     if (btnExportCMMC) {
-        btnExportCMMC.addEventListener('click', () => {
-            window.location.href = 'http://localhost:8443/api/v1/reports/cmmc';
+        btnExportCMMC.addEventListener('click', (e) => {
+            e.preventDefault();
+            window.location.href = `/api/v1/reports/cmmc?download=true&t=${Date.now()}`;
         });
     }
 
     // 1-Click Download for Forensics CSV Report
     if (btnExportCSV) {
-        btnExportCSV.addEventListener('click', () => {
-            window.location.href = 'http://localhost:8443/api/v1/reports/csv';
+        btnExportCSV.addEventListener('click', (e) => {
+            e.preventDefault();
+            window.location.href = `/api/v1/reports/csv?t=${Date.now()}`;
         });
     }
 });
