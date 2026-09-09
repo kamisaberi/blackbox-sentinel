@@ -1,0 +1,142 @@
+services:
+  # =========================================================================
+  # 1. SIMULATED CLIENT ENTERPRISE DEVICES (TELEMETRY GENERATORS)
+  # =========================================================================
+
+  # Linux Web Server Cluster
+  sim-ubuntu-web-cluster:
+    image: ubuntu:22.04
+    container_name: sim-ubuntu-web-cluster
+    networks:
+      sentinel_massive_net:
+        ipv4_address: 172.30.0.10
+    command: >
+      sh -c "apt-get update -qq && apt-get install -y -qq rsyslog net-tools curl &&
+             echo '*.* @172.30.0.1:514' >> /etc/rsyslog.conf &&
+             rsyslogd &&
+             logger 'Simulated Ubuntu Web Cluster Online - Streaming Syslog' &&
+             sleep infinity"
+
+  # Windows Domain Controller Simulator
+  sim-windows-dc:
+    image: ubuntu:22.04
+    container_name: sim-windows-dc
+    networks:
+      sentinel_massive_net:
+        ipv4_address: 172.30.0.11
+    command: >
+      sh -c "apt-get update -qq && apt-get install -y -qq rsyslog &&
+             echo '*.* @172.30.0.1:514' >> /etc/rsyslog.conf &&
+             rsyslogd &&
+             logger 'EventID: 4625 - Failed Logon attempt for domain administrator' &&
+             sleep infinity"
+
+  # SCADA Industrial Modbus PLC #1 (Siemens S7 Emulation)
+  sim-modbus-plc-1:
+    image: python:3.10-slim
+    container_name: sim-modbus-plc-1
+    networks:
+      sentinel_massive_net:
+        ipv4_address: 172.30.0.20
+    command: >
+      sh -c "pip install -q pymodbus &&
+             python3 -c 'from pymodbus.server import StartTcpServer; print(\"Modbus PLC #1 Active\"); StartTcpServer(context=None, address=(\"0.0.0.0\", 502))'"
+
+  # SCADA Industrial Modbus PLC #2 (Allen-Bradley Emulation)
+  sim-modbus-plc-2:
+    image: python:3.10-slim
+    container_name: sim-modbus-plc-2
+    networks:
+      sentinel_massive_net:
+        ipv4_address: 172.30.0.21
+    command: >
+      sh -c "pip install -q pymodbus &&
+             python3 -c 'from pymodbus.server import StartTcpServer; print(\"Modbus PLC #2 Active\"); StartTcpServer(context=None, address=(\"0.0.0.0\", 502))'"
+
+  # Electrical Grid Substation DNP3 Simulator
+  sim-dnp3-substation:
+    image: ubuntu:22.04
+    container_name: sim-dnp3-substation
+    networks:
+      sentinel_massive_net:
+        ipv4_address: 172.30.0.22
+    command: >
+      sh -c "apt-get update -qq && apt-get install -y -qq netcat-openbsd &&
+             sleep infinity"
+
+  # RTSP HD Camera #1
+  sim-rtsp-camera-1:
+    image: ubuntu:22.04
+    container_name: sim-rtsp-camera-1
+    networks:
+      sentinel_massive_net:
+        ipv4_address: 172.30.0.30
+    command: >
+      sh -c "apt-get update -qq && apt-get install -y -qq netcat-openbsd &&
+             sleep infinity"
+
+  # RTSP HD Camera #2
+  sim-rtsp-camera-2:
+    image: ubuntu:22.04
+    container_name: sim-rtsp-camera-2
+    networks:
+      sentinel_massive_net:
+        ipv4_address: 172.30.0.31
+    command: >
+      sh -c "apt-get update -qq && apt-get install -y -qq netcat-openbsd &&
+             sleep infinity"
+
+  # 100x IoT Smart Meters Telemetry Cluster
+  sim-iot-smart-meters:
+    image: ubuntu:22.04
+    container_name: sim-iot-smart-meters
+    networks:
+      sentinel_massive_net:
+        ipv4_address: 172.30.0.40
+    command: >
+      sh -c "apt-get update -qq && apt-get install -y -qq curl &&
+             sleep infinity"
+
+  # =========================================================================
+  # 2. SIMULATED MULTI-VECTOR ATTACKER NODES
+  # =========================================================================
+
+  # Attacker Node 1: High-Throughput DDoS & Packet Flood Generator
+  sim-attacker-ddos:
+    image: ubuntu:22.04
+    container_name: sim-attacker-ddos
+    networks:
+      sentinel_massive_net:
+        ipv4_address: 172.30.0.250
+    command: >
+      sh -c "apt-get update -qq && apt-get install -y -qq hping3 iperf3 nmap curl netcat-openbsd &&
+             sleep infinity"
+
+  # Attacker Node 2: Industrial SCADA PLC Sabotage Generator
+  sim-attacker-scada:
+    image: python:3.10-slim
+    container_name: sim-attacker-scada
+    networks:
+      sentinel_massive_net:
+        ipv4_address: 172.30.0.251
+    command: >
+      sh -c "pip install -q pymodbus && apt-get update -qq && apt-get install -y -qq netcat-openbsd &&
+             sleep infinity"
+
+  # Attacker Node 3: High-Concurrency Brute Force & Exploit Engine
+  sim-attacker-bruteforce:
+    image: ubuntu:22.04
+    container_name: sim-attacker-bruteforce
+    networks:
+      sentinel_massive_net:
+        ipv4_address: 172.30.0.252
+    command: >
+      sh -c "apt-get update -qq && apt-get install -y -qq hydra nmap curl netcat-openbsd &&
+             sleep infinity"
+
+networks:
+  sentinel_massive_net:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.30.0.0/16
