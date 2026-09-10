@@ -8,6 +8,7 @@
 #include <cstring>
 #include <filesystem>
 #include <cstdlib>
+#include <chrono>
 
 namespace sentinel::api {
 
@@ -70,73 +71,72 @@ void RESTController::start() {
             std::string response;
 
             // =============================================================
-            // 1. REST API ENDPOINTS
+            // 1. DYNAMIC REAL-TIME JSON THREATS (/api/v1/threats)
             // =============================================================
-            if (path == "/api/v1/system-health") {
+            if (path.rfind("/api/v1/threats", 0) == 0) {
+                // Fetch REAL live threats from libblackbox.so
+                auto live_threats = security_engine_.get_recent_threats(50);
+
+                std::ostringstream json;
+                json << "[\n";
+                for (size_t i = 0; i < live_threats.size(); ++i) {
+                    const auto& t = live_threats[i];
+                    
+                    // Format timestamp
+                    auto time_t_val = std::chrono::system_clock::to_time_t(t.timestamp);
+                    char time_str[32];
+                    std::strftime(time_str, sizeof(time_str), "%Y-%m-%dT%H:%M:%SZ", std::gmtime(&time_t_val));
+
+                    json << "  {\n"
+                         << "    \"id\": " << t.event_id << ",\n"
+                         << "    \"timestamp\": \"" << time_str << "\",\n"
+                         << "    \"source_ip\": \"" << t.source_ip << "\",\n"
+                         << "    \"destination_ip\": \"" << t.destination_ip << "\",\n"
+                         << "    \"port\": " << t.port << ",\n"
+                         << "    \"anomaly_score\": " << t.anomaly_score << ",\n"
+                         << "    \"threat_level\": \"" << blackbox::threat_level_to_string(t.level) << "\",\n"
+                         << "    \"mitigation_action\": \"" << blackbox::action_type_to_string(t.action_taken) << "\",\n"
+                         << "    \"description\": \"" << (t.description.empty() ? "Evaluated by libxinfer.so" : t.description) << "\"\n"
+                         << "  }" << (i + 1 < live_threats.size() ? ",\n" : "\n");
+                }
+                json << "]";
+
+                std::string body = json.str();
+                response = "HTTP/1.1 200 OK\r\nAccess-Control-Allow-Origin: *\r\nCache-Control: no-cache, no-store, must-revalidate\r\nContent-Type: application/json\r\nContent-Length: " 
+                         + std::to_string(body.size()) + "\r\n\r\n" + body;
+
+            // =============================================================
+            // 2. SYSTEM HEALTH & METRICS (/api/v1/system-health)
+            // =============================================================
+            } else if (path == "/api/v1/system-health") {
                 auto metrics = hw_monitor_.get_current_metrics();
+                auto live_threats = security_engine_.get_recent_threats(10); // Last 10 threats
+
                 std::ostringstream json;
                 json << "{\"status\":\"" << (security_engine_.is_running() ? "OPERATIONAL" : "PAUSED") << "\""
                      << ",\"cpu_temp\":" << metrics.cpu_temp_celsius
                      << ",\"ram_usage\":" << metrics.ram_usage_percent
                      << ",\"npu_load\":" << metrics.npu_gpu_load_percent
-                     << ",\"threats\":["
-                     << "{\"id\":101,\"ip\":\"172.30.0.250\",\"score\":0.98,\"level\":\"CRITICAL\",\"action\":\"eBPF Kernel Drop\",\"desc\":\"Port Scan Flood Blocked\"},"
-                     << "{\"id\":102,\"ip\":\"172.30.0.251\",\"score\":0.99,\"level\":\"CRITICAL\",\"action\":\"eBPF Kernel Drop\",\"desc\":\"Unauthorized SCADA Modbus Write\"},"
-                     << "{\"id\":103,\"ip\":\"172.30.0.252\",\"score\":0.88,\"level\":\"HIGH\",\"action\":\"Logged\",\"desc\":\"SSH Brute Force Burst\"}"
-                     << "]}";
+                     << ",\"threats\":[";
+
+                for (size_t i = 0; i < live_threats.size(); ++i) {
+                    const auto& t = live_threats[i];
+                    json << "{\"id\":" << t.event_id
+                         << ",\"ip\":\"" << t.source_ip << "\""
+                         << ",\"score\":" << t.anomaly_score
+                         << ",\"level\":\"" << blackbox::threat_level_to_string(t.level) << "\""
+                         << ",\"action\":\"" << blackbox::action_type_to_string(t.action_taken) << "\""
+                         << ",\"desc\":\"" << (t.description.empty() ? "Threat Stream" : t.description) << "\"}"
+                         << (i + 1 < live_threats.size() ? "," : "");
+                }
+                json << "]}";
 
                 std::string body = json.str();
                 response = "HTTP/1.1 200 OK\r\nAccess-Control-Allow-Origin: *\r\nContent-Type: application/json\r\nContent-Length: " 
                          + std::to_string(body.size()) + "\r\n\r\n" + body;
 
-// =============================================================
-            // DEDICATED RAW JSON THREATS ENDPOINT
-            // =============================================================
-            } else if (path.rfind("/api/v1/threats", 0) == 0) {
-                std::string body = "[\n"
-                    "  {\n"
-                    "    \"id\": 101,\n"
-                    "    \"timestamp\": \"2026-09-02T17:26:01Z\",\n"
-                    "    \"source_ip\": \"172.30.0.250\",\n"
-                    "    \"destination_ip\": \"172.30.0.1\",\n"
-                    "    \"port\": 80,\n"
-                    "    \"anomaly_score\": 0.98,\n"
-                    "    \"threat_level\": \"CRITICAL\",\n"
-                    "    \"mitigation_action\": \"eBPF Kernel Drop\",\n"
-                    "    \"description\": \"Nmap Port Scan & SYN Flood Blocked\"\n"
-                    "  },\n"
-                    "  {\n"
-                    "    \"id\": 102,\n"
-                    "    \"timestamp\": \"2026-09-02T17:26:02Z\",\n"
-                    "    \"source_ip\": \"172.30.0.251\",\n"
-                    "    \"destination_ip\": \"172.30.0.1\",\n"
-                    "    \"port\": 502,\n"
-                    "    \"anomaly_score\": 0.99,\n"
-                    "    \"threat_level\": \"CRITICAL\",\n"
-                    "    \"mitigation_action\": \"eBPF Kernel Drop\",\n"
-                    "    \"description\": \"Unauthorized SCADA Modbus Coil Write\"\n"
-                    "  },\n"
-                    "  {\n"
-                    "    \"id\": 103,\n"
-                    "    \"timestamp\": \"2026-09-02T17:26:03Z\",\n"
-                    "    \"source_ip\": \"172.30.0.252\",\n"
-                    "    \"destination_ip\": \"172.30.0.1\",\n"
-                    "    \"port\": 22,\n"
-                    "    \"anomaly_score\": 0.88,\n"
-                    "    \"threat_level\": \"HIGH\",\n"
-                    "    \"mitigation_action\": \"Logged\",\n"
-                    "    \"description\": \"SSH Brute Force Exploit Burst\"\n"
-                    "  }\n"
-                    "]";
-
-                response = "HTTP/1.1 200 OK\r\nAccess-Control-Allow-Origin: *\r\nCache-Control: no-cache, no-store, must-revalidate\r\nContent-Type: application/json\r\nContent-Length: " 
-                         + std::to_string(body.size()) + "\r\n\r\n" + body;
-
-
             } else if (path.rfind("/api/v1/reports/cmmc", 0) == 0 || path == "/cmmc_audit_report.txt") {
                 auto metrics = hw_monitor_.get_current_metrics();
-                
-                // Format live UTC timestamp
                 auto now = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
                 char time_buf[64];
                 std::strftime(time_buf, sizeof(time_buf), "%Y-%m-%d %H:%M:%S UTC", std::gmtime(&now));
@@ -160,21 +160,6 @@ void RESTController::start() {
 
                 std::string body = rpt.str();
                 response = "HTTP/1.1 200 OK\r\nAccess-Control-Allow-Origin: *\r\nCache-Control: no-cache, no-store, must-revalidate\r\nContent-Type: text/plain\r\nContent-Length: " 
-                         + std::to_string(body.size()) + "\r\n\r\n" + body;
-
-
-
-            } else if (path == "/api/v1/reports/csv") {
-                // Generate Forensics CSV on the fly
-                std::ostringstream csv;
-                csv << "EventID,Timestamp,SourceIP,DestinationIP,AnomalyScore,ThreatLevel,ActionTaken,Description\n"
-                    << "101,2026-09-02T17:26:01Z,172.30.0.250,172.30.0.1,0.98,CRITICAL,eBPF_DROP,Port Scan Flood Blocked\n"
-                    << "102,2026-09-02T17:26:02Z,172.30.0.251,172.30.0.1,0.99,CRITICAL,eBPF_DROP,Unauthorized SCADA Modbus Write\n"
-                    << "103,2026-09-02T17:26:03Z,172.30.0.252,172.30.0.1,0.88,HIGH,LOGGED,SSH Brute Force Burst\n"
-                    << "104,2026-09-02T17:26:05Z,172.30.0.10,172.30.0.1,0.12,INFO,NORMAL,Ubuntu Web Cluster Syslog Stream\n";
-
-                std::string body = csv.str();
-                response = "HTTP/1.1 200 OK\r\nAccess-Control-Allow-Origin: *\r\nContent-Type: text/csv\r\nContent-Disposition: attachment; filename=\"sentinel_forensics_audit.csv\"\r\nContent-Length: " 
                          + std::to_string(body.size()) + "\r\n\r\n" + body;
 
             } else if (path == "/api/v1/control/start" && method == "POST") {
@@ -217,7 +202,7 @@ void RESTController::start() {
                          + std::to_string(body.size()) + "\r\n\r\n" + body;
 
             // =============================================================
-            // 2. STATIC FILE SERVING (Serves the web/ folder)
+            // 3. STATIC WEB FILE SERVING (index.html, css, js)
             // =============================================================
             } else {
                 std::string file_path = "web" + (path == "/" ? "/index.html" : path);
