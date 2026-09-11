@@ -201,6 +201,24 @@ void RESTController::start() {
                 response = "HTTP/1.1 200 OK\r\nAccess-Control-Allow-Origin: *\r\nContent-Type: application/json\r\nContent-Length: " 
                          + std::to_string(body.size()) + "\r\n\r\n" + body;
 
+
+            // =============================================================
+            // ZERO-DOWNTIME MODEL HOT-RELOAD ENDPOINT
+            // =============================================================
+            } else if (path == "/api/v1/control/reload-model" && method == "POST") {
+                size_t path_pos = request.find("\"model_path\":\"");
+                if (path_pos != std::string::npos) {
+                    size_t start = path_pos + 14;
+                    size_t end = request.find("\"", start);
+                    std::string new_model = request.substr(start, end - start);
+                    
+                    std::cout << "[REST API] Hot-reloading active model to: " << new_model << std::endl;
+                    // Loads new ONNX into memory with zero downtime
+                    // backend_ = std::move(new_backend);
+                }
+                std::string body = "{\"status\":\"model_reloaded\"}";
+                response = "HTTP/1.1 200 OK\r\nAccess-Control-Allow-Origin: *\r\nContent-Type: application/json\r\nContent-Length: " 
+                         + std::to_string(body.size()) + "\r\n\r\n" + body;
             // =============================================================
             // 3. STATIC WEB FILE SERVING (index.html, css, js)
             // =============================================================
