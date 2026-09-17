@@ -28,7 +28,7 @@ blackbox-sentinel/
 │       ├── ueba.json                            # [02] User behavioral baseline thresholds
 │       ├── ndr.json                             # [03] Network detection & traffic analysis settings
 │       ├── ids_ips.json                         # [04] Signature & anomaly packet rules
-│       ├── waf.json                             # [05] Web API & HTTP payload inspection rules
+│       ├── ids_ips.json                            # [05] Web API & HTTP payload inspection rules
 │       ├── edr.json                             # [06] Endpoint host process tracking config
 │       ├── epp_ngav.json                        # [07] Antivirus binary entropy thresholds
 │       ├── nac.json                             # [08] Network access control & VLAN isolation
