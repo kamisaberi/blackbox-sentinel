@@ -36,6 +36,81 @@ find_library(BPF_LIB bpf REQUIRED)
 find_library(ELF_LIB elf REQUIRED)
 
 
+
+# -------------------------------------------------------------------
+# ALL 26 MODULAR FEATURE TOGGLES (DEFAULT: ALL ON)
+# -------------------------------------------------------------------
+option(SENTINEL_ENABLE_01_SIEM          "Enable [01] SIEM Core Log Correlation"             ON)
+option(SENTINEL_ENABLE_02_UEBA          "Enable [02] User & Entity Behavior Analytics"      ON)
+option(SENTINEL_ENABLE_03_NDR           "Enable [03] Network Detection & Response"          ON)
+option(SENTINEL_ENABLE_04_IDS_IPS       "Enable [04] Intrusion Detection & Prevention"      ON)
+option(SENTINEL_ENABLE_05_WAF           "Enable [05] Web App & API Defense"                 ON)
+option(SENTINEL_ENABLE_06_EDR           "Enable [06] Endpoint Detection & Response"         ON)
+option(SENTINEL_ENABLE_07_EPP_NGAV      "Enable [07] Antivirus & File Entropy"              ON)
+option(SENTINEL_ENABLE_08_NAC           "Enable [08] Network Access Control"                ON)
+option(SENTINEL_ENABLE_09_CWPP          "Enable [09] Container eBPF Syscall Guard"          ON)
+option(SENTINEL_ENABLE_10_BAD           "Enable [10] Bot & Automated Abuse Defense"         ON)
+option(SENTINEL_ENABLE_11_RASP          "Enable [11] Runtime App Self-Protection"           ON)
+option(SENTINEL_ENABLE_12_ITDR          "Enable [12] Identity Threat Detection & Response"  ON)
+option(SENTINEL_ENABLE_13_DDOS          "Enable [13] Hardware Line-Rate DDoS Mitigation"    ON)
+option(SENTINEL_ENABLE_14_ATO           "Enable [14] Account Takeover Defense"              ON)
+option(SENTINEL_ENABLE_15_NGFW          "Enable [15] Next-Generation Firewall DPI"          ON)
+option(SENTINEL_ENABLE_16_CDR           "Enable [16] Content Disarm & Reconstruction"       ON)
+option(SENTINEL_ENABLE_17_IOT_SEC       "Enable [17] IoT & Medical Device (IoMT) Defense"   ON)
+option(SENTINEL_ENABLE_18_CPS_SEC       "Enable [18] Cyber-Physical & SCADA OT Defense"     ON)
+option(SENTINEL_ENABLE_19_SWG           "Enable [19] Secure Web Gateway"                    ON)
+option(SENTINEL_ENABLE_20_FSE           "Enable [20] Firmware Security Evaluation"          ON)
+option(SENTINEL_ENABLE_21_SIDE_CHANNEL  "Enable [21] Hardware Side-Channel Defense"         ON)
+option(SENTINEL_ENABLE_22_DFIR          "Enable [22] Digital Forensics & Evidence Carver"   ON)
+option(SENTINEL_ENABLE_23_AI_TRISM      "Enable [23] AI Prompt Firewall & LLM Guard"        ON)
+option(SENTINEL_ENABLE_24_ZTNA          "Enable [24] Zero Trust Network Access"             ON)
+option(SENTINEL_ENABLE_25_FDP           "Enable [25] Fraud Detection & Prevention"          ON)
+option(SENTINEL_ENABLE_26_DDP           "Enable [26] Distributed Deception Honeypots"       ON)
+
+set(SENTINEL_MODULE_LIBRARIES "")
+
+
+
+macro(register_sentinel_module MODULE_OPT MODULE_DIR MODULE_TARGET)
+    if(${MODULE_OPT})
+        add_subdirectory(${MODULE_DIR})
+        list(APPEND SENTINEL_MODULE_LIBRARIES ${MODULE_TARGET})
+        add_compile_definitions(${MODULE_OPT})
+    endif()
+endmacro()
+
+register_sentinel_module(SENTINEL_ENABLE_01_SIEM          src/modules/01_siem_core         sentinel_module_siem_core)
+register_sentinel_module(SENTINEL_ENABLE_02_UEBA          src/modules/02_ueba              sentinel_module_ueba)
+register_sentinel_module(SENTINEL_ENABLE_03_NDR           src/modules/03_ndr               sentinel_module_ndr)
+register_sentinel_module(SENTINEL_ENABLE_04_IDS_IPS       src/modules/04_ids_ips           sentinel_module_ids_ips)
+register_sentinel_module(SENTINEL_ENABLE_05_WAF           src/modules/05_waf               sentinel_module_waf)
+register_sentinel_module(SENTINEL_ENABLE_06_EDR           src/modules/06_edr               sentinel_module_edr)
+register_sentinel_module(SENTINEL_ENABLE_07_EPP_NGAV      src/modules/07_epp_ngav          sentinel_module_epp_ngav)
+register_sentinel_module(SENTINEL_ENABLE_08_NAC           src/modules/08_nac               sentinel_module_nac)
+register_sentinel_module(SENTINEL_ENABLE_09_CWPP          src/modules/09_cwpp              sentinel_module_cwpp)
+register_sentinel_module(SENTINEL_ENABLE_10_BAD           src/modules/10_bad               sentinel_module_bad)
+register_sentinel_module(SENTINEL_ENABLE_11_RASP          src/modules/11_rasp              sentinel_module_rasp)
+register_sentinel_module(SENTINEL_ENABLE_12_ITDR          src/modules/12_itdr              sentinel_module_itdr)
+register_sentinel_module(SENTINEL_ENABLE_13_DDOS          src/modules/13_ddos              sentinel_module_ddos)
+register_sentinel_module(SENTINEL_ENABLE_14_ATO           src/modules/14_ato               sentinel_module_ato)
+register_sentinel_module(SENTINEL_ENABLE_15_NGFW          src/modules/15_ngfw              sentinel_module_ngfw)
+register_sentinel_module(SENTINEL_ENABLE_16_CDR           src/modules/16_cdr               sentinel_module_cdr)
+register_sentinel_module(SENTINEL_ENABLE_17_IOT_SEC       src/modules/17_iot_sec           sentinel_module_iot_sec)
+register_sentinel_module(SENTINEL_ENABLE_18_CPS_SEC       src/modules/18_cps_sec           sentinel_module_cps_sec)
+register_sentinel_module(SENTINEL_ENABLE_19_SWG           src/modules/19_swg               sentinel_module_swg)
+register_sentinel_module(SENTINEL_ENABLE_20_FSE           src/modules/20_fse               sentinel_module_fse)
+register_sentinel_module(SENTINEL_ENABLE_21_SIDE_CHANNEL  src/modules/21_side_channel      sentinel_module_side_channel)
+register_sentinel_module(SENTINEL_ENABLE_22_DFIR          src/modules/22_dfir              sentinel_module_dfir)
+register_sentinel_module(SENTINEL_ENABLE_23_AI_TRISM      src/modules/23_ai_trism          sentinel_module_ai_trism)
+register_sentinel_module(SENTINEL_ENABLE_24_ZTNA          src/modules/24_ztna              sentinel_module_ztna)
+register_sentinel_module(SENTINEL_ENABLE_25_FDP           src/modules/25_fdp               sentinel_module_fdp)
+register_sentinel_module(SENTINEL_ENABLE_26_DDP           src/modules/26_ddp               sentinel_module_ddp)
+
+
+
+
+
+
 # Create Imported CMake Target Alias for blackbox::blackbox
 if(NOT TARGET blackbox::blackbox)
     add_library(blackbox::blackbox SHARED IMPORTED)
@@ -48,7 +123,9 @@ endif()
 # Source Files
 set(SENTINEL_SOURCES
     src/main.cpp
-    src/plugin_manager.cpp       # <--- ADDED PLUGIN MANAGER
+    src/core/orchestrator.cpp
+    src/core/config_manager.cpp
+    src/plugin_manager.cpp
     src/api/auth_manager.cpp
     src/api/rest_controller.cpp
     src/api/ws_streamer.cpp
@@ -62,6 +139,7 @@ add_executable(sentinel ${SENTINEL_SOURCES})
 
 # Link Libraries
 target_link_libraries(sentinel PRIVATE
+    ${SENTINEL_MODULE_LIBRARIES}
     ${BLACKBOX_LIB}
     ${XINFER_LIB}
     ${SQLITE3_LIB}
