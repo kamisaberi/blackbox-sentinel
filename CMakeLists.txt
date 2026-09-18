@@ -37,6 +37,16 @@ find_library(BLACKBOX_LIB blackbox REQUIRED PATHS /usr/local/lib /usr/lib)
 find_library(XINFER_LIB xinfer REQUIRED PATHS /usr/local/lib /usr/lib)
 
 
+# -------------------------------------------------------------------
+# DEFINE IMPORTED GLOBAL TARGETS (FIXES THE CMAKE ERROR FOR ALL MODULES)
+# -------------------------------------------------------------------
+if(NOT TARGET blackbox::blackbox)
+    add_library(blackbox::blackbox SHARED IMPORTED GLOBAL)
+    set_target_properties(blackbox::blackbox PROPERTIES
+        IMPORTED_LOCATION "${BLACKBOX_LIB}"
+        INTERFACE_INCLUDE_DIRECTORIES "/usr/local/include"
+    )
+endif()
 
 # -------------------------------------------------------------------
 # ALL 26 MODULAR FEATURE TOGGLES (DEFAULT: ALL ON)
