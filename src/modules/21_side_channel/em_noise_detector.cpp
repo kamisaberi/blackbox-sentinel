@@ -1,6 +1,7 @@
 #include "em_noise_detector.hpp"
 #include <algorithm>
 #include <numeric>
+#include <cmath>
 
 namespace sentinel::modules::side_channel {
 
