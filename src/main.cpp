@@ -5,6 +5,7 @@
 #include <atomic>
 
 #include <blackbox/blackbox.hpp>
+#include "core/orchestrator.hpp"
 #include "hardware/tpm_license.hpp"
 #include "hardware/hw_monitor.hpp"
 #include "exporter/report_generator.hpp"
@@ -28,26 +29,30 @@ int main() {
     std::cout << "  Powered by libblackbox.so & libxinfer.so                " << std::endl;
     std::cout << "==========================================================" << std::endl;
 
-    // 1. Hardware Identity & TPM Verification
+    // 1. Hardware Identity & TPM 2.0 Validation
     sentinel::hardware::TPMLicenseValidator license_validator("DEVELOPMENT_MODE");
     license_validator.validate_license();
 
     try {
-        // 2. Initialize Layer 2 Blackbox Shared Library Engine
-        std::cout << "[Blackbox Sentinel] Initializing libblackbox.so engine..." << std::endl;
+        // 2. Initialize Layer 2 Blackbox Security Engine
+        std::cout << "[Blackbox Sentinel] Initializing libblackbox.so security engine..." << std::endl;
         blackbox::BlackboxEngine security_engine("configs/sentinel_config.json");
         security_engine.start();
 
-        // 3. Initialize REST Command Center API & Static Web Server
+        // 3. Bootstrap all 26 Modular Subsystems via Orchestrator
+        sentinel::core::Orchestrator orchestrator;
+        orchestrator.bootstrap_all_modules("configs/modules");
+
+        // 4. Initialize REST Command Center & Web Server on Port 8443
         sentinel::api::RESTController api_server(8443, security_engine);
         api_server.start();
 
-        // 4. Generate CMMC Audit Report
+        // 5. Generate CMMC Audit Report
         sentinel::exporter::ReportGenerator::generate_cmmc_compliance_report("cmmc_audit_report.txt");
 
         std::cout << "[Blackbox Sentinel] Web Command Center live at: http://localhost:8443\n" << std::endl;
 
-        // 5. Ingestion Loop
+        // 6. Main Pipeline Event Ingestion Loop
         uint64_t counter = 0;
         while (g_appliance_running) {
             counter++;
@@ -59,12 +64,17 @@ int main() {
             event.source_ip = "192.168.1." + std::to_string(100 + (counter % 30));
             event.features = {0.15f, 0.88f, (counter % 5 == 0 ? 0.95f : 0.1f), 0.2f};
 
+            // Dispatch event across the EventBus to all 26 modules asynchronously
+            sentinel::EventBus::instance().publish(event);
+
+            // Submit event to core security engine
             security_engine.submit_event(event);
 
             std::this_thread::sleep_for(std::chrono::seconds(1));
         }
 
         api_server.stop();
+        orchestrator.shutdown_all_modules();
         security_engine.stop();
 
     } catch (const std::exception& e) {
