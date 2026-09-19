@@ -259,15 +259,38 @@ install(TARGETS
 )
 
 
-# Module Testing Executables
+# -------------------------------------------------------------------
+# MODULE TEST EXECUTABLES
+# -------------------------------------------------------------------
 add_executable(test_module_ndr_ids examples/01_test_module_ndr_ids.cpp)
-target_link_libraries(test_module_ndr_ids PRIVATE sentinel_module_ndr sentinel_module_ids_ips blackbox::blackbox xinfer::xinfer Threads::Threads)
+target_link_libraries(test_module_ndr_ids PRIVATE 
+    sentinel_module_ndr 
+    sentinel_module_ids_ips 
+    ${BLACKBOX_LIB} 
+    ${XINFER_LIB} 
+    Threads::Threads
+)
 
 add_executable(test_module_waf examples/02_test_module_waf.cpp)
-target_link_libraries(test_module_waf PRIVATE sentinel_module_waf blackbox::blackbox xinfer::xinfer Threads::Threads)
+target_link_libraries(test_module_waf PRIVATE 
+    sentinel_module_waf 
+    ${BLACKBOX_LIB} 
+    ${XINFER_LIB} 
+    Threads::Threads
+)
 
 add_executable(test_module_ai_trism examples/03_test_module_ai_trism.cpp)
-target_link_libraries(test_module_ai_trism PRIVATE sentinel_module_ai_trism blackbox::blackbox xinfer::xinfer Threads::Threads)
+target_link_libraries(test_module_ai_trism PRIVATE 
+    sentinel_module_ai_trism 
+    ${BLACKBOX_LIB} 
+    ${XINFER_LIB} 
+    Threads::Threads
+)
 
 add_executable(test_module_cps_scada examples/04_test_module_cps_scada.cpp)
-target_link_libraries(test_module_cps_scada PRIVATE sentinel_module_cps_sec blackbox::blackbox xinfer::xinfer Threads::Threads)
+target_link_libraries(test_module_cps_scada PRIVATE 
+    sentinel_module_cps_sec 
+    ${BLACKBOX_LIB} 
+    ${XINFER_LIB} 
+    Threads::Threads
+)
