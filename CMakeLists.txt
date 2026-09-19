@@ -48,6 +48,18 @@ if(NOT TARGET blackbox::blackbox)
     )
 endif()
 
+
+# -------------------------------------------------------------------
+# ADD THIS BLOCK FOR xinfer::xinfer
+# -------------------------------------------------------------------
+if(NOT TARGET xinfer::xinfer)
+    add_library(xinfer::xinfer SHARED IMPORTED GLOBAL)
+    set_target_properties(xinfer::xinfer PROPERTIES
+        IMPORTED_LOCATION "${XINFER_LIB}"
+        INTERFACE_INCLUDE_DIRECTORIES "/usr/local/include"
+    )
+endif()
+
 # -------------------------------------------------------------------
 # ALL 26 MODULAR FEATURE TOGGLES (DEFAULT: ALL ON)
 # -------------------------------------------------------------------
