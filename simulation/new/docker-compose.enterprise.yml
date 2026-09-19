@@ -1,0 +1,152 @@
+services:
+  # =========================================================================
+  # 1. RED-TEAM ADVERSARY SIMULATORS
+  # =========================================================================
+  sim-adversary-external:
+    build:
+      context: .
+      dockerfile_inline: |
+        FROM ubuntu:22.04
+        ENV DEBIAN_FRONTEND=noninteractive
+        RUN apt-get update -qq && apt-get install -y -qq nmap hping3 curl netcat-openbsd iproute2 && rm -rf /var/lib/apt/lists/*
+    container_name: sim-adversary-external
+    networks:
+      redteam_net:
+        ipv4_address: 172.30.200.10
+    command: sleep infinity
+
+  sim-adversary-web:
+    build:
+      context: .
+      dockerfile_inline: |
+        FROM ubuntu:22.04
+        ENV DEBIAN_FRONTEND=noninteractive
+        RUN apt-get update -qq && apt-get install -y -qq curl python3 python3-pip && rm -rf /var/lib/apt/lists/*
+        RUN pip install --no-cache-dir requests
+    container_name: sim-adversary-web
+    networks:
+      redteam_net:
+        ipv4_address: 172.30.200.20
+    command: sleep infinity
+
+  sim-adversary-insider:
+    build:
+      context: .
+      dockerfile_inline: |
+        FROM ubuntu:22.04
+        ENV DEBIAN_FRONTEND=noninteractive
+        RUN apt-get update -qq && apt-get install -y -qq netcat-openbsd curl openssh-client && rm -rf /var/lib/apt/lists/*
+    container_name: sim-adversary-insider
+    networks:
+      redteam_net:
+        ipv4_address: 172.30.200.30
+    command: sleep infinity
+
+  sim-adversary-scada:
+    build:
+      context: .
+      dockerfile_inline: |
+        FROM python:3.10-slim
+        RUN apt-get update -qq && apt-get install -y -qq netcat-openbsd && rm -rf /var/lib/apt/lists/*
+        RUN pip install --no-cache-dir pymodbus
+    container_name: sim-adversary-scada
+    networks:
+      redteam_net:
+        ipv4_address: 172.30.200.40
+    command: sleep infinity
+
+  # =========================================================================
+  # 2. CORPORATE IT & SERVER INFRASTRUCTURE
+  # =========================================================================
+  sim-active-directory:
+    build:
+      context: .
+      dockerfile_inline: |
+        FROM ubuntu:22.04
+        ENV DEBIAN_FRONTEND=noninteractive
+        RUN apt-get update -qq && apt-get install -y -qq rsyslog curl && rm -rf /var/lib/apt/lists/*
+    container_name: sim-active-directory
+    networks:
+      corp_it_net:
+        ipv4_address: 172.30.10.10
+    command: >
+      sh -c "echo '*.* @172.30.0.1:514' >> /etc/rsyslog.conf &&
+             rsyslogd &&
+             logger 'Active Directory Domain Controller Online' &&
+             sleep infinity"
+
+  sim-linux-appserver:
+    build:
+      context: .
+      dockerfile_inline: |
+        FROM ubuntu:22.04
+        ENV DEBIAN_FRONTEND=noninteractive
+        RUN apt-get update -qq && apt-get install -y -qq rsyslog curl netcat-openbsd && rm -rf /var/lib/apt/lists/*
+    container_name: sim-linux-appserver
+    networks:
+      corp_it_net:
+        ipv4_address: 172.30.10.20
+    command: >
+      sh -c "echo '*.* @172.30.0.1:514' >> /etc/rsyslog.conf &&
+             rsyslogd &&
+             logger 'Linux Production AppServer Ingestion Active' &&
+             sleep infinity"
+
+  sim-workstation-pool:
+    build:
+      context: .
+      dockerfile_inline: |
+        FROM ubuntu:22.04
+        ENV DEBIAN_FRONTEND=noninteractive
+        RUN apt-get update -qq && apt-get install -y -qq curl python3 && rm -rf /var/lib/apt/lists/*
+    container_name: sim-workstation-pool
+    networks:
+      corp_it_net:
+        ipv4_address: 172.30.10.30
+    command: sleep infinity
+
+  # =========================================================================
+  # 3. INDUSTRIAL OT & SCADA SYSTEMS
+  # =========================================================================
+  sim-modbus-controller:
+    build:
+      context: .
+      dockerfile_inline: |
+        FROM python:3.10-slim
+        RUN pip install --no-cache-dir pymodbus
+    container_name: sim-modbus-controller
+    networks:
+      ot_scada_net:
+        ipv4_address: 172.30.50.20
+    command: >
+      python3 -c "from pymodbus.server import StartTcpServer; print('Modbus PLC Active on Port 502'); StartTcpServer(context=None, address=('0.0.0.0', 502))"
+
+  sim-substation-rtu:
+    build:
+      context: .
+      dockerfile_inline: |
+        FROM ubuntu:22.04
+        ENV DEBIAN_FRONTEND=noninteractive
+        RUN apt-get update -qq && apt-get install -y -qq netcat-openbsd && rm -rf /var/lib/apt/lists/*
+    container_name: sim-substation-rtu
+    networks:
+      ot_scada_net:
+        ipv4_address: 172.30.50.30
+    command: sleep infinity
+
+networks:
+  redteam_net:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.30.200.0/24
+  corp_it_net:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.30.10.0/24
+  ot_scada_net:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.30.50.0/24
