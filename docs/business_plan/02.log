@@ -1,0 +1,1368 @@
+This is pdfTeX, Version 3.141592653-2.6-1.40.28 (TeX Live 2025/Debian) (preloaded format=pdflatex 2026.9.20)  20 SEP 2026 15:41
+entering extended mode
+ restricted \write18 enabled.
+ %&-line parsing enabled.
+**02.tex
+(./02.tex
+LaTeX2e <2025-11-01>
+L3 programming layer <2026-01-19>
+(/usr/share/texlive/texmf-dist/tex/latex/base/article.cls
+Document Class: article 2025/01/22 v1.4n Standard LaTeX document class
+(/usr/share/texlive/texmf-dist/tex/latex/base/size11.clo
+File: size11.clo 2025/01/22 v1.4n Standard LaTeX file (size option)
+)
+\c@part=\count275
+\c@section=\count276
+\c@subsection=\count277
+\c@subsubsection=\count278
+\c@paragraph=\count279
+\c@subparagraph=\count280
+\c@figure=\count281
+\c@table=\count282
+\abovecaptionskip=\skip49
+\belowcaptionskip=\skip50
+\bibindent=\dimen148
+)
+(/usr/share/texlive/texmf-dist/tex/latex/base/inputenc.sty
+Package: inputenc 2024/02/08 v1.3d Input encoding file
+\inpenc@prehook=\toks17
+\inpenc@posthook=\toks18
+)
+(/usr/share/texlive/texmf-dist/tex/latex/geometry/geometry.sty
+Package: geometry 2020/01/02 v5.9 Page Geometry
+
+(/usr/share/texlive/texmf-dist/tex/latex/graphics/keyval.sty
+Package: keyval 2022/05/29 v1.15 key=value parser (DPC)
+\KV@toks@=\toks19
+)
+(/usr/share/texlive/texmf-dist/tex/generic/iftex/ifvtex.sty
+Package: ifvtex 2019/10/25 v1.7 ifvtex legacy package. Use iftex instead.
+
+(/usr/share/texlive/texmf-dist/tex/generic/iftex/iftex.sty
+Package: iftex 2024/12/12 v1.0g TeX engine tests
+))
+\Gm@cnth=\count283
+\Gm@cntv=\count284
+\c@Gm@tempcnt=\count285
+\Gm@bindingoffset=\dimen149
+\Gm@wd@mp=\dimen150
+\Gm@odd@mp=\dimen151
+\Gm@even@mp=\dimen152
+\Gm@layoutwidth=\dimen153
+\Gm@layoutheight=\dimen154
+\Gm@layouthoffset=\dimen155
+\Gm@layoutvoffset=\dimen156
+\Gm@dimlist=\toks20
+)
+(/usr/share/texlive/texmf-dist/tex/latex/amsmath/amsmath.sty
+Package: amsmath 2025/07/09 v2.17z AMS math features
+\@mathmargin=\skip51
+
+For additional information on amsmath, use the `?' option.
+(/usr/share/texlive/texmf-dist/tex/latex/amsmath/amstext.sty
+Package: amstext 2024/11/17 v2.01 AMS text
+
+(/usr/share/texlive/texmf-dist/tex/latex/amsmath/amsgen.sty
+File: amsgen.sty 1999/11/30 v2.0 generic functions
+\@emptytoks=\toks21
+\ex@=\dimen157
+))
+(/usr/share/texlive/texmf-dist/tex/latex/amsmath/amsbsy.sty
+Package: amsbsy 1999/11/29 v1.2d Bold Symbols
+\pmbraise@=\dimen158
+)
+(/usr/share/texlive/texmf-dist/tex/latex/amsmath/amsopn.sty
+Package: amsopn 2022/04/08 v2.04 operator names
+)
+\inf@bad=\count286
+LaTeX Info: Redefining \frac on input line 233.
+\uproot@=\count287
+\leftroot@=\count288
+LaTeX Info: Redefining \overline on input line 398.
+LaTeX Info: Redefining \colon on input line 409.
+\classnum@=\count289
+\DOTSCASE@=\count290
+LaTeX Info: Redefining \ldots on input line 495.
+LaTeX Info: Redefining \dots on input line 498.
+LaTeX Info: Redefining \cdots on input line 619.
+\Mathstrutbox@=\box53
+\strutbox@=\box54
+LaTeX Info: Redefining \big on input line 721.
+LaTeX Info: Redefining \Big on input line 722.
+LaTeX Info: Redefining \bigg on input line 723.
+LaTeX Info: Redefining \Bigg on input line 724.
+\big@size=\dimen159
+LaTeX Font Info:    Redeclaring font encoding OML on input line 742.
+LaTeX Font Info:    Redeclaring font encoding OMS on input line 743.
+\macc@depth=\count291
+LaTeX Info: Redefining \bmod on input line 904.
+LaTeX Info: Redefining \pmod on input line 909.
+LaTeX Info: Redefining \smash on input line 939.
+LaTeX Info: Redefining \relbar on input line 969.
+LaTeX Info: Redefining \Relbar on input line 970.
+\c@MaxMatrixCols=\count292
+\dotsspace@=\muskip17
+\c@parentequation=\count293
+\dspbrk@lvl=\count294
+\tag@help=\toks22
+\row@=\count295
+\column@=\count296
+\maxfields@=\count297
+\andhelp@=\toks23
+\eqnshift@=\dimen160
+\alignsep@=\dimen161
+\tagshift@=\dimen162
+\tagwidth@=\dimen163
+\totwidth@=\dimen164
+\lineht@=\dimen165
+\@envbody=\toks24
+\multlinegap=\skip52
+\multlinetaggap=\skip53
+\mathdisplay@stack=\toks25
+LaTeX Info: Redefining \[ on input line 2950.
+LaTeX Info: Redefining \] on input line 2951.
+)
+(/usr/share/texlive/texmf-dist/tex/latex/amsfonts/amssymb.sty
+Package: amssymb 2013/01/14 v3.01 AMS font symbols
+
+(/usr/share/texlive/texmf-dist/tex/latex/amsfonts/amsfonts.sty
+Package: amsfonts 2013/01/14 v3.01 Basic AMSFonts support
+\symAMSa=\mathgroup4
+\symAMSb=\mathgroup5
+LaTeX Font Info:    Redeclaring math symbol \hbar on input line 98.
+LaTeX Font Info:    Overwriting math alphabet `\mathfrak' in version `bold'
+(Font)                  U/euf/m/n --> U/euf/b/n on input line 106.
+))
+
+! LaTeX Error: File `booktabs.sty' not found.
+
+Type X to quit or <RETURN> to proceed,
+or enter new name. (Default extension: sty)
+
+Enter file name: 02.pdf
+
+! LaTeX Error: File `02.pdf' not found.
+
+Type X to quit or <RETURN> to proceed,
+or enter new name. (Default extension: pdf)
+
+Enter file name: 02
+
+! LaTeX Error: File `02.pdf' not found.
+
+Type X to quit or <RETURN> to proceed,
+or enter new name. (Default extension: pdf)
+
+Enter file name: 
+
+! LaTeX Error: File `xcolor.sty' not found.
+
+Type X to quit or <RETURN> to proceed,
+or enter new name. (Default extension: sty)
+
+Enter file name: 
+(/usr/share/texlive/texmf-dist/tex/latex/hyperref/hyperref.sty
+Package: hyperref 2025-07-12 v7.01o Hypertext links for LaTeX
+
+(/usr/share/texlive/texmf-dist/tex/latex/kvsetkeys/kvsetkeys.sty
+Package: kvsetkeys 2022-10-05 v1.19 Key value parser (HO)
+)
+(/usr/share/texlive/texmf-dist/tex/generic/kvdefinekeys/kvdefinekeys.sty
+Package: kvdefinekeys 2019-12-19 v1.6 Define keys (HO)
+)
+(/usr/share/texlive/texmf-dist/tex/generic/pdfescape/pdfescape.sty
+Package: pdfescape 2019/12/09 v1.15 Implements pdfTeX's escape features (HO)
+
+(/usr/share/texlive/texmf-dist/tex/generic/ltxcmds/ltxcmds.sty
+Package: ltxcmds 2023-12-04 v1.26 LaTeX kernel commands for general use (HO)
+)
+(/usr/share/texlive/texmf-dist/tex/generic/pdftexcmds/pdftexcmds.sty
+Package: pdftexcmds 2020-06-27 v0.33 Utility functions of pdfTeX for LuaTeX (HO
+)
+
+(/usr/share/texlive/texmf-dist/tex/generic/infwarerr/infwarerr.sty
+Package: infwarerr 2019/12/03 v1.5 Providing info/warning/error messages (HO)
+)
+Package pdftexcmds Info: \pdf@primitive is available.
+Package pdftexcmds Info: \pdf@ifprimitive is available.
+Package pdftexcmds Info: \pdfdraftmode found.
+))
+(/usr/share/texlive/texmf-dist/tex/latex/hycolor/hycolor.sty
+Package: hycolor 2020-01-27 v1.10 Color options for hyperref/bookmark (HO)
+)
+(/usr/share/texlive/texmf-dist/tex/latex/hyperref/nameref.sty
+Package: nameref 2025-06-21 v2.57 Cross-referencing by name of section
+
+(/usr/share/texlive/texmf-dist/tex/latex/refcount/refcount.sty
+Package: refcount 2019/12/15 v3.6 Data extraction from label references (HO)
+)
+(/usr/share/texlive/texmf-dist/tex/generic/gettitlestring/gettitlestring.sty
+Package: gettitlestring 2019/12/15 v1.6 Cleanup title references (HO)
+
+(/usr/share/texlive/texmf-dist/tex/latex/kvoptions/kvoptions.sty
+Package: kvoptions 2022-06-15 v3.15 Key value format for package options (HO)
+))
+\c@section@level=\count298
+)
+(/usr/share/texlive/texmf-dist/tex/latex/etoolbox/etoolbox.sty
+Package: etoolbox 2025/10/02 v2.5m e-TeX tools for LaTeX (JAW)
+\etb@tempcnta=\count299
+)
+(/usr/share/texlive/texmf-dist/tex/generic/stringenc/stringenc.sty
+Package: stringenc 2019/11/29 v1.12 Convert strings between diff. encodings (HO
+)
+)
+\@linkdim=\dimen166
+\Hy@linkcounter=\count300
+\Hy@pagecounter=\count301
+
+(/usr/share/texlive/texmf-dist/tex/latex/hyperref/pd1enc.def
+File: pd1enc.def 2025-07-12 v7.01o Hyperref: PDFDocEncoding definition (HO)
+Now handling font encoding PD1 ...
+... no UTF-8 mapping file for font encoding PD1
+)
+(/usr/share/texlive/texmf-dist/tex/generic/intcalc/intcalc.sty
+Package: intcalc 2019/12/15 v1.3 Expandable calculations with integers (HO)
+)
+\Hy@SavedSpaceFactor=\count302
+
+(/usr/share/texlive/texmf-dist/tex/latex/hyperref/puenc.def
+File: puenc.def 2025-07-12 v7.01o Hyperref: PDF Unicode definition (HO)
+Now handling font encoding PU ...
+... no UTF-8 mapping file for font encoding PU
+)
+Package hyperref Info: Hyper figures OFF on input line 4195.
+Package hyperref Info: Link nesting OFF on input line 4200.
+Package hyperref Info: Hyper index ON on input line 4203.
+Package hyperref Info: Plain pages OFF on input line 4210.
+Package hyperref Info: Backreferencing OFF on input line 4215.
+Package hyperref Info: Implicit mode ON; LaTeX internals redefined.
+Package hyperref Info: Bookmarks ON on input line 4462.
+\c@Hy@tempcnt=\count303
+
+(/usr/share/texlive/texmf-dist/tex/latex/url/url.sty
+\Urlmuskip=\muskip18
+Package: url 2013/09/16  ver 3.4  Verb mode for urls, etc.
+)
+LaTeX Info: Redefining \url on input line 4801.
+\XeTeXLinkMargin=\dimen167
+
+(/usr/share/texlive/texmf-dist/tex/generic/bitset/bitset.sty
+Package: bitset 2019/12/09 v1.3 Handle bit-vector datatype (HO)
+
+(/usr/share/texlive/texmf-dist/tex/generic/bigintcalc/bigintcalc.sty
+Package: bigintcalc 2019/12/15 v1.5 Expandable calculations on big integers (HO
+)
+))
+\Fld@menulength=\count304
+\Field@Width=\dimen168
+\Fld@charsize=\dimen169
+Package hyperref Info: Hyper figures OFF on input line 6078.
+Package hyperref Info: Link nesting OFF on input line 6083.
+Package hyperref Info: Hyper index ON on input line 6086.
+Package hyperref Info: backreferencing OFF on input line 6093.
+Package hyperref Info: Link coloring OFF on input line 6098.
+Package hyperref Info: Link coloring with OCG OFF on input line 6103.
+Package hyperref Info: PDF/A mode OFF on input line 6108.
+\Hy@abspage=\count305
+\c@Item=\count306
+\c@Hfootnote=\count307
+)
+Package hyperref Info: Driver (autodetected): hpdftex.
+
+(/usr/share/texlive/texmf-dist/tex/latex/hyperref/hpdftex.def
+File: hpdftex.def 2025-07-12 v7.01o Hyperref driver for pdfTeX
+\Fld@listcount=\count308
+\c@bookmark@seq@number=\count309
+
+(/usr/share/texlive/texmf-dist/tex/latex/rerunfilecheck/rerunfilecheck.sty
+Package: rerunfilecheck 2025-06-21 v1.11 Rerun checks for auxiliary files (HO)
+
+(/usr/share/texlive/texmf-dist/tex/generic/uniquecounter/uniquecounter.sty
+Package: uniquecounter 2019/12/15 v1.4 Provide unlimited unique counter (HO)
+)
+Package uniquecounter Info: New unique counter `rerunfilecheck' on input line 2
+84.
+)
+\Hy@SectionHShift=\skip54
+)
+
+! LaTeX Error: File `microtype.sty' not found.
+
+Type X to quit or <RETURN> to proceed,
+or enter new name. (Default extension: sty)
+
+Enter file name: 
+
+! LaTeX Error: File `setspace.sty' not found.
+
+Type X to quit or <RETURN> to proceed,
+or enter new name. (Default extension: sty)
+
+Enter file name: 01
+
+! LaTeX Error: File `01.sty' not found.
+
+Type X to quit or <RETURN> to proceed,
+or enter new name. (Default extension: sty)
+
+Enter file name: 01
+
+! LaTeX Error: File `01.sty' not found.
+
+Type X to quit or <RETURN> to proceed,
+or enter new name. (Default extension: sty)
+
+Enter file name: 
+(/usr/share/texlive/texmf-dist/tex/latex/tools/tabularx.sty
+Package: tabularx 2023/12/11 v2.12a `tabularx' package (DPC)
+
+(/usr/share/texlive/texmf-dist/tex/latex/tools/array.sty
+Package: array 2025/09/25 v2.6n Tabular extension package (FMi)
+\col@sep=\dimen170
+\ar@mcellbox=\box55
+\extrarowheight=\dimen171
+\NC@list=\toks26
+\extratabsurround=\skip55
+\backup@length=\skip56
+\ar@cellbox=\box56
+)
+\TX@col@width=\dimen172
+\TX@old@table=\dimen173
+\TX@old@col=\dimen174
+\TX@target=\dimen175
+\TX@delta=\dimen176
+\TX@cols=\count310
+\TX@ftn=\toks27
+)
+(/usr/share/texlive/texmf-dist/tex/latex/tools/longtable.sty
+Package: longtable 2025-10-13 v4.24 Multi-page Table package (DPC)
+\LTleft=\skip57
+\LTright=\skip58
+\LTpre=\skip59
+\LTpost=\skip60
+\LTchunksize=\count311
+\LTcapwidth=\dimen177
+\LT@head=\box57
+\LT@firsthead=\box58
+\LT@foot=\box59
+\LT@lastfoot=\box60
+\LT@gbox=\box61
+\LT@cols=\count312
+\LT@rows=\count313
+\c@LT@tables=\count314
+\c@LT@chunks=\count315
+\LT@p@ftn=\toks28
+)
+! Undefined control sequence.
+l.14 \onehalfspacing
+                    
+? 
+Package hyperref Info: Option `colorlinks' set `true' on input line 21.
+(/usr/share/texlive/texmf-dist/tex/latex/l3backend/l3backend-pdftex.def
+File: l3backend-pdftex.def 2025-10-09 L3 backend support: PDF output (pdfTeX)
+\l__color_backend_stack_int=\count316
+)
+No file 02.aux.
+\openout1 = `02.aux'.
+
+LaTeX Font Info:    Checking defaults for OML/cmm/m/it on input line 36.
+LaTeX Font Info:    ... okay on input line 36.
+LaTeX Font Info:    Checking defaults for OMS/cmsy/m/n on input line 36.
+LaTeX Font Info:    ... okay on input line 36.
+LaTeX Font Info:    Checking defaults for OT1/cmr/m/n on input line 36.
+LaTeX Font Info:    ... okay on input line 36.
+LaTeX Font Info:    Checking defaults for T1/cmr/m/n on input line 36.
+LaTeX Font Info:    ... okay on input line 36.
+LaTeX Font Info:    Checking defaults for TS1/cmr/m/n on input line 36.
+LaTeX Font Info:    ... okay on input line 36.
+LaTeX Font Info:    Checking defaults for OMX/cmex/m/n on input line 36.
+LaTeX Font Info:    ... okay on input line 36.
+LaTeX Font Info:    Checking defaults for U/cmr/m/n on input line 36.
+LaTeX Font Info:    ... okay on input line 36.
+LaTeX Font Info:    Checking defaults for PD1/pdf/m/n on input line 36.
+LaTeX Font Info:    ... okay on input line 36.
+LaTeX Font Info:    Checking defaults for PU/pdf/m/n on input line 36.
+LaTeX Font Info:    ... okay on input line 36.
+*geometry* driver: auto-detecting
+*geometry* detected driver: pdftex
+*geometry* verbose mode - [ preamble ] result:
+* driver: pdftex
+* paper: a4paper
+* layout: <same size as paper>
+* layoutoffset:(h,v)=(0.0pt,0.0pt)
+* modes: 
+* h-part:(L,W,R)=(72.26999pt, 452.9679pt, 72.26999pt)
+* v-part:(T,H,B)=(72.26999pt, 700.50687pt, 72.26999pt)
+* \paperwidth=597.50787pt
+* \paperheight=845.04684pt
+* \textwidth=452.9679pt
+* \textheight=700.50687pt
+* \oddsidemargin=0.0pt
+* \evensidemargin=0.0pt
+* \topmargin=-37.0pt
+* \headheight=12.0pt
+* \headsep=25.0pt
+* \topskip=11.0pt
+* \footskip=30.0pt
+* \marginparwidth=50.0pt
+* \marginparsep=10.0pt
+* \columnsep=10.0pt
+* \skip\footins=10.0pt plus 4.0pt minus 2.0pt
+* \hoffset=0.0pt
+* \voffset=0.0pt
+* \mag=1000
+* \@twocolumnfalse
+* \@twosidefalse
+* \@mparswitchfalse
+* \@reversemarginfalse
+* (1in=72.27pt=25.4mm, 1cm=28.453pt)
+
+(/usr/share/texlive/texmf-dist/tex/latex/graphics/color.sty
+Package: color 2025/01/14 v1.3e Standard LaTeX Color (DPC)
+
+(/usr/share/texlive/texmf-dist/tex/latex/graphics-cfg/color.cfg
+File: color.cfg 2016/01/02 v1.6 sample color configuration
+)
+Package color Info: Driver file: pdftex.def on input line 149.
+
+(/usr/share/texlive/texmf-dist/tex/latex/graphics-def/pdftex.def
+File: pdftex.def 2025/09/29 v1.2d Graphics/color driver for pdftex
+
+(/usr/share/texlive/texmf-dist/tex/context/base/mkii/supp-pdf.mkii
+[Loading MPS to PDF converter (version 2006.09.02).]
+\scratchcounter=\count317
+\scratchdimen=\dimen178
+\scratchbox=\box62
+\nofMPsegments=\count318
+\nofMParguments=\count319
+\everyMPshowfont=\toks29
+\MPscratchCnt=\count320
+\MPscratchDim=\dimen179
+\MPnumerator=\count321
+\makeMPintoPDFobject=\count322
+\everyMPtoPDFconversion=\toks30
+)) (/usr/share/texlive/texmf-dist/tex/latex/graphics/mathcolor.ltx))
+Package hyperref Info: Link coloring ON on input line 36.
+\@outlinefile=\write3
+\openout3 = `02.out'.
+
+LaTeX Font Info:    Trying to load font information for U+msa on input line 39.
+
+
+(/usr/share/texlive/texmf-dist/tex/latex/amsfonts/umsa.fd
+File: umsa.fd 2013/01/14 v3.01 AMS symbols A
+)
+LaTeX Font Info:    Trying to load font information for U+msb on input line 39.
+
+
+(/usr/share/texlive/texmf-dist/tex/latex/amsfonts/umsb.fd
+File: umsb.fd 2013/01/14 v3.01 AMS symbols B
+) [1
+
+{/var/lib/texmf/fonts/map/pdftex/updmap/pdftex.map}]
+LaTeX Font Info:    Font shape `OT1/cmtt/bx/n' in size <10.95> not available
+(Font)              Font shape `OT1/cmtt/m/n' tried instead on input line 79.
+
+! Undefined control sequence.
+<recently read> \toprule 
+                         
+l.94 \toprule
+             
+? 
+
+Underfull \hbox (badness 4505) in paragraph at lines 95--95
+[]|\OT1/cmr/bx/n/9 Target Plat-
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 95--95
+[]|\OT1/cmr/bx/n/9 Hardware Ar-chi-tec-
+ []
+
+
+Underfull \hbox (badness 5022) in paragraph at lines 95--95
+[]|\OT1/cmr/bx/n/9 Driver & En-gine
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 95--95
+[]|\OT1/cmr/bx/n/9 Target In-dus-try
+ []
+
+! Undefined control sequence.
+<recently read> \midrule 
+                         
+l.95 ...textbf{Target Industry Sector} \\ \midrule
+                                                  
+? 
+
+Overfull \hbox (2.823pt too wide) in alignment at lines 92--96
+ [] [] [] [] [] [] 
+ []
+
+! Undefined control sequence.
+<recently read> \toprule 
+                         
+l.98 \toprule
+             
+? 
+
+Underfull \hbox (badness 4505) in paragraph at lines 99--99
+[]|\OT1/cmr/bx/n/9 Target Plat-
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 99--99
+[]|\OT1/cmr/bx/n/9 Hardware Ar-chi-tec-
+ []
+
+
+Underfull \hbox (badness 5022) in paragraph at lines 99--99
+[]|\OT1/cmr/bx/n/9 Driver & En-gine
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 99--99
+[]|\OT1/cmr/bx/n/9 Target In-dus-try
+ []
+
+! Undefined control sequence.
+<recently read> \midrule 
+                         
+l.99 ...textbf{Target Industry Sector} \\ \midrule
+                                                  
+? 
+
+Overfull \hbox (2.823pt too wide) in alignment at lines 96--100
+ [] [] [] [] [] [] 
+ []
+
+! Undefined control sequence.
+l.101 \bottomrule
+                 
+? 
+
+Overfull \hbox (2.823pt too wide) in alignment at lines 100--102
+ [] [] [] [] [] [] 
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 103--103
+[]|\OT1/cmr/m/n/9 TensorRT 10.x
+ []
+
+
+Underfull \hbox (badness 4673) in paragraph at lines 103--104
+[]|\OT1/cmr/m/n/9 Data Cen-ters, De-
+ []
+
+
+Underfull \hbox (badness 2197) in paragraph at lines 104--104
+[]|\OT1/cmr/m/n/9 Core Ul-tra NPU, Xeon,
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 104--104
+[]|\OT1/cmr/m/n/9 OpenVINO
+ []
+
+
+Underfull \hbox (badness 3547) in paragraph at lines 104--105
+[]|\OT1/cmr/m/n/9 1U Servers, In-dus-
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 105--105
+[]|\OT1/cmr/m/n/9 RKNPU2 SDK
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 105--106
+[]|\OT1/cmr/m/n/9 Smart Cam-eras,
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 106--106
+[]|\OT1/cmr/m/n/9 Vitis AI DPU
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 106--107
+[]|\OT1/cmr/m/n/9 Robotics, Tac-ti-cal
+ []
+
+
+Underfull \hbox (badness 2662) in paragraph at lines 107--107
+[]|\OT1/cmr/m/n/9 Snapdragon 8 Gen 2/3,
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 107--108
+[]|\OT1/cmr/m/n/9 Handhelds, Au-
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 108--108
+[]|\OT1/cmr/m/n/9 CoreML / Metal
+ []
+
+
+Underfull \hbox (badness 6893) in paragraph at lines 108--109
+[]|\OT1/cmr/m/n/9 Air-Gapped ma-cOS
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 109--109
+[]|\OT1/cmr/m/n/9 Ryzen 7040/8040 NPU
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 109--109
+[]|\OT1/cmr/m/n/9 Ryzen AI SDK
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 109--110
+[]|\OT1/cmr/m/n/9 Field Lap-tops,
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 110--110
+[]|\OT1/cmr/m/n/9 NeuroPilot DLA
+ []
+
+
+Underfull \hbox (badness 1783) in paragraph at lines 112--112
+[]|\OT1/cmr/m/n/9 CV2, CV3, CV5 Vi-sion
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 112--112
+[]|\OT1/cmr/m/n/9 CVFlow Cav-alry
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 112--113
+[]|\OT1/cmr/m/n/9 Traffic Con-trollers,
+ []
+
+
+Underfull \hbox (badness 1253) in paragraph at lines 113--113
+[]|\OT1/cmr/m/n/9 Exynos 2200/2400 (Eden
+ []
+
+
+Underfull \hbox (badness 1960) in paragraph at lines 114--114
+[]|\OT1/cmr/m/n/9 Coral Edge TPU (USB,
+ []
+
+
+Underfull \hbox (badness 2941) in paragraph at lines 114--114
+[]|\OT1/cmr/m/n/9 Edge TPU Run-time
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 114--115
+[]|\OT1/cmr/m/n/9 Low-Power Re-mote
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 115--115
+[]|\OT1/cmr/m/n/9 FPGA AI Suite
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 115--116
+[]|\OT1/cmr/m/n/9 Radiation-Hardened
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 116--116
+[]|\OT1/cmr/m/n/9 VectorBlox SDK
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 116--117
+[]|\OT1/cmr/m/n/9 Ultra-Low-Power
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 117--117
+[]|\OT1/cmr/m/n/9 Hardware In-ter-cep-
+ []
+
+! Undefined control sequence.
+<recently read> \bottomrule 
+                            
+l.117 ...dware Interceptors, TinyML \\ \bottomrule
+                                                  
+? 
+
+Overfull \hbox (2.823pt too wide) in alignment at lines 102--118
+ [] [] [] [] [] [] 
+ []
+
+[2]
+Overfull \hbox (27.58478pt too wide) in paragraph at lines 124--125
+\OT1/cmr/m/n/10.95 The ap-pli-ance de-cou-ples all 26 se-cu-rity dis-ci-plines 
+into in-de-pen-dent C++20 mod-ules in \OT1/cmtt/m/n/10.95 src/modules/\OT1/cmr/
+m/n/10.95 .
+ []
+
+! Undefined control sequence.
+<recently read> \toprule 
+                         
+l.130 \toprule
+              
+? 
+! Undefined control sequence.
+<recently read> \midrule 
+                         
+l.131 ... & \textbf{Mitigation Action} \\ \midrule
+                                                  
+? 
+! Undefined control sequence.
+<recently read> \toprule 
+                         
+l.134 \toprule
+              
+? 
+! Undefined control sequence.
+<recently read> \midrule 
+                         
+l.135 ... & \textbf{Mitigation Action} \\ \midrule
+                                                  
+? 
+! Undefined control sequence.
+l.137 \bottomrule
+                 
+? 
+
+Underfull \hbox (badness 3000) in paragraph at lines 140--140
+[]|\OT1/cmr/m/n/9 In-memory be-hav-ioral state track-ing for
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 140--141
+[]|\OT1/cmr/m/n/9 Session re-vo-ca-
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 141--142
+[]|\OT1/cmr/m/n/9 IP quar-an-tine
+ []
+
+
+Underfull \hbox (badness 2837) in paragraph at lines 142--142
+[]|\OT1/cmr/m/n/9 Packet sig-na-ture match-ing and zero-day
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 142--143
+[]|\OT1/cmr/m/n/9 Direct XDP
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 144--145
+[]|\OT1/cmr/m/n/9 Process kill
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 145--146
+[]|\OT1/cmr/m/n/9 File de-scrip-tor
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 146--147
+[]|\OT1/cmr/m/n/9 VLAN quar-an-
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 147--148
+[]|\OT1/cmr/m/n/9 Namespace
+ []
+
+
+Underfull \hbox (badness 8038) in paragraph at lines 148--148
+[]|\OT1/cmr/m/n/9 Kinematic tra-jec-tory eval-u-a-tion (mouse
+ []
+
+
+Underfull \hbox (badness 7740) in paragraph at lines 148--149
+[]|\OT1/cmr/m/n/9 TCP con-nec-tion
+ []
+
+
+Underfull \hbox (badness 1048) in paragraph at lines 150--150
+[]|\OT1/cmr/m/n/9 Graph anal-y-sis of Ker-beros tick-ets (Ker-
+ []
+
+
+Underfull \hbox (badness 2221) in paragraph at lines 151--152
+[]|\OT1/cmr/m/n/9 Nanosecond NIC
+ []
+
+
+Underfull \hbox (badness 6047) in paragraph at lines 152--153
+[]|\OT1/cmr/m/n/9 Session ter-mi-na-
+ []
+
+
+Underfull \hbox (badness 6300) in paragraph at lines 153--154
+[]|\OT1/cmr/m/n/9 Stream ter-mi-na-
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 156--157
+[]|\OT1/cmr/m/n/9 Actuator com-
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 160--161
+[]|\OT1/cmr/m/n/9 Signed ev-i-dence
+ []
+
+
+Underfull \hbox (badness 1028) in paragraph at lines 161--161
+[]|\OT1/cmr/m/n/9 Prompt to-ken stream eval-u-a-tion block-ing
+ []
+
+
+Underfull \hbox (badness 5787) in paragraph at lines 161--162
+[]|\OT1/cmr/m/n/9 Prompt trans-ac-
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 162--163
+[]|\OT1/cmr/m/n/9 Dynamic micro-
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 163--164
+[]|\OT1/cmr/m/n/9 Transaction
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 164--164
+[]|\OT1/cmr/m/n/9 eBPF net-work
+ []
+
+! Undefined control sequence.
+<recently read> \bottomrule 
+                            
+l.164 ...& eBPF network quarantine. \\ \bottomrule
+                                                  
+? 
+ignored error: Infinite glue shrinkage found in box being split [3]
+! Undefined control sequence.
+<recently read> \toprule 
+                         
+l.177 \toprule
+              
+? 
+
+Underfull \hbox (badness 10000) in paragraph at lines 178--178
+[]|\OT1/cmr/bx/n/9 Governing
+ []
+
+! Undefined control sequence.
+<recently read> \midrule 
+                         
+l.178 ...cal Dissection \& Capability} \\ \midrule
+                                                  
+? 
+! Undefined control sequence.
+<recently read> \toprule 
+                         
+l.181 \toprule
+              
+? 
+
+Underfull \hbox (badness 10000) in paragraph at lines 182--182
+[]|\OT1/cmr/bx/n/9 Governing
+ []
+
+! Undefined control sequence.
+<recently read> \midrule 
+                         
+l.182 ...cal Dissection \& Capability} \\ \midrule
+                                                  
+? 
+! Undefined control sequence.
+l.184 \bottomrule
+                 
+? 
+
+Underfull \hbox (badness 5316) in paragraph at lines 186--187
+[]|\OT1/cmr/m/n/9 Decodes Mod-bus TCP func-tion
+ []
+
+
+Underfull \hbox (badness 6995) in paragraph at lines 186--187
+\OT1/cmr/m/n/9 codes; drops unau-tho-rized coil
+ []
+
+
+Underfull \hbox (badness 1242) in paragraph at lines 187--188
+[]|\OT1/cmr/m/n/9 Emulates de-coy ports (2222, 23,
+ []
+
+
+Underfull \hbox (badness 1810) in paragraph at lines 187--188
+\OT1/cmr/m/n/9 8080); in-ter-ac-tion trig-gers eBPF
+ []
+
+
+Underfull \hbox (badness 3919) in paragraph at lines 188--189
+[]|\OT1/cmr/m/n/9 Carves 60s raw PCAP win-dow
+ []
+
+
+Underfull \hbox (badness 2608) in paragraph at lines 194--195
+[]|\OT1/cmr/m/n/9 Runs lo-cal quan-tized LLMs via
+ []
+
+
+Underfull \hbox (badness 1102) in paragraph at lines 196--197
+[]|\OT1/cmr/m/n/9 Detects unau-tho-rized Siemens S7
+ []
+
+
+Underfull \hbox (badness 4036) in paragraph at lines 197--198
+[]|\OT1/cmr/m/n/9 Actuates phys-i-cal sirens, strobe
+ []
+
+
+Underfull \hbox (badness 3029) in paragraph at lines 199--200
+[]|\OT1/cmr/m/n/9 Establishes sta-tis-ti-cal user base-
+ []
+
+
+Underfull \hbox (badness 5667) in paragraph at lines 205--206
+\OT1/cmr/m/n/9 loads to Pager-Duty, Slack, or
+ []
+
+
+Underfull \hbox (badness 6708) in paragraph at lines 208--209
+[]|\OT1/cmr/m/n/9 Triggers volatile RAM mem-ory
+ []
+
+
+Underfull \hbox (badness 4084) in paragraph at lines 214--215
+[]|\OT1/cmr/m/n/9 Inspects PACS hos-pi-tal med-i-cal
+ []
+
+! Undefined control sequence.
+<recently read> \bottomrule 
+                            
+l.215 ...edical IoT device streams. \\ \bottomrule
+                                                  
+? 
+[4]
+ignored error: Infinite glue shrinkage found in box being split [5]
+! Undefined control sequence.
+<inserted text> ...arraybackslash }X@{}} \toprule 
+                                                  \textbf {Evaluation Metric...
+l.260 \end{tabularx}
+                    
+? 
+! Undefined control sequence.
+<recently read> \midrule 
+                         
+l.260 \end{tabularx}
+                    
+? 
+! Undefined control sequence.
+<recently read> \bottomrule 
+                            
+l.260 \end{tabularx}
+                    
+? 
+! Undefined control sequence.
+<inserted text> ...arraybackslash }X@{}} \toprule 
+                                                  \textbf {Evaluation Metric...
+l.260 \end{tabularx}
+                    
+? 
+! Undefined control sequence.
+<recently read> \midrule 
+                         
+l.260 \end{tabularx}
+                    
+? 
+! Undefined control sequence.
+<recently read> \bottomrule 
+                            
+l.260 \end{tabularx}
+                    
+? 
+! Undefined control sequence.
+<inserted text> ...arraybackslash }X@{}} \toprule 
+                                                  \textbf {Evaluation Metric...
+l.260 \end{tabularx}
+                    
+? 
+! Undefined control sequence.
+<recently read> \midrule 
+                         
+l.260 \end{tabularx}
+                    
+? 
+! Undefined control sequence.
+<recently read> \bottomrule 
+                            
+l.260 \end{tabularx}
+                    
+? 
+
+LaTeX Warning: `h' float specifier changed to `ht'.
+
+! Undefined control sequence.
+<inserted text> {lXXrr} \toprule 
+                                 \textbf {Appliance Tier} & \textbf {Target ...
+l.282 \end{tabularx}
+                    
+? 
+! Undefined control sequence.
+<recently read> \midrule 
+                         
+l.282 \end{tabularx}
+                    
+? 
+! Undefined control sequence.
+<recently read> \bottomrule 
+                            
+l.282 \end{tabularx}
+                    
+? 
+! Undefined control sequence.
+<inserted text> {lXXrr} \toprule 
+                                 \textbf {Appliance Tier} & \textbf {Target ...
+l.282 \end{tabularx}
+                    
+? 
+! Undefined control sequence.
+<recently read> \midrule 
+                         
+l.282 \end{tabularx}
+                    
+? 
+! Undefined control sequence.
+<recently read> \bottomrule 
+                            
+l.282 \end{tabularx}
+                    
+? 
+! Undefined control sequence.
+<inserted text> {lXXrr} \toprule 
+                                 \textbf {Appliance Tier} & \textbf {Target ...
+l.282 \end{tabularx}
+                    
+? 
+
+Underfull \hbox (badness 10000) in paragraph at lines 282--282
+[]|\OT1/cmr/bx/n/10 Deployment
+ []
+
+! Undefined control sequence.
+<recently read> \midrule 
+                         
+l.282 \end{tabularx}
+                    
+? 
+
+Underfull \hbox (badness 2359) in paragraph at lines 282--282
+[]|\OT1/cmr/m/n/10 Rockchip RK3588
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 282--282
+[]|\OT1/cmr/m/n/10 Fanless IP67
+ []
+
+
+Underfull \hbox (badness 6157) in paragraph at lines 282--282
+[]|\OT1/cmr/m/n/10 Intel Core i9 /
+ []
+
+
+Underfull \hbox (badness 2359) in paragraph at lines 282--282
+[]|\OT1/cmr/m/n/10 Lightweight OEM
+ []
+
+! Undefined control sequence.
+<recently read> \bottomrule 
+                            
+l.282 \end{tabularx}
+                    
+? 
+
+LaTeX Warning: `h' float specifier changed to `ht'.
+
+[6] [7]
+LaTeX Font Info:    Font shape `OT1/cmtt/bx/n' in size <12> not available
+(Font)              Font shape `OT1/cmtt/m/n' tried instead on input line 310.
+
+! Undefined control sequence.
+<inserted text> {lrrrrr} \toprule 
+                                  \textbf {Financial Metric} & \textbf {Year...
+l.355 \end{tabularx}
+                    
+? 
+! Undefined control sequence.
+<recently read> \midrule 
+                         
+l.355 \end{tabularx}
+                    
+? 
+! Undefined control sequence.
+<recently read> \midrule 
+                         
+l.355 \end{tabularx}
+                    
+? 
+! Undefined control sequence.
+<recently read> \midrule 
+                         
+l.355 \end{tabularx}
+                    
+? 
+! Undefined control sequence.
+<recently read> \midrule 
+                         
+l.355 \end{tabularx}
+                    
+? 
+! Undefined control sequence.
+<recently read> \midrule 
+                         
+l.355 \end{tabularx}
+                    
+? 
+! Undefined control sequence.
+<recently read> \bottomrule 
+                            
+l.355 \end{tabularx}
+                    
+? 
+! Undefined control sequence.
+<inserted text> {lrrrrr} \toprule 
+                                  \textbf {Financial Metric} & \textbf {Year...
+l.355 \end{tabularx}
+                    
+? 
+! Undefined control sequence.
+<recently read> \midrule 
+                         
+l.355 \end{tabularx}
+                    
+? 
+! Undefined control sequence.
+<recently read> \midrule 
+                         
+l.355 \end{tabularx}
+                    
+? 
+! Undefined control sequence.
+<recently read> \midrule 
+                         
+l.355 \end{tabularx}
+                    
+? 
+! Undefined control sequence.
+<recently read> \midrule 
+                         
+l.355 \end{tabularx}
+                    
+? 
+! Undefined control sequence.
+<recently read> \midrule 
+                         
+l.355 \end{tabularx}
+                    
+? 
+! Undefined control sequence.
+<recently read> \bottomrule 
+                            
+l.355 \end{tabularx}
+                    
+? 
+
+Underfull \hbox (badness 10000) in alignment at lines 355--355
+[][][][][][] 
+ []
+
+
+LaTeX Warning: `h' float specifier changed to `ht'.
+
+[8]
+! Undefined control sequence.
+<inserted text> {lXXp{6cm}} \toprule 
+                                     \textbf {Risk Category} & \textbf {Scen...
+l.387 \end{tabularx}
+                    
+? 
+! Undefined control sequence.
+<recently read> \midrule 
+                         
+l.387 \end{tabularx}
+                    
+? 
+! Undefined control sequence.
+<recently read> \bottomrule 
+                            
+l.387 \end{tabularx}
+                    
+? 
+! Undefined control sequence.
+<inserted text> {lXXp{6cm}} \toprule 
+                                     \textbf {Risk Category} & \textbf {Scen...
+l.387 \end{tabularx}
+                    
+? 
+! Undefined control sequence.
+<recently read> \midrule 
+                         
+l.387 \end{tabularx}
+                    
+? 
+! Undefined control sequence.
+<recently read> \bottomrule 
+                            
+l.387 \end{tabularx}
+                    
+? 
+! Undefined control sequence.
+<inserted text> {lXXp{6cm}} \toprule 
+                                     \textbf {Risk Category} & \textbf {Scen...
+l.387 \end{tabularx}
+                    
+? 
+! Undefined control sequence.
+<recently read> \midrule 
+                         
+l.387 \end{tabularx}
+                    
+? 
+
+Underfull \hbox (badness 6708) in paragraph at lines 387--387
+[]|\OT1/cmr/m/n/10 False-positive drops
+ []
+
+
+Underfull \hbox (badness 7326) in paragraph at lines 387--387
+[]|\OT1/cmr/m/n/10 Mandatory 14-day Mon-i-tor Mode.
+ []
+
+
+Underfull \hbox (badness 3168) in paragraph at lines 387--387
+[]|\OT1/cmr/m/n/10 Adversarial base-line
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 387--387
+\OT1/cmr/m/n/10 ma-nip-u-la-tion (data
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 387--387
+[]|\OT1/cmr/m/n/10 Extended pro-cure-
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 387--387
+\OT1/cmr/m/n/10 ment cy-cles in
+ []
+
+
+Underfull \hbox (badness 1728) in paragraph at lines 387--387
+[]|\OT1/cmr/m/n/10 Offset via chan-nel agree-ments with
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 387--387
+\OT1/cmr/m/n/10 in-dus-trial au-toma-tion dis-trib-u-tors
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 387--387
+[]|\OT1/cmr/m/n/10 Hardware-agnostic de-sign.
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 387--387
+\OT1/cmtt/m/n/10 libxinfer.so \OT1/cmr/m/n/10 ex-e-cutes across 15
+ []
+
+
+Underfull \hbox (badness 6125) in paragraph at lines 387--387
+\OT1/cmr/m/n/10 ar-chi-tec-tures. Sup-ply con-straints
+ []
+
+
+Underfull \hbox (badness 3668) in paragraph at lines 387--387
+\OT1/cmr/m/n/10 on In-tel/NVIDIA shift de-liv-ery to
+ []
+
+! Undefined control sequence.
+<recently read> \bottomrule 
+                            
+l.387 \end{tabularx}
+                    
+? 
+[9] [10] (./02.aux)
+ ***********
+LaTeX2e <2025-11-01>
+L3 programming layer <2026-01-19>
+ ***********
+
+
+LaTeX Warning: Label(s) may have changed. Rerun to get cross-references right.
+
+
+Package rerunfilecheck Warning: File `02.out' has changed.
+(rerunfilecheck)                Rerun to get outlines right
+(rerunfilecheck)                or use package `bookmark'.
+
+Package rerunfilecheck Info: Checksums for `02.out':
+(rerunfilecheck)             Before: <no file>
+(rerunfilecheck)             After:  CFEF549551ACB112140E208969AABA60;5981.
+ ) 
+Here is how much of TeX's memory you used:
+ 10236 strings out of 469514
+ 153266 string characters out of 5470072
+ 613328 words of memory out of 5000000
+ 38722 multiletter control sequences out of 15000+600000
+ 642066 words of font info for 94 fonts, out of 8000000 for 9000
+ 14 hyphenation exceptions out of 8191
+ 75i,11n,79p,664b,628s stack positions out of 10000i,1000n,20000p,200000b,200000s
+ </home/kami/.texlive2025/texmf-var/fonts/pk/ljfour/jknappen/ec/tcbx1000.600p
+k> </home/kami/.texlive2025/texmf-var/fonts/pk/ljfour/jknappen/ec/tcrm0800.600p
+k> </home/kami/.texlive2025/texmf-var/fonts/pk/ljfour/jknappen/ec/tcbx0800.600p
+k> </home/kami/.texlive2025/texmf-var/fonts/pk/ljfour/jknappen/ec/tcbx1095.600p
+k> </home/kami/.texlive2025/texmf-var/fonts/pk/ljfour/jknappen/ec/tcrm1095.600p
+k> </home/kami/.texlive2025/texmf-var/fonts/pk/ljfour/jknappen/ec/tcrm1000.600p
+k></usr/share/texlive/texmf-dist/fonts/type1/public/amsfonts/cm/cmbx10.pfb></us
+r/share/texlive/texmf-dist/fonts/type1/public/amsfonts/cm/cmbx12.pfb></usr/shar
+e/texlive/texmf-dist/fonts/type1/public/amsfonts/cm/cmbx8.pfb></usr/share/texli
+ve/texmf-dist/fonts/type1/public/amsfonts/cm/cmbx9.pfb></usr/share/texlive/texm
+f-dist/fonts/type1/public/amsfonts/cm/cmex10.pfb></usr/share/texlive/texmf-dist
+/fonts/type1/public/amsfonts/cm/cmmi10.pfb></usr/share/texlive/texmf-dist/fonts
+/type1/public/amsfonts/cm/cmmi8.pfb></usr/share/texlive/texmf-dist/fonts/type1/
+public/amsfonts/cm/cmr10.pfb></usr/share/texlive/texmf-dist/fonts/type1/public/
+amsfonts/cm/cmr12.pfb></usr/share/texlive/texmf-dist/fonts/type1/public/amsfont
+s/cm/cmr8.pfb></usr/share/texlive/texmf-dist/fonts/type1/public/amsfonts/cm/cmr
+9.pfb></usr/share/texlive/texmf-dist/fonts/type1/public/amsfonts/cm/cmsy10.pfb>
+</usr/share/texlive/texmf-dist/fonts/type1/public/amsfonts/cm/cmsy8.pfb></usr/s
+hare/texlive/texmf-dist/fonts/type1/public/amsfonts/cm/cmti10.pfb></usr/share/t
+exlive/texmf-dist/fonts/type1/public/amsfonts/cm/cmtt10.pfb></usr/share/texlive
+/texmf-dist/fonts/type1/public/amsfonts/cm/cmtt12.pfb></usr/share/texlive/texmf
+-dist/fonts/type1/public/amsfonts/cm/cmtt9.pfb>
+Output written on 02.pdf (10 pages, 293154 bytes).
+PDF statistics:
+ 224 PDF objects out of 1000 (max. 8388607)
+ 169 compressed objects within 2 object streams
+ 55 named destinations out of 1000 (max. 500000)
+ 1 words of extra memory for PDF output out of 10000 (max. 10000000)
+
