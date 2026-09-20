@@ -126,6 +126,10 @@ SYSLOG_TEMPLATES = [
     "AUTH_GEO_VELOCITY: User admin logged in from GPS 48.8566, 2.3522 (Paris) 10m after 40.7128, -74.0060 (New York)"
 ]
 
+
+
+
+
 def worker_identity_stream():
     sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     while running:
