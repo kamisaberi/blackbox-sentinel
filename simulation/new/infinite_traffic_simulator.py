@@ -127,9 +127,6 @@ SYSLOG_TEMPLATES = [
 ]
 
 
-
-
-
 def worker_identity_stream():
     sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     while running:
