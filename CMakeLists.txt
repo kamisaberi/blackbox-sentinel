@@ -39,6 +39,9 @@ find_package(gRPC CONFIG REQUIRED)
 find_library(BLACKBOX_LIB blackbox REQUIRED PATHS /usr/local/lib /usr/lib)
 find_library(XINFER_LIB xinfer REQUIRED PATHS /usr/local/lib /usr/lib)
 
+# Protobuf / gRPC generation for client stubs
+file(GLOB PROTO_SRCS "${CMAKE_CURRENT_SOURCE_DIR}/proto/*.proto")
+# (Use the same generation block as sentinel-nexus)
 
 # -------------------------------------------------------------------
 # DEFINE IMPORTED GLOBAL TARGETS (FIXES THE CMAKE ERROR FOR ALL MODULES)
