@@ -209,6 +209,7 @@ set(SENTINEL_SOURCES
     src/hardware/tpm_license.cpp
     src/exporter/report_generator.cpp
     src/nexus/NexusUplink.cpp
+    src/nexus/KernelDropInjector.cpp
     ${PROTO_GEN_SRCS}
     ${GRPC_GEN_SRCS}
 )
