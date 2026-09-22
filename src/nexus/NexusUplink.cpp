@@ -18,6 +18,9 @@ bool NexusUplink::start(const NexusConfig& config) {
     std::string target_endpoint = config_.host + ":" + std::to_string(config_.port);
     std::cout << "[NexusUplink] Connecting to Sentinel Nexus at " << target_endpoint << "..." << std::endl;
 
+    // Initialize eBPF kernel dropper connection
+    KernelDropInjector::instance().initialize();
+
     channel_ = grpc::CreateChannel(target_endpoint, grpc::InsecureChannelCredentials());
     fleet_stub_ = ::sentinel::nexus::FleetService::NewStub(channel_);
     telemetry_stub_ = ::sentinel::nexus::TelemetryService::NewStub(channel_);
