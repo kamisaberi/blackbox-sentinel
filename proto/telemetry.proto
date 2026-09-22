@@ -1,0 +1,27 @@
+syntax = "proto3";
+package sentinel.nexus;
+
+service TelemetryService {
+    rpc StreamCandidateVectors (stream FeatureVectorStream) returns (IngestSummary);
+}
+
+message CandidateVector {
+    uint64 event_id = 1;
+    uint64 timestamp_ns = 2;
+    repeated float features = 3; // 32-dim NetFlow vector
+    float inference_uncertainty = 4; // High uncertainty [0.40 - 0.60]
+    float autoencoder_recon_loss = 5; // Outlier loss
+    bool triggered_kernel_drop = 6;
+    string detected_signature = 7;
+}
+
+message FeatureVectorStream {
+    string node_id = 1;
+    repeated CandidateVector vectors = 2;
+}
+
+message IngestSummary {
+    uint64 total_received = 1;
+    uint64 routed_to_forge = 2;
+    bool throttled = 3;
+}
