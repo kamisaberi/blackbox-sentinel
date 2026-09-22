@@ -177,6 +177,20 @@ void NexusUplink::collective_defense_worker(std::stop_token st) {
             }
         });
 
+
+        // Read thread for inbound broadcasted rules
+        std::jthread reader([&stream](std::stop_token r_st) {
+            ::sentinel::nexus::FleetDefenseRule rule;
+            while (!r_st.stop_requested() && stream->Read(&rule)) {
+                if (rule.emergency_purge()) {
+                    KernelDropInjector::instance().unblock_ip(rule.target_ip());
+                } else {
+                    KernelDropInjector::instance().block_ip(
+                        rule.target_ip(), rule.expires_at_ns(), rule.rule_id());
+                }
+            }
+        });
+
         // Write loop for local threat emissions
         while (!st.stop_requested() && running_.load()) {
             std::vector<::sentinel::nexus::ThreatIndicator> to_send;
