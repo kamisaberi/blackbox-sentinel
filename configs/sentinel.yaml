@@ -1,0 +1,7 @@
+nexus:
+  enabled: true
+  host: "127.0.0.1"
+  port: 50051
+  heartbeat_interval_sec: 5
+  site_identifier: "Industrial-Plant-01"
+  active_model_name: "network_threat_v1.onnx"
