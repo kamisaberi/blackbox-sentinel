@@ -1,4 +1,5 @@
 #include "NexusUplink.hpp"
+#include "KernelDropInjector.hpp"
 #include <iostream>
 #include <fstream>
 #include <sstream>
