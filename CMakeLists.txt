@@ -33,6 +33,9 @@ find_package(OpenSSL REQUIRED)
 find_library(BPF_LIB bpf REQUIRED)
 find_library(ELF_LIB elf REQUIRED)
 
+find_package(Protobuf REQUIRED)
+find_package(gRPC CONFIG REQUIRED)
+
 find_library(BLACKBOX_LIB blackbox REQUIRED PATHS /usr/local/lib /usr/lib)
 find_library(XINFER_LIB xinfer REQUIRED PATHS /usr/local/lib /usr/lib)
 
