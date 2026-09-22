@@ -12,17 +12,19 @@
 #include "api/rest_controller.hpp"
 #include "nexus/NexusUplink.hpp"
 
-
 std::atomic<bool> g_appliance_running{true};
 
-void signal_handler(int signal) {
-    if (signal == SIGINT || signal == SIGTERM) {
+void signal_handler(int signal)
+{
+    if (signal == SIGINT || signal == SIGTERM)
+    {
         std::cout << "\n[Blackbox Sentinel] Shutting down appliance service..." << std::endl;
         g_appliance_running = false;
     }
 }
 
-int main() {
+int main()
+{
     std::signal(SIGINT, signal_handler);
     std::signal(SIGTERM, signal_handler);
 
@@ -35,7 +37,8 @@ int main() {
     sentinel::hardware::TPMLicenseValidator license_validator("DEVELOPMENT_MODE");
     license_validator.validate_license();
 
-    try {
+    try
+    {
         // 2. Initialize Layer 2 Blackbox Security Engine
         std::cout << "[Blackbox Sentinel] Initializing libblackbox.so security engine..." << std::endl;
         blackbox::BlackboxEngine security_engine("configs/sentinel_config.json");
@@ -52,11 +55,22 @@ int main() {
         // 5. Generate CMMC Audit Report
         sentinel::exporter::ReportGenerator::generate_cmmc_compliance_report("cmmc_audit_report.txt");
 
-        std::cout << "[Blackbox Sentinel] Web Command Center live at: http://localhost:8443\n" << std::endl;
+        std::cout << "[Blackbox Sentinel] Web Command Center live at: http://localhost:8443\n"
+                  << std::endl;
+
+        sentinel::nexus_client::NexusConfig n_cfg{
+            .enabled = true,
+            .host = "127.0.0.1",
+            .port = 50051,
+            .heartbeat_interval_sec = 5,
+            .site_identifier = "Edge-Substation-01",
+            .active_model_name = "network_threat_v1.onnx"};
+        sentinel::nexus_client::NexusUplink::instance().start(n_cfg);
 
         // 6. Main Pipeline Event Ingestion Loop
         uint64_t counter = 0;
-        while (g_appliance_running) {
+        while (g_appliance_running)
+        {
             counter++;
 
             blackbox::SecurityEvent event;
@@ -78,8 +92,9 @@ int main() {
         api_server.stop();
         orchestrator.shutdown_all_modules();
         security_engine.stop();
-
-    } catch (const std::exception& e) {
+    }
+    catch (const std::exception &e)
+    {
         std::cerr << "[Sentinel Appliance Error] " << e.what() << std::endl;
         return -1;
     }
