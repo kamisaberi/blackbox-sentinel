@@ -1,0 +1,35 @@
+syntax = "proto3";
+package sentinel.nexus;
+
+enum DeviceType {
+    DEVICE_UNKNOWN = 0;
+    DEVICE_PHYSICAL_TPM2 = 1;
+    DEVICE_VIRTUAL_TPM = 2;
+    DEVICE_DMI_FALLBACK = 3;
+}
+
+enum HardwareBackend {
+    BACKEND_UNKNOWN = 0;
+    BACKEND_INTEL_OPENVINO = 1;
+    BACKEND_NVIDIA_TENSORRT = 2;
+    BACKEND_ROCKCHIP_RKNN = 3;
+    BACKEND_QUALCOMM_QNN = 4;
+    BACKEND_AMD_VITIS_AI = 5;
+    BACKEND_APPLE_COREML = 6;
+    BACKEND_HAILO_HAILORT = 7;
+}
+
+message HardwareIdentity {
+    DeviceType type = 1;
+    string machine_uuid = 2;
+    string tpm_public_hash = 3;
+    string hostname = 4;
+    string kernel_version = 5;
+    HardwareBackend primary_backend = 6;
+}
+
+message ResponseStatus {
+    bool success = 1;
+    string message = 2;
+    uint32 code = 3;
+}
