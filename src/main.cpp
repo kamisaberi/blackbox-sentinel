@@ -10,6 +10,8 @@
 #include "hardware/hw_monitor.hpp"
 #include "exporter/report_generator.hpp"
 #include "api/rest_controller.hpp"
+#include "nexus/NexusUplink.hpp"
+
 
 std::atomic<bool> g_appliance_running{true};
 
