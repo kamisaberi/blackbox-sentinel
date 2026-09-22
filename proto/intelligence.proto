@@ -1,0 +1,33 @@
+syntax = "proto3";
+package sentinel.nexus;
+
+service IntelligenceService {
+    // Bidirectional streaming: Edge sends zero-day triggers; Nexus fans out fleet-wide drops
+    rpc SyncCollectiveImmunity (stream ThreatIndicator) returns (stream FleetDefenseRule);
+}
+
+enum ThreatType {
+    THREAT_UNKNOWN = 0;
+    THREAT_BRUTE_FORCE = 1;
+    THREAT_C2_BEACON = 2;
+    THREAT_SCADA_ANOMALY = 3;
+    THREAT_PORT_SWEEP = 4;
+    THREAT_EXPLOIT_PAYLOAD = 5;
+}
+
+message ThreatIndicator {
+    string origin_node_id = 1;
+    string attacker_ip = 2;
+    uint32 port = 3;
+    ThreatType type = 4;
+    float confidence = 5;
+    uint64 timestamp_ns = 6;
+}
+
+message FleetDefenseRule {
+    string rule_id = 1;
+    string target_ip = 2;       // Injected into eBPF blocked_ip_map
+    uint32 target_subnet_mask = 3;
+    uint64 expires_at_ns = 4;   // Ephemeral kernel block TTL
+    bool emergency_purge = 5;   // True if false positive unblock
+}
