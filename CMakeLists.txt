@@ -161,6 +161,9 @@ set(SENTINEL_SOURCES
     src/hardware/hw_monitor.cpp
     src/hardware/tpm_license.cpp
     src/exporter/report_generator.cpp
+    src/nexus/NexusUplink.cpp
+    ${PROTO_GEN_SRCS}
+    ${GRPC_GEN_SRCS}
 )
 
 # Build Commercial Appliance Executable
