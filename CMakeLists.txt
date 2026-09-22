@@ -182,6 +182,9 @@ target_link_libraries(sentinel PRIVATE
     OpenSSL::SSL
     OpenSSL::Crypto
     Threads::Threads
+    protobuf::libprotobuf
+    gRPC::grpc++
+    gRPC::grpc++_reflection
 )
 
 # RPATH so executable finds shared libraries in /usr/local/lib
