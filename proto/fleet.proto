@@ -1,0 +1,45 @@
+syntax = "proto3";
+package sentinel.nexus;
+
+import "common.proto";
+
+service FleetService {
+    rpc RegisterAppliance (RegistrationRequest) returns (RegistrationResponse);
+    rpc SendHeartbeat (HeartbeatRequest) returns (HeartbeatResponse);
+}
+
+message RegistrationRequest {
+    HardwareIdentity identity = 1;
+    string site_identifier = 2;
+    string software_version = 3;
+    bytes tpm_quote_signature = 4; 
+}
+
+message RegistrationResponse {
+    ResponseStatus status = 1;
+    string node_id = 2;
+    uint32 heartbeat_interval_seconds = 3;
+}
+
+message DeviceMetrics {
+    float cpu_usage_pct = 1;
+    float ram_usage_mb = 2;
+    float npu_gpu_usage_pct = 3;
+    float npu_gpu_temp_celsius = 4;
+    uint64 packets_inspected = 5;
+    uint64 ebpf_packets_dropped = 6;
+    uint32 ring_buffer_fill_pct = 7;
+    float avg_mitigation_latency_us = 8;
+}
+
+message HeartbeatRequest {
+    string node_id = 1;
+    uint64 timestamp_ns = 2;
+    DeviceMetrics metrics = 3;
+}
+
+message HeartbeatResponse {
+    bool acknowledged = 1;
+    bool config_drift_detected = 2;
+    bool model_update_available = 3;
+}
