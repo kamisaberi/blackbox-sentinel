@@ -1,0 +1,29 @@
+syntax = "proto3";
+package sentinel.nexus;
+
+import "common.proto";
+
+service ModelOtaService {
+    rpc PollTargetModel (ModelPollRequest) returns (ModelPollResponse);
+}
+
+enum RolloutStage {
+    STAGE_DISABLED = 0;
+    STAGE_SHADOW_MODE = 1; // Run inference passively, do not block
+    STAGE_CANARY_5_PCT = 2;
+    STAGE_FLEET_WIDE = 3;
+}
+
+message ModelPollRequest {
+    string node_id = 1;
+    string active_model_version = 2;
+    HardwareBackend backend = 3;
+}
+
+message ModelPollResponse {
+    bool update_required = 1;
+    string target_version = 2;
+    string model_sha256 = 3;
+    string download_url = 4;
+    RolloutStage stage = 5;
+}
