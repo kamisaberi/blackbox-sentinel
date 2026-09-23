@@ -6,6 +6,7 @@ import "common.proto";
 service FleetService {
     rpc RegisterAppliance (RegistrationRequest) returns (RegistrationResponse);
     rpc SendHeartbeat (HeartbeatRequest) returns (HeartbeatResponse);
+    rpc DeregisterAppliance (DeregistrationRequest) returns (ResponseStatus);
 }
 
 message RegistrationRequest {
@@ -19,6 +20,11 @@ message RegistrationResponse {
     ResponseStatus status = 1;
     string node_id = 2;
     uint32 heartbeat_interval_seconds = 3;
+}
+
+message DeregistrationRequest {
+    string node_id = 1;
+    string reason = 2; // e.g., "CLEAN_SHUTDOWN", "OPERATOR_STOP"
 }
 
 message DeviceMetrics {
