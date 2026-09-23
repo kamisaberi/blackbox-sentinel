@@ -14,13 +14,10 @@
 
 std::atomic<bool> g_appliance_running{true};
 
-void signal_handler(int signal)
-{
-    if (signal == SIGINT || signal == SIGTERM)
-    {
-        std::cout << "\n[Blackbox Sentinel] Shutting down appliance service..." << std::endl;
-        g_appliance_running = false;
-    }
+void signal_handler(int sig) {
+    (void)sig;
+    sentinel::nexus_client::NexusUplink::instance().stop();
+    g_running = false;
 }
 
 int main()
