@@ -18,6 +18,23 @@ namespace sentinel::nexus_client {
 
 bool NexusUplink::start(const NexusConfig& config) {
     config_ = config;
+
+
+    // Check environment variable overrides (vital for Docker & VMware mesh)
+    const char* env_host = std::getenv("NEXUS_HOST");
+    if (env_host && strlen(env_host) > 0) {
+        config_.host = env_host;
+    }
+    const char* env_port = std::getenv("NEXUS_PORT");
+    if (env_port && strlen(env_port) > 0) {
+        config_.port = std::stoi(env_port);
+    }
+    const char* env_site = std::getenv("NODE_SITE");
+    if (env_site && strlen(env_site) > 0) {
+        config_.site_identifier = env_site;
+    }
+
+
     if (!config_.enabled) {
         std::cout << "[NexusUplink] Uplink disabled in config. Operating in autonomous standalone mode." << std::endl;
         return true;
