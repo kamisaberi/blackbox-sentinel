@@ -81,138 +81,152 @@
 #include "../modules/26_ddp/ddp_module.hpp"
 #endif
 
-namespace sentinel::core {
+namespace sentinel::core
+{
 
-Orchestrator::Orchestrator() = default;
+    Orchestrator::Orchestrator() = default;
 
-Orchestrator::~Orchestrator() {
-    shutdown_all_modules();
-}
+    Orchestrator::~Orchestrator()
+    {
+        shutdown_all_modules();
+    }
 
-bool Orchestrator::bootstrap_all_modules(const std::string& config_dir) {
-    std::lock_guard<std::mutex> lock(orchestrator_mutex_);
-    if (is_running_) return true;
+    bool Orchestrator::bootstrap_all_modules(const std::string &config_dir)
+    {
+        std::lock_guard<std::mutex> lock(orchestrator_mutex_);
+        if (is_running_)
+            return true;
 
-    std::cout << "[Orchestrator] Bootstrapping active security modules..." << std::endl;
+        std::cout << "[Orchestrator] Bootstrapping active security modules..." << std::endl;
 
-    // Helper lambda to initialize and register modules
-    auto load_mod = [&](std::shared_ptr<ISentinelModule> mod) {
-        if (!mod) return;
-        ConfigManager::instance().load_module_config(mod->get_id(), config_dir);
-        std::string cfg = ConfigManager::instance().get_module_config(mod->get_id());
-        
-        if (mod->initialize(cfg)) {
-            mod->start();
-            EventBus::instance().subscribe(mod);
-            modules_.push_back(mod);
-        } else {
-            std::cerr << "[Orchestrator Warning] Module " << mod->get_name() << " failed to initialize." << std::endl;
-        }
-    };
+        // Helper lambda to initialize and register modules
+        auto load_mod = [&](std::shared_ptr<ISentinelModule> mod)
+        {
+            if (!mod)
+                return;
+            ConfigManager::instance().load_module_config(mod->get_id(), config_dir);
+            std::string cfg = ConfigManager::instance().get_module_config(mod->get_id());
 
-    // Instantiate enabled modules
+            if (mod->initialize(cfg))
+            {
+                mod->start();
+                EventBus::instance().subscribe(mod);
+                modules_.push_back(mod);
+            }
+            else
+            {
+                std::cerr << "[Orchestrator Warning] Module " << mod->get_name() << " failed to initialize." << std::endl;
+            }
+        };
+
+        // Instantiate enabled modules
 #ifdef SENTINEL_ENABLE_01_SIEM
-    load_mod(std::make_shared<modules::siem::SiemModule>());
+        load_mod(std::make_shared<modules::siem::SiemModule>());
 #endif
 #ifdef SENTINEL_ENABLE_02_UEBA
-    load_mod(std::make_shared<modules::ueba::UebaModule>());
+        load_mod(std::make_shared<modules::ueba::UebaModule>());
 #endif
 #ifdef SENTINEL_ENABLE_03_NDR
-    load_mod(std::make_shared<modules::ndr::NdrModule>());
+        load_mod(std::make_shared<modules::ndr::NdrModule>());
 #endif
 #ifdef SENTINEL_ENABLE_04_IDS_IPS
-    load_mod(std::make_shared<modules::ids_ips::IdsIpsModule>());
+        load_mod(std::make_shared<modules::ids_ips::IdsIpsModule>());
 #endif
 #ifdef SENTINEL_ENABLE_05_WAF
-    load_mod(std::make_shared<modules::waf::WafModule>());
+        load_mod(std::make_shared<modules::waf::WafModule>());
 #endif
 #ifdef SENTINEL_ENABLE_06_EDR
-    load_mod(std::make_shared<modules::edr::EdrModule>());
+        load_mod(std::make_shared<modules::edr::EdrModule>());
 #endif
 #ifdef SENTINEL_ENABLE_07_EPP_NGAV
-    load_mod(std::make_shared<modules::epp_ngav::EppModule>());
+        load_mod(std::make_shared<modules::epp_ngav::EppModule>());
 #endif
 #ifdef SENTINEL_ENABLE_08_NAC
-    load_mod(std::make_shared<modules::nac::NacModule>());
+        load_mod(std::make_shared<modules::nac::NacModule>());
 #endif
 #ifdef SENTINEL_ENABLE_09_CWPP
-    load_mod(std::make_shared<modules::cwpp::CwppModule>());
+        load_mod(std::make_shared<modules::cwpp::CwppModule>());
 #endif
 #ifdef SENTINEL_ENABLE_10_BAD
-    load_mod(std::make_shared<modules::bad::BadModule>());
+        load_mod(std::make_shared<modules::bad::BadModule>());
 #endif
 #ifdef SENTINEL_ENABLE_11_RASP
-    load_mod(std::make_shared<modules::rasp::RaspModule>());
+        load_mod(std::make_shared<modules::rasp::RaspModule>());
 #endif
 #ifdef SENTINEL_ENABLE_12_ITDR
-    load_mod(std::make_shared<modules::itdr::ItdrModule>());
+        load_mod(std::make_shared<modules::itdr::ItdrModule>());
 #endif
 #ifdef SENTINEL_ENABLE_13_DDOS
-    load_mod(std::make_shared<modules::ddos::DdosModule>());
+        load_mod(std::make_shared<modules::ddos::DdosModule>());
 #endif
 #ifdef SENTINEL_ENABLE_14_ATO
-    load_mod(std::make_shared<modules::ato::AtoModule>());
+        load_mod(std::make_shared<modules::ato::AtoModule>());
 #endif
 #ifdef SENTINEL_ENABLE_15_NGFW
-    load_mod(std::make_shared<modules::ngfw::NgfwModule>());
+        load_mod(std::make_shared<modules::ngfw::NgfwModule>());
 #endif
 #ifdef SENTINEL_ENABLE_16_CDR
-    load_mod(std::make_shared<modules::cdr::CdrModule>());
+        load_mod(std::make_shared<modules::cdr::CdrModule>());
 #endif
 #ifdef SENTINEL_ENABLE_17_IOT_SEC
-    load_mod(std::make_shared<modules::iot_sec::IotModule>());
+        load_mod(std::make_shared<modules::iot_sec::IotModule>());
 #endif
 #ifdef SENTINEL_ENABLE_18_CPS_SEC
-    load_mod(std::make_shared<modules::cps_sec::CpsModule>());
+        load_mod(std::make_shared<modules::cps_sec::CpsModule>());
 #endif
 #ifdef SENTINEL_ENABLE_19_SWG
-    load_mod(std::make_shared<modules::swg::SwgModule>());
+        load_mod(std::make_shared<modules::swg::SwgModule>());
 #endif
 #ifdef SENTINEL_ENABLE_20_FSE
-    load_mod(std::make_shared<modules::fse::FseModule>());
+        load_mod(std::make_shared<modules::fse::FseModule>());
 #endif
 #ifdef SENTINEL_ENABLE_21_SIDE_CHANNEL
-    load_mod(std::make_shared<modules::side_channel::SideChannelModule>());
+        load_mod(std::make_shared<modules::side_channel::SideChannelModule>());
 #endif
 #ifdef SENTINEL_ENABLE_22_DFIR
-    load_mod(std::make_shared<modules::dfir::DfirModule>());
+        load_mod(std::make_shared<modules::dfir::DfirModule>());
 #endif
 #ifdef SENTINEL_ENABLE_23_AI_TRISM
-    load_mod(std::make_shared<modules::ai_trism::AiTrismModule>());
+        load_mod(std::make_shared<modules::ai_trism::AiTrismModule>());
 #endif
 #ifdef SENTINEL_ENABLE_24_ZTNA
-    load_mod(std::make_shared<modules::ztna::ZtnaModule>());
+        load_mod(std::make_shared<modules::ztna::ZtnaModule>());
 #endif
 #ifdef SENTINEL_ENABLE_25_FDP
-    load_mod(std::make_shared<modules::fdp::FdpModule>());
+        load_mod(std::make_shared<modules::fdp::FdpModule>());
 #endif
 #ifdef SENTINEL_ENABLE_26_DDP
-    load_mod(std::make_shared<modules::ddp::DdpModule>());
+        load_mod(std::make_shared<modules::ddp::DdpModule>());
 #endif
 
-    is_running_ = true;
-    std::cout << "[Orchestrator] Successfully operational with " << modules_.size() << " active security modules." << std::endl;
-    return true;
-}
-
-void Orchestrator::shutdown_all_modules() {
-    std::lock_guard<std::mutex> lock(orchestrator_mutex_);
-    if (!is_running_) return;
-
-    std::cout << "[Orchestrator] Shutting down all active modules..." << std::endl;
-    for (auto& mod : modules_) {
-        if (mod) {
-            mod->stop();
-        }
+        is_running_ = true;
+        std::cout << "[Orchestrator] Successfully operational with " << modules_.size() << " active security modules." << std::endl;
+        return true;
     }
-    EventBus::instance().clear();
-    modules_.clear();
-    is_running_ = false;
-}
 
-size_t Orchestrator::active_module_count() const {
-    std::lock_guard<std::mutex> lock(orchestrator_mutex_);
-    return modules_.size();
-}
+    void Orchestrator::shutdown_all_modules()
+    {
+        std::lock_guard<std::mutex> lock(orchestrator_mutex_);
+        if (!is_running_)
+            return;
+
+        std::cout << "[Orchestrator] Shutting down all active modules..." << std::endl;
+        for (auto &mod : modules_)
+        {
+            if (mod)
+            {
+                mod->stop();
+            }
+        }
+        EventBus::instance().clear();
+        modules_.clear();
+        is_running_ = false;
+    }
+
+    size_t Orchestrator::active_module_count() const
+    {
+        std::lock_guard<std::mutex> lock(orchestrator_mutex_);
+        return modules_.size();
+    }
 
 } // namespace sentinel::core
