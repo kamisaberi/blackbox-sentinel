@@ -1,5 +1,7 @@
 #include "NexusUplink.hpp"
 #include "KernelDropInjector.hpp"
+#include "xai/ResidualAttributor.hpp"
+
 
 #include <iostream>
 #include <fstream>
@@ -453,7 +455,7 @@ void NexusUplink::report_local_threat(const std::string& attacker_ip, uint32_t p
     threat.set_attacker_ip(attacker_ip);
     threat.set_port(port);
     threat.set_type(static_cast<::sentinel::nexus::ThreatType>(threat_type));
-    threat.set_confidence(0.98f);
+    threat.set_confidence(0.992f);
     threat.set_timestamp_ns(std::chrono::duration_cast<std::chrono::nanoseconds>(
         std::chrono::system_clock::now().time_since_epoch()).count());
 
