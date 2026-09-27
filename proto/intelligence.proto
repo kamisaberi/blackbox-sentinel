@@ -15,6 +15,16 @@ enum ThreatType {
     THREAT_EXPLOIT_PAYLOAD = 5;
 }
 
+message FeatureAttribution {
+    uint32 feature_index = 1;
+    string feature_name = 2;           // e.g., "SCADA_Function_Code"
+    float contribution_percentage = 3; // e.g., 54.2 (%)
+    string observed_value = 4;         // e.g., "0x05 (Force Single Coil)"
+    string baseline_expected = 5;      // e.g., "0x03 (Read Holding Registers)"
+    string audit_summary = 6;          // e.g., "Unauthorized coil override attempting physical valve manipulation"
+}
+
+
 message ThreatIndicator {
     string origin_node_id = 1;
     string attacker_ip = 2;
