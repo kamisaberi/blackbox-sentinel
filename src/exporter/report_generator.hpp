@@ -1,11 +1,13 @@
 #pragma once
 #include <string>
 
-namespace sentinel::exporter {
+namespace sentinel::exporter
+{
 
-class ReportGenerator {
-public:
-    static bool generate_cmmc_compliance_report(const std::string& output_file_path);
-};
+    class ReportGenerator
+    {
+    public:
+        static bool generate_cmmc_compliance_report(const std::string &output_file_path);
+    };
 
 } // namespace sentinel::exporter
