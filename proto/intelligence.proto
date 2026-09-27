@@ -32,6 +32,9 @@ message ThreatIndicator {
     ThreatType type = 4;
     float confidence = 5;
     uint64 timestamp_ns = 6;
+
+    // NEW: Explainability Feature Attribution Vector
+    repeated FeatureAttribution attributions = 7;
 }
 
 message FleetDefenseRule {
