@@ -10,29 +10,41 @@
 #include <cstdlib>
 #include <chrono>
 
-namespace sentinel::api {
+namespace sentinel::api
+{
 
-static std::string get_mime_type(const std::string& path) {
-    if (path.ends_with(".html")) return "text/html";
-    if (path.ends_with(".css"))  return "text/css";
-    if (path.ends_with(".js"))   return "application/javascript";
-    if (path.ends_with(".svg"))  return "image/svg+xml";
-    if (path.ends_with(".json")) return "application/json";
-    if (path.ends_with(".txt"))  return "text/plain";
-    if (path.ends_with(".csv"))  return "text/csv";
-    return "application/octet-stream";
-}
+    static std::string get_mime_type(const std::string &path)
+    {
+        if (path.ends_with(".html"))
+            return "text/html";
+        if (path.ends_with(".css"))
+            return "text/css";
+        if (path.ends_with(".js"))
+            return "application/javascript";
+        if (path.ends_with(".svg"))
+            return "image/svg+xml";
+        if (path.ends_with(".json"))
+            return "application/json";
+        if (path.ends_with(".txt"))
+            return "text/plain";
+        if (path.ends_with(".csv"))
+            return "text/csv";
+        return "application/octet-stream";
+    }
 
-RESTController::RESTController(int port, blackbox::BlackboxEngine& security_engine)
-    : port_(port), security_engine_(security_engine) {}
+    RESTController::RESTController(int port, blackbox::BlackboxEngine &security_engine)
+        : port_(port), security_engine_(security_engine) {}
 
-RESTController::~RESTController() {
-    stop();
-}
+    RESTController::~RESTController()
+    {
+        stop();
+    }
 
-void RESTController::start() {
-    running_ = true;
-    server_thread_ = std::thread([this]() {
+    void RESTController::start()
+    {
+        running_ = true;
+        server_thread_ = std::thread([this]()
+                                     {
         int server_fd = socket(AF_INET, SOCK_STREAM, 0);
         if (server_fd < 0) return;
 
@@ -246,15 +258,16 @@ void RESTController::start() {
             send(client_fd, response.c_str(), response.size(), 0);
             close(client_fd);
         }
-        close(server_fd);
-    });
-}
-
-void RESTController::stop() {
-    running_ = false;
-    if (server_thread_.joinable()) {
-        server_thread_.join();
+        close(server_fd); });
     }
-}
+
+    void RESTController::stop()
+    {
+        running_ = false;
+        if (server_thread_.joinable())
+        {
+            server_thread_.join();
+        }
+    }
 
 } // namespace sentinel::api
