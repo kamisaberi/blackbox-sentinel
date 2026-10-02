@@ -213,6 +213,34 @@ namespace sentinel::nexus_client
             metrics->set_ring_buffer_fill_pct(4);
             metrics->set_avg_mitigation_latency_us(0.84f);
 
+            // Populate monitored sensor/PLC assets attached to this edge node
+            auto *s1 = req.add_sensors();
+            s1->set_sensor_id("PLC-000C29A1-UNIT1");
+            s1->set_name("Main Transformer PLC (Siemens S7)");
+            s1->set_type("INDUSTRIAL_PLC");
+            s1->set_protocol("MODBUS_TCP");
+            s1->set_ip_address("192.168.1.10");
+            s1->set_status("ACTIVE");
+            s1->set_last_packet_seen_sec_ago(0.2f);
+
+            auto *s2 = req.add_sensors();
+            s2->set_sensor_id("COIL-105-VALVE");
+            s2->set_name("Cooling Valve Pressure Actuator");
+            s2->set_type("SCADA_ACTUATOR");
+            s2->set_protocol("MODBUS_TCP");
+            s2->set_ip_address("192.168.1.10");
+            s2->set_status("ACTIVE");
+            s2->set_last_packet_seen_sec_ago(0.4f);
+
+            auto *s3 = req.add_sensors();
+            s3->set_sensor_id("CAM-PERIMETER-CH01");
+            s3->set_name("Substation Yard Thermal Camera");
+            s3->set_type("OPTICAL_VISION");
+            s3->set_protocol("RTSP_H264");
+            s3->set_ip_address("192.168.1.50");
+            s3->set_status("ACTIVE");
+            s3->set_last_packet_seen_sec_ago(0.1f);
+
             ::sentinel::nexus::HeartbeatResponse resp;
             grpc::ClientContext ctx;
             ctx.set_deadline(std::chrono::system_clock::now() + std::chrono::seconds(3));
