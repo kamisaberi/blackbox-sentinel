@@ -9,6 +9,16 @@ service FleetService {
     rpc DeregisterAppliance (DeregistrationRequest) returns (ResponseStatus);
 }
 
+message SensorInfo {
+    string sensor_id = 1;                // e.g. "PLC-000C29A1-UNIT1"
+    string name = 2;                     // e.g. "Main Transformer Siemens S7-1500"
+    string type = 3;                     // "INDUSTRIAL_PLC", "SCADA_ACTUATOR", "OPTICAL_VISION", "MEDICAL_PACS"
+    string protocol = 4;                 // "MODBUS_TCP", "DNP3", "RTSP_H264", "DICOM_C_STORE"
+    string ip_address = 5;               // "192.168.1.10"
+    string status = 6;                   // "ACTIVE", "FAULT_NO_DATA", "DEGRADED"
+    float last_packet_seen_sec_ago = 7; // e.g. 0.4
+}
+
 message RegistrationRequest {
     HardwareIdentity identity = 1;
     string site_identifier = 2;
@@ -24,7 +34,7 @@ message RegistrationResponse {
 
 message DeregistrationRequest {
     string node_id = 1;
-    string reason = 2; // e.g., "CLEAN_SHUTDOWN", "OPERATOR_STOP"
+    string reason = 2;
 }
 
 message DeviceMetrics {
@@ -42,6 +52,9 @@ message HeartbeatRequest {
     string node_id = 1;
     uint64 timestamp_ns = 2;
     DeviceMetrics metrics = 3;
+    
+    // NEW: Sensors / PLCs / Cameras monitored by this Sentinel appliance
+    repeated SensorInfo sensors = 4;
 }
 
 message HeartbeatResponse {
