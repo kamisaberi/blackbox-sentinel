@@ -1,0 +1,141 @@
+site_name: Blackbox Sentinel Docs
+site_description: Turnkey cyber-physical XDR appliance — 26 subsystems, 30 dissectors, fleet uplink.
+repo_url: https://github.com/kamisaberi/blackbox-sentinel
+theme:
+  name: material
+  features:
+    - navigation.tabs
+    - navigation.sections
+    - search.suggest
+    - content.code.copy
+markdown_extensions:
+  - admonition
+  - codehilite
+  - toc:
+      permalink: true
+nav:
+  - Home: index.md
+  - Getting Started:
+  - Getting Started:
+    - "First Threat Mitigation": getting-started/first-threat-mitigation.md
+    - "Hardware Specifications": getting-started/hardware-specifications.md
+    - "Initial Configuration": getting-started/initial-configuration.md
+    - "Installation": getting-started/installation.md
+    - "Overview": getting-started/overview.md
+    - "Shadow Mode Evaluation": getting-started/shadow-mode-evaluation.md
+    - "System Requirements": getting-started/system-requirements.md
+    - "Verifying Appliance Health": getting-started/verifying-appliance-health.md
+  - Architecture:
+    - "Appliance Architecture": architecture/appliance-architecture.md
+    - "Dynamic Plugin Loader": architecture/dynamic-plugin-loader.md
+    - "Memory Safety Invariants": architecture/memory-safety-invariants.md
+    - "Port Arbitration Model": architecture/port-arbitration-model.md
+    - "Under-the-Hood Bindings": architecture/under-the-hood-bindings.md
+    - "Unidirectional Pipeline": architecture/unidirectional-pipeline.md
+  - 26 Subsystems:
+    - "17_iot_sec": subsystems-26/cyber-physical-ot/17-iot-sec.md
+    - "18_cps_sec": subsystems-26/cyber-physical-ot/18-cps-sec.md
+    - "21_side_channel": subsystems-26/cyber-physical-ot/21-side-channel.md
+    - "01_siem_core": subsystems-26/enterprise-it/01-siem-core.md
+    - "02_ueba": subsystems-26/enterprise-it/02-ueba.md
+    - "03_ndr": subsystems-26/enterprise-it/03-ndr.md
+    - "04_ids_ips": subsystems-26/enterprise-it/04-ids-ips.md
+    - "15_ngfw": subsystems-26/enterprise-it/15-ngfw.md
+    - "13_ddos": subsystems-26/forensics-advanced/13-ddos.md
+    - "19_swg": subsystems-26/forensics-advanced/19-swg.md
+    - "22_dfir": subsystems-26/forensics-advanced/22-dfir.md
+    - "23_ai_trism": subsystems-26/forensics-advanced/23-ai-trism.md
+    - "25_fdp": subsystems-26/forensics-advanced/25-fdp.md
+    - "26_ddp": subsystems-26/forensics-advanced/26-ddp.md
+    - "06_edr": subsystems-26/host-endpoint/06-edr.md
+    - "07_epp_ngav": subsystems-26/host-endpoint/07-epp-ngav.md
+    - "09_cwpp": subsystems-26/host-endpoint/09-cwpp.md
+    - "16_cdr": subsystems-26/host-endpoint/16-cdr.md
+    - "20_fse": subsystems-26/host-endpoint/20-fse.md
+    - "08_nac": subsystems-26/identity-access/08-nac.md
+    - "12_itdr": subsystems-26/identity-access/12-itdr.md
+    - "14_ato": subsystems-26/identity-access/14-ato.md
+    - "24_ztna": subsystems-26/identity-access/24-ztna.md
+    - "26 Subsystems Overview": subsystems-26/index.md
+    - "05_waf": subsystems-26/web-application/05-waf.md
+    - "10_bad": subsystems-26/web-application/10-bad.md
+    - "11_rasp": subsystems-26/web-application/11-rasp.md
+  - 30 Plugins:
+    - "libadsb_avionics": plugins-30/aviation-maritime-defense/ads-b-avionics.md
+    - "libais_maritime": plugins-30/aviation-maritime-defense/ais-maritime.md
+    - "libcanbus_automotive": plugins-30/aviation-maritime-defense/canbus-automotive.md
+    - "libmavlink_uav": plugins-30/aviation-maritime-defense/mavlink-uav.md
+    - "libmil_std_1553": plugins-30/aviation-maritime-defense/mil-std-1553.md
+    - "libnmea_gps": plugins-30/aviation-maritime-defense/nmea-gps.md
+    - "libstanag_4586": plugins-30/aviation-maritime-defense/stanag-4586.md
+    - "libbacnet_building": plugins-30/energy-utilities/bacnet-ip.md
+    - "libenip_cip": plugins-30/energy-utilities/enip-cip.md
+    - "libfieldbus_h1": plugins-30/energy-utilities/foundation-fieldbus.md
+    - "libiec104_dissector": plugins-30/energy-utilities/iec-60870-5-104.md
+    - "libiec61850_goose": plugins-30/energy-utilities/iec-61850-goose.md
+    - "libiec61850_mms": plugins-30/energy-utilities/iec-61850-mms.md
+    - "libmodbus_rtu_serial": plugins-30/energy-utilities/modbus-rtu-serial.md
+    - "libopc_ua_dissector": plugins-30/energy-utilities/opc-ua-binary.md
+    - "libcef_forwarder": plugins-30/healthcare-and-siem/cef-forwarder.md
+    - "libdicom_pacs": plugins-30/healthcare-and-siem/dicom-pacs.md
+    - "libhl7_v2": plugins-30/healthcare-and-siem/hl7-v2.md
+    - "libkafka_producer": plugins-30/healthcare-and-siem/kafka-producer.md
+    - "libleef_forwarder": plugins-30/healthcare-and-siem/leef-forwarder.md
+    - "libnetflow_v9_ipfix": plugins-30/healthcare-and-siem/netflow-v9-ipfix.md
+    - "libsnmp_v3_trap": plugins-30/healthcare-and-siem/snmp-v3-trap.md
+    - "libsyslog_rfc5424": plugins-30/healthcare-and-siem/syslog-rfc5424.md
+    - "libdnp3_dissector": plugins-30/industrial-ot/dnp3-substation.md
+    - "libethernet_ip": plugins-30/industrial-ot/ethernet-ip-cip.md
+    - "libhart_ip": plugins-30/industrial-ot/hart-ip.md
+    - "libmitsubishi_melsec": plugins-30/industrial-ot/mitsubishi-melsec.md
+    - "libmodbus_dissector": plugins-30/industrial-ot/modbus-tcp.md
+    - "libomron_fins": plugins-30/industrial-ot/omron-fins.md
+    - "libprofinet_dissector": plugins-30/industrial-ot/profinet-rt.md
+    - "libs7comm_dissector": plugins-30/industrial-ot/siemens-s7comm.md
+    - "Plugin Architecture": plugins-30/plugin-architecture.md
+  - Nexus Uplink:
+    - "Collective Defense Sync": nexus-uplink/collective-defense-sync.md
+    - "Hardware Enrollment Flow": nexus-uplink/hardware-enrollment-flow.md
+    - "Instant Graceful Disconnect": nexus-uplink/instant-graceful-disconnect.md
+    - "Kernel Drop Injector": nexus-uplink/kernel-drop-injector.md
+    - "OTA Model Updates": nexus-uplink/ota-model-updates.md
+    - "Telemetry & Heartbeats": nexus-uplink/telemetry-and-heartbeats.md
+    - "Uplink Architecture": nexus-uplink/uplink-architecture.md
+  - Web Command Center:
+    - "Active Telemetry Monitoring": web-command-center/active-telemetry-monitoring.md
+    - "Compliance Report Viewer": web-command-center/compliance-report-viewer.md
+    - "eBPF Drop Table Management": web-command-center/ebpf-drop-table-management.md
+    - "Web Console Overview": web-command-center/web-console-overview.md
+    - "XAI Audit Proof Viewer": web-command-center/xai-audit-proof-viewer.md
+    - "Zero-CDN Guarantee": web-command-center/zero-cdn-guarantee.md
+  - Licensing & Entitlements:
+    - "Applying License Envelopes": licensing-and-entitlements/applying-license-envelopes.md
+    - "Community vs. Enterprise": licensing-and-entitlements/community-vs-enterprise.md
+    - "Generating Hardware Tokens": licensing-and-entitlements/generating-hardware-tokens.md
+    - "Hardware PCR Silicon Locking": licensing-and-entitlements/hardware-pcr-silicon-locking.md
+    - "LicenseManager Engine": licensing-and-entitlements/license-manager-engine.md
+    - "Licensing Architecture": licensing-and-entitlements/licensing-architecture.md
+  - Configuration Reference:
+    - "Environment Variables": configuration-reference/environment-variables.md
+    - "Module Tuning Parameters": configuration-reference/module-tuning-parameters.md
+    - "SCADA Safety Thresholds": configuration-reference/scada-safety-thresholds.md
+    - "sentinel.yaml Specification": configuration-reference/sentinel-yaml-specification.md
+    - "systemd Service Tuning": configuration-reference/systemd-service-tuning.md
+  - Tutorials:
+    - "Container Breakout Prevention": tutorials/container-breakout-prevention.md
+    - "Shadow Mode Audit Deployment": tutorials/deploying-shadow-mode-audit.md
+    - "Deploying Synthetic Decoy PLCs": tutorials/deploying-synthetic-decoy-plcs.md
+    - "Protecting a Modbus Substation PLC": tutorials/protecting-modbus-substation-plc.md
+    - "Securing a Hospital PACS Enclave": tutorials/securing-hospital-pacs-enclave.md
+  - Compliance:
+    - "CMMC 2.0 Level 2 Audit": compliance/cmmc-2.0-level-2-audit.md
+    - "EU NIS2 Directive": compliance/eu-nis2-directive.md
+    - "IEC 62443 Industrial Audit": compliance/iec-62443-industrial-audit.md
+    - "Tamper-Evident Evidence Logging": compliance/tamper-evident-evidence-logging.md
+  - Troubleshooting:
+    - "eBPF Driver Attachment Issues": troubleshooting/ebpf-driver-attachment-issues.md
+    - "Technical FAQ": troubleshooting/faq.md
+    - "Nexus Uplink Disconnections": troubleshooting/nexus-uplink-disconnections.md
+    - "Plugin Loading Failures": troubleshooting/plugin-loading-failures.md
+    - "Startup & Config Errors": troubleshooting/startup-and-config-errors.md
+    - "Support Channels": troubleshooting/support.md
