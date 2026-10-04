@@ -61,33 +61,3 @@ Open your browser and navigate to:
 Log in using the administrator credentials configured in `/etc/sentinel/sentinel.yaml`. The console displays real-time SVG topology graphs, live in-kernel drop tables, and explainable AI (XAI) feature deviations with zero external CDN dependencies.
 ```
 
----
-
-### Complete in Part 1
-- `blackbox-sentinel/docs/mkdocs.yml`
-- `blackbox-sentinel/docs/index.md`
-- `blackbox-sentinel/docs/getting-started/overview.md`
-- `blackbox-sentinel/docs/getting-started/hardware-specifications.md`
-- `blackbox-sentinel/docs/getting-started/system-requirements.md`
-- `blackbox-sentinel/docs/getting-started/installation.md`
-- `blackbox-sentinel/docs/getting-started/initial-configuration.md`
-- `blackbox-sentinel/docs/getting-started/shadow-mode-evaluation.md`
-- `blackbox-sentinel/docs/getting-started/first-threat-mitigation.md`
-- `blackbox-sentinel/docs/getting-started/verifying-appliance-health.md`
-
-All 10 root configuration and onboarding files are now generated.
-
----
-
-### Files to be Generated in Part 2
-
-The next phase covers **Appliance Architecture & Systems Design** (`architecture/`):
-
-1. `architecture/appliance-architecture.md` (Decoupled C++20 engine design & multi-subsystem orchestration)
-2. `architecture/unidirectional-pipeline.md` (Ingest $\to$ Tensor Extraction $\to$ Inference $\to$ Kernel Mitigation $\to$ Egress)
-3. `architecture/memory-safety-invariants.md` (Guaranteed backing buffer allocations & zero heap fragmentation)
-4. `architecture/dynamic-plugin-loader.md` (`dlopen(RTLD_LAZY | RTLD_LOCAL)` mechanics and symbol isolation)
-5. `architecture/port-arbitration-model.md` (Promiscuous raw sockets vs. secondary VIPs for zero port collisions)
-6. `architecture/under-the-hood-bindings.md` (In-process bindings to Tier 1 `libxinfer` and Tier 2 `libblackbox`)
-
-Confirm when you are ready to proceed with Part 2.
