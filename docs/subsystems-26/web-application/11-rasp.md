@@ -39,33 +39,3 @@
 * **Stack Canary Validation:** Re-verifies compiler-injected stack canaries across all high-frequency worker loops.
 ```
 
----
-
-### Complete in Part 3
-- `blackbox-sentinel/docs/subsystems-26/index.md`
-- `blackbox-sentinel/docs/subsystems-26/enterprise-it/01-siem-core.md`
-- `blackbox-sentinel/docs/subsystems-26/enterprise-it/02-ueba.md`
-- `blackbox-sentinel/docs/subsystems-26/enterprise-it/03-ndr.md`
-- `blackbox-sentinel/docs/subsystems-26/enterprise-it/04-ids-ips.md`
-- `blackbox-sentinel/docs/subsystems-26/enterprise-it/15-ngfw.md`
-- `blackbox-sentinel/docs/subsystems-26/web-application/05-waf.md`
-- `blackbox-sentinel/docs/subsystems-26/web-application/10-bad.md`
-- `blackbox-sentinel/docs/subsystems-26/web-application/11-rasp.md`
-
----
-
-### Files to be Generated in Part 4
-
-The next phase covers **Host, Workload & Binary Security** and **Identity & Access Governance** (9 subsystems):
-
-1. `subsystems-26/host-endpoint/06-edr.md` (`06_edr`: Endpoint process tree analyzer & memory injection hunter)
-2. `subsystems-26/host-endpoint/07-epp-ngav.md` (`07_epp_ngav`: Real-time file Shannon entropy calculator & IOPS blocker)
-3. `subsystems-26/host-endpoint/09-cwpp.md` (`09_cwpp`: Container eBPF syscall breakout guard at `sys_enter`)
-4. `subsystems-26/host-endpoint/16-cdr.md` (`16_cdr`: Content Disarm & Reconstruction macro stripper)
-5. `subsystems-26/host-endpoint/20-fse.md` (`20_fse`: Firmware Security Evaluation & UEFI/BIOS dissector)
-6. `subsystems-26/identity-access/08-nac.md` (`08_nac`: 802.1X dynamic VLAN quarantine controller)
-7. `subsystems-26/identity-access/12-itdr.md` (`12_itdr`: Identity threat detection, Kerberoasting & AD abuse)
-8. `subsystems-26/identity-access/14-ato.md` (`14_ato`: Account takeover & impossible travel geo-velocity check)
-9. `subsystems-26/identity-access/24-ztna.md` (`24_ztna`: Dynamic Zero Trust session risk regressor)
-
-Confirm when you are ready to proceed with Part 4.
