@@ -581,35 +581,3 @@ public:
 * **Instant Quarantine:** The attacker’s source IP is inserted into `blocked_ip_map` immediately, severing their ability to scan the real production PLCs on the subnet.
 ```
 
----
-
-### Complete in Part 5
-- `blackbox-sentinel/docs/subsystems-26/cyber-physical-ot/17-iot-sec.md`
-- `blackbox-sentinel/docs/subsystems-26/cyber-physical-ot/18-cps-sec.md`
-- `blackbox-sentinel/docs/subsystems-26/cyber-physical-ot/21-side-channel.md`
-- `blackbox-sentinel/docs/subsystems-26/forensics-advanced/13-ddos.md`
-- `blackbox-sentinel/docs/subsystems-26/forensics-advanced/19-swg.md`
-- `blackbox-sentinel/docs/subsystems-26/forensics-advanced/22-dfir.md`
-- `blackbox-sentinel/docs/subsystems-26/forensics-advanced/23-ai-trism.md`
-- `blackbox-sentinel/docs/subsystems-26/forensics-advanced/25-fdp.md`
-- `blackbox-sentinel/docs/subsystems-26/forensics-advanced/26-ddp.md`
-
-All 26 native subsystems of `blackbox-sentinel` are now fully documented.
-
----
-
-### Files to be Generated in Part 6
-
-The next phase begins covering the **30 Protocol Dissector Plugins** (`plugins-30/`). Part 6 will deliver the plugin architecture guide and the **Industrial OT & Manufacturing Plugins** (9 files):
-
-1. `plugins-30/plugin-architecture.md` (Dynamic loading, ABI versioning, and zero-allocation parsing)
-2. `plugins-30/industrial-ot/modbus-tcp.md` (`libmodbus_dissector`: APDU decoding & coil override checks)
-3. `plugins-30/industrial-ot/dnp3-substation.md` (`libdnp3_dissector`: Class 0/1/2/3 polls & outstation protection)
-4. `plugins-30/industrial-ot/siemens-s7comm.md` (`libs7comm_dissector`: TPKT/COTP parsing & block memory trap)
-5. `plugins-30/industrial-ot/profinet-rt.md` (`libprofinet_dissector`: Real-time factory automation loop guard)
-6. `plugins-30/industrial-ot/ethernet-ip-cip.md` (`libethernet_ip`: Common Industrial Protocol CIP verification)
-7. `plugins-30/industrial-ot/hart-ip.md` (`libhart_ip`: WirelessHART & refinery instrument validation)
-8. `plugins-30/industrial-ot/mitsubishi-melsec.md` (`libmitsubishi_melsec`: Semiconductor protocol guard)
-9. `plugins-30/industrial-ot/omron-fins.md` (`libomron_fins`: Packaging & conveyor network parser)
-
-Confirm when you are ready to proceed with Part 6.
