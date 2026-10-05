@@ -46,32 +46,3 @@ The CAN Bus dissector inspects connected-vehicle, heavy equipment, and autonomou
 * **Bus-Off Flood Attacks:** Detects high-frequency arbitration ID `0x000` dominant bit floods designed to force legitimate ECUs into the error-passive bus-off state.
 ```
 
----
-
-### Complete in Part 8
-- `blackbox-sentinel/docs/plugins-30/aviation-maritime-defense/mavlink-uav.md`
-- `blackbox-sentinel/docs/plugins-30/aviation-maritime-defense/ais-maritime.md`
-- `blackbox-sentinel/docs/plugins-30/aviation-maritime-defense/nmea-gps.md`
-- `blackbox-sentinel/docs/plugins-30/aviation-maritime-defense/ads-b-avionics.md`
-- `blackbox-sentinel/docs/plugins-30/aviation-maritime-defense/stanag-4586.md`
-- `blackbox-sentinel/docs/plugins-30/aviation-maritime-defense/mil-std-1553.md`
-- `blackbox-sentinel/docs/plugins-30/aviation-maritime-defense/canbus-automotive.md`
-
-All 7 Aviation, Maritime & Sovereign Defense dissectors are now documented.
-
----
-
-### Files to be Generated in Part 9
-
-The next phase covers **Healthcare Diagnostic & SIEM Forwarder Plugins** (`plugins-30/healthcare-and-siem/` - 8 files):
-
-1. `plugins-30/healthcare-and-siem/dicom-pacs.md` (`libdicom_pacs`: 16-bit radiology imaging & C-STORE payload guard)
-2. `plugins-30/healthcare-and-siem/hl7-v2.md` (`libhl7_v2`: Clinical patient diagnostic message structure verifier)
-3. `plugins-30/healthcare-and-siem/cef-forwarder.md` (`libcef_forwarder`: Common Event Format SIEM stream exporter)
-4. `plugins-30/healthcare-and-siem/leef-forwarder.md` (`libleef_forwarder`: IBM QRadar Log Event Extended Format exporter)
-5. `plugins-30/healthcare-and-siem/syslog-rfc5424.md` (`libsyslog_rfc5424`: Structured cryptographic syslog forwarder)
-6. `plugins-30/healthcare-and-siem/kafka-producer.md` (`libkafka_producer`: Zero-copy high-throughput enterprise streaming)
-7. `plugins-30/healthcare-and-siem/snmp-v3-trap.md` (`libsnmp_v3_trap`: Encrypted SNMP operational alert forwarder)
-8. `plugins-30/healthcare-and-siem/netflow-v9-ipfix.md` (`libnetflow_v9_ipfix`: Line-rate NetFlow telemetry export engine)
-
-Confirm when you are ready to proceed with Part 9.
