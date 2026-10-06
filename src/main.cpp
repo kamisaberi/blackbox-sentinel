@@ -11,6 +11,8 @@
 #include "exporter/report_generator.hpp"
 #include "api/rest_controller.hpp"
 #include "nexus/NexusUplink.hpp"
+#include "core/LicenseManager.hpp"
+
 
 std::atomic<bool> g_appliance_running{true};
 
