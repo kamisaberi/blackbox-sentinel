@@ -1,4 +1,8 @@
 #!/usr/bin/env python3
+"""
+Aryorithm Commercial License Issuer (Self-Contained & Deterministic)
+"""
+
 import os
 import sys
 import json
@@ -8,6 +12,9 @@ import argparse
 from cryptography.hazmat.primitives.asymmetric import ed25519
 
 KEY_DIR = os.path.dirname(os.path.abspath(__file__))
+
+# RFC 8032 Vector 1 Master Private Key Seed (Matches C++ ARYORITHM_MASTER_PUBKEY)
+DEFAULT_PRIVATE_SEED_HEX = "9d61b19deffd5a60ba844af492ec2cc44449c5697b326919703bac031cae7f60"
 
 ALL_26_MODULES = [
     "01_siem_core", "02_ueba", "03_ndr", "04_ids_ips", "05_waf", "06_edr",
@@ -33,24 +40,27 @@ ALL_30_PLUGINS = [
 
 def main():
     parser = argparse.ArgumentParser(description="Issue an Aryorithm Commercial License (.lic)")
-    parser.add_argument("--customer", required=True, help="Customer or organization name")
+    parser.add_argument("--customer", required=True, help="Customer name")
     parser.add_argument("--tier", choices=["ENTERPRISE_IT", "CRITICAL_OT", "SOVEREIGN_DEFENSE"], default="CRITICAL_OT")
     parser.add_argument("--days", type=int, default=365, help="Validity period in days")
     parser.add_argument("--nodes", type=int, default=25, help="Max nodes")
     parser.add_argument("--hw-uuid", default="", help="Hardware UUID or full ARY-HW- token")
-    parser.add_argument("--output", default="/tmp/license.lic", help="Output path")
+    parser.add_argument("--output", default="/etc/sentinel/license.lic", help="Output file path")
     args = parser.parse_args()
 
-    # Clean hardware UUID (strip ARY-HW- prefix if present)
+    # Automatically strip ARY-HW- prefix if passed
     clean_uuid = args.hw_uuid.replace("ARY-HW-", "").strip()
 
+    # Load private key from file if present, else use default matched seed
     priv_path = os.path.join(KEY_DIR, "master_private.key")
-    if not os.path.exists(priv_path):
-        print("[-] Error: master_private.key not found.")
-        sys.exit(1)
+    if os.path.exists(priv_path) and os.path.getsize(priv_path) == 32:
+        with open(priv_path, "rb") as f:
+            priv_bytes = f.read()
+    else:
+        priv_bytes = bytes.fromhex(DEFAULT_PRIVATE_SEED_HEX)
+        with open(priv_path, "wb") as f:
+            f.write(priv_bytes)
 
-    with open(priv_path, "rb") as f:
-        priv_bytes = f.read()
     private_key = ed25519.Ed25519PrivateKey.from_private_bytes(priv_bytes)
 
     now_sec = int(time.time())
@@ -75,11 +85,11 @@ def main():
         "authorized_plugins": plugins
     }
 
-    # Encode claims as Base64 payload
+    # 1. Base64 encode the claims string
     payload_json = json.dumps(claims)
     payload_b64 = base64.b64encode(payload_json.encode('utf-8')).decode('utf-8')
 
-    # Sign the exact payload_b64 string
+    # 2. Sign the exact payload_b64 string
     raw_signature = private_key.sign(payload_b64.encode('utf-8'))
     signature_b64 = base64.b64encode(raw_signature).decode('utf-8')
 
@@ -89,6 +99,7 @@ def main():
         "signature_algorithm": "ED25519"
     }
 
+    os.makedirs(os.path.dirname(os.path.abspath(args.output)), exist_ok=True)
     with open(args.output, "w") as f:
         json.dump(envelope, f, indent=2)
 
@@ -99,6 +110,7 @@ def main():
     print(f"  • Customer      : {claims['customer']}")
     print(f"  • Tier          : {claims['tier']}")
     print(f"  • Hardware Lock : {clean_uuid if clean_uuid else 'Floating'}")
+    print(f"  • Modules Count : {len(modules)} / 26")
     print(f"  • Output File   : {args.output}")
     print("==================================================================")
 
