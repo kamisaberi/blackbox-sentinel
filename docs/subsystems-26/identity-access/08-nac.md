@@ -1,8 +1,3 @@
----
-
-### File: `blackbox-sentinel/docs/subsystems-26/identity-access/08-nac.md`
-
-```markdown
 # Subsystem 08: Network Access Control (`08_nac`)
 
 `08_nac` controls device admission and dynamic VLAN isolation on local industrial switches. It functions as an inline **802.1X / RADIUS Change of Authorization (CoA)** controller, dynamically quarantining rogue devices or infected PLCs.
@@ -42,6 +37,5 @@ void quarantine_mac_address(int bridge_ifindex, const uint8_t mac[6], uint16_t q
     // Issues RTM_NEWNEIGH / RTM_SETLINK netlink message
     // Forces switch port/bridge egress to quarantine VLAN tag 999
 }
-```
 ```
 

@@ -1,8 +1,3 @@
----
-
-### File: `blackbox-sentinel/docs/plugins-30/aviation-maritime-defense/ais-maritime.md`
-
-```markdown
 # AIS Maritime Vessel Tracking Dissector (`libsentinel_plugin_ais.so`)
 
 The AIS (Automatic Identification System) dissector inspects maritime navigation and transponder streams encapsulated over UDP port **4001** (or serial NMEA `!AIVDM` sentences). It validates Maritime Mobile Service Identity (MMSI) numbers, navigational status, and positional kinematics to prevent vessel spoofing, dark-fleet ghost ship injections, and false collision-alert manipulation.
@@ -45,5 +40,4 @@ The AIS (Automatic Identification System) dissector inspects maritime navigation
 ## 2. Detecting Ghost Fleet GPS Spoofing
 
 Adversaries create virtual "ghost fleets" in contested waterways by injecting hundreds of synthetic AIS position reports. The dissector checks the rate-of-turn and speed against the vessel type declared in static data (Message 5), discarding physically impossible maneuvers before records reach electronic chart displays (ECDIS).
-```
 

@@ -1,8 +1,3 @@
----
-
-### File: `blackbox-sentinel/docs/nexus-uplink/hardware-enrollment-flow.md`
-
-```markdown
 # Hardware Identity Enrollment & Handshake Flow
 
 When an edge appliance connects to `sentinel-nexus`, it undergoes a cryptographic enrollment handshake rooted in its physical TPM 2.0 silicon.
@@ -85,5 +80,4 @@ message EnrollmentCompleteResponse {
 
 * **Rogue Node Rejection:** Appliances running modified bootloaders or unauthorized UEFI firmware fail PCR 0 validation and are rejected.
 * **Clone Detection:** Snapshot clones of virtual appliances fail challenge nonces due to non-monotonic hardware counter states.
-```
 

@@ -1,8 +1,3 @@
----
-
-### File: `blackbox-sentinel/docs/subsystems-26/cyber-physical-ot/21-side-channel.md`
-
-```markdown
 # Subsystem 21: Hardware Power & Emission Anomaly Analyzer (`21_side_channel`)
 
 `21_side_channel` analyzes side-channel emissions—including hardware power consumption profiles, electrical supply ripple, and electromagnetic (EM) variations—ingested via analog-to-digital converters (ADCs) or hardware current shunts (e.g., INA219, INA3221). It detects hardware Trojan activations and unauthorized firmware tampering without interacting with the host OS.
@@ -37,5 +32,4 @@
 
 * **Hardware Independence:** Detects attacks even when host kernel logging, syslog, and network interfaces have been compromised or blinded by kernel rootkits.
 * **FFT Evaluation Latency:** Evaluates a 1024-point real-to-complex FFT in **$< 45\,\mu\text{s}$**.
-```
 

@@ -1,8 +1,3 @@
----
-
-### File: `blackbox-sentinel/docs/nexus-uplink/telemetry-and-heartbeats.md`
-
-```markdown
 # Live Telemetry Ingestion & Heartbeat Synchronization
 
 `NexusUplink` transmits structured telemetry records every **$5.0\text{ seconds}$** via the `SubmitHeartbeat` gRPC endpoint, providing `sentinel-nexus` with visibility into host resource usage, drop counters, and active protocol sensor states.
@@ -90,6 +85,5 @@ void NexusUplink::run_heartbeat_loop() {
         std::this_thread::sleep_for(std::chrono::seconds(5));
     }
 }
-```
 ```
 

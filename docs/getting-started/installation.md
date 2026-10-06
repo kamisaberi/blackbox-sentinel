@@ -1,8 +1,3 @@
----
-
-### File: `blackbox-sentinel/docs/getting-started/installation.md`
-
-```markdown
 # Installation & Deployment Guide
 
 This guide covers deploying `blackbox-sentinel` on bare-metal systems, configuring systemd daemons, or importing pre-built virtual appliance images (OVA / QCOW2).
@@ -90,6 +85,5 @@ qm create 200 --name sentinel-edge --memory 8192 --cores 4 --net0 virtio,bridge=
 qm importdisk 200 blackbox-sentinel-v-edge.qcow2 local-zfs
 qm set 200 --scsihw virtio-scsi-pci --scsi0 local-zfs:vm-200-disk-0
 qm set 200 --boot c --bootdisk scsi0
-```
 ```
 

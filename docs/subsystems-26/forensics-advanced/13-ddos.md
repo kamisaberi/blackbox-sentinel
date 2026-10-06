@@ -1,8 +1,3 @@
----
-
-### File: `blackbox-sentinel/docs/subsystems-26/forensics-advanced/13-ddos.md`
-
-```markdown
 # Subsystem 13: Line-Rate Flood Shaper & SYN Cookie Guard (`13_ddos`)
 
 `13_ddos` defends edge appliances from line-rate volumetric floods (SYN, UDP, ICMP, and amplification reflection attacks) by generating cryptographic **eBPF SYN Cookies** directly within the driver ring, maintaining wire availability without allocating TCP socket structures in host RAM.
@@ -69,5 +64,4 @@ static __always_inline int check_rate_limit(struct token_bucket *b, __u64 rate, 
 
 * **Max Shaper Capacity:** Full $14.88\text{ Mpps}$ line rate sustained on $10\text{ GbE}$ interfaces.
 * **Host CPU Overhead:** $< 6\%$ on a single isolated core.
-```
 

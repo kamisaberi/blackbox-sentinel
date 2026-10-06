@@ -1,8 +1,3 @@
----
-
-### File: `blackbox-sentinel/docs/plugins-30/healthcare-and-siem/syslog-rfc5424.md`
-
-```markdown
 # Structured Cryptographic Syslog Forwarder (`libsentinel_plugin_syslog.so`)
 
 The Syslog forwarder packages events in compliance with **IETF RFC 5424 (The Syslog Protocol)**, incorporating structured metadata blocks (`[blackbox@54321 ...]`), nanosecond ISO-8601 timestamps, and TLS cryptographic transport.
@@ -28,5 +23,4 @@ The Syslog forwarder packages events in compliance with **IETF RFC 5424 (The Sys
 * `action`: Action executed (`XDP_DROP`, `XDP_PASS`, `RATE_LIMIT`).
 * `latencyUs`: Kernel mitigation reaction latency in microseconds.
 * `tpmTier`: Hardware identity tier (`TIER1`, `TIER2`, `TIER3`).
-```
 

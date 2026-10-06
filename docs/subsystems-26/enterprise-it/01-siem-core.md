@@ -1,8 +1,3 @@
----
-
-### File: `blackbox-sentinel/docs/subsystems-26/enterprise-it/01-siem-core.md`
-
-```markdown
 # Subsystem 01: In-Memory SIEM Core (`01_siem_core`)
 
 `01_siem_core` is the centralized, in-memory log correlation, indexing, and querying engine within `blackbox-sentinel`. It collects normalized security events from all other 25 subsystems, maintaining high-frequency correlation windows without writing intermediate log files to disk.
@@ -101,5 +96,4 @@ private:
 
 * **Ingestion Throughput:** Sustained $> 1{,}000{,}000\text{ events/sec}$ per NUMA node.
 * **Correlated Search Latency:** $< 4.5\,\text{ms}$ across $1{,}000{,}000$ active in-memory events.
-```
 

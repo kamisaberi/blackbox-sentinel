@@ -1,8 +1,3 @@
----
-
-### File: `blackbox-sentinel/docs/subsystems-26/enterprise-it/03-ndr.md`
-
-```markdown
 # Subsystem 03: Network Detection & Response (`03_ndr`)
 
 `03_ndr` provides passive and inline network detection, extracting cryptographic parameters and statistical timing characteristics from raw network streams. It specializes in inspecting encrypted traffic without decrypting payloads via **TLS JA3 and JA4 fingerprinting**.
@@ -85,5 +80,4 @@ std::string compute_ja3_hash(const TlsClientHelloInfo& hello) {
 
 * **Zero-Decryption Requirement:** Threat classification succeeds on fully encrypted sessions without SSL/TLS private keys.
 * **Extraction SLA:** Computes JA3 and JA4 digests in **$< 2.5\,\mu\text{s}$ per handshake**.
-```
 

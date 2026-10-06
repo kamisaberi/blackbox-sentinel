@@ -1,7 +1,3 @@
-
-### File: `blackbox-sentinel/docs/index.md`
-
-```markdown
 # Blackbox Sentinel (`sentinel` daemon)
 
 **Commercial Cyber-Physical Edge XDR & SIEM Appliance**  
@@ -63,5 +59,4 @@ Powered under the hood by **`libblackbox.so`** (Tier 2 in-kernel eBPF/XDP packet
 3. **Collective Defense Grid:** Synchronizes zero-day Indicators of Compromise (IoCs) with `sentinel-nexus` in **$< 50\,\text{ms}$** ("Attacked Once, Immune Everywhere").
 4. **Air-Gapped Web Command Center:** Serves an embedded administrative management interface on **port 8443** with a **zero-CDN guarantee** (all JavaScript, CSS, and SVG assets are compiled directly into the binary).
 5. **Non-Spoofable Hardware Root:** Enforces node identity via physical TPM 2.0 PCR quotes, preventing virtual appliance duplication or unauthorized imaging.
-```
 

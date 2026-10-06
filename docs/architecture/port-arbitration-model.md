@@ -1,8 +1,3 @@
----
-
-### File: `blackbox-sentinel/docs/architecture/port-arbitration-model.md`
-
-```markdown
 # Port Arbitration: Promiscuous Raw Sockets vs. Secondary VIPs
 
 Deploying an active security daemon on an industrial network creates an operational challenge: how does the appliance monitor, inspect, and defend critical ports (such as Modbus on port `502` or S7Comm on port `102`) without conflicting with legitimate PLC control software running on the same host?
@@ -53,5 +48,4 @@ When the deception subsystem (`26_ddp`) launches decoy Modbus or Siemens PLCs:
 1. It registers an isolated virtual IP alias (e.g., `ip addr add 10.240.0.199/24 dev eth0 label eth0:1`).
 2. Decoy listeners bind exclusively to the virtual IP (`10.240.0.199`) using `SO_BINDTODEVICE`, leaving `10.240.0.100` and `0.0.0.0` unencumbered.
 3. Legitimate plant PLCs continue normal operations while adversaries scanning the subnet interact with the isolated honeypot environment.
-```
 

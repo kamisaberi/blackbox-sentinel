@@ -1,8 +1,3 @@
----
-
-### File: `blackbox-sentinel/docs/subsystems-26/enterprise-it/04-ids-ips.md`
-
-```markdown
 # Subsystem 04: Intrusion Detection & Prevention (`04_ids_ips`)
 
 `04_ids_ips` executes inline pattern matching over packet streams using a SIMD-accelerated **Aho-Corasick automaton**. When an exploit signature matches, it commands Tier 2 `libblackbox` to block the attacker in kernel driver space in $< 0.84\,\mu\text{s}$.
@@ -39,5 +34,4 @@
 ## 2. In-Kernel Integration
 
 Unlike legacy Snort or Suricata daemons that run in user space and suffer context-switch delays, `04_ids_ips` directly populates the eBPF `blocked_ip_map`. The attacker's network connection is severed before the exploit's second packet reaches the host OS.
-```
 

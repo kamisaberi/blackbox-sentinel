@@ -1,8 +1,3 @@
----
-
-### File: `blackbox-sentinel/docs/plugins-30/healthcare-and-siem/netflow-v9-ipfix.md`
-
-```markdown
 # NetFlow v9 & IPFIX Flow Telemetry Exporter (`libsentinel_plugin_netflow.so`)
 
 The NetFlow v9 and IPFIX (IETF RFC 7011) exporter aggregates continuous packet flows into directional flow records, streaming them to network visibility collectors over UDP port **2055 or 4739**.
@@ -34,5 +29,4 @@ The NetFlow v9 and IPFIX (IETF RFC 7011) exporter aggregates continuous packet f
 
 * Aggregates up to **$2{,}500{,}000\text{ flows/minute}$** within a $32\text{ MB}$ memory footprint.
 * Implements template cycling every $600\text{ seconds}$ to satisfy collector state refreshes.
-```
 

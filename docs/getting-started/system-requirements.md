@@ -1,8 +1,3 @@
----
-
-### File: `blackbox-sentinel/docs/getting-started/system-requirements.md`
-
-```markdown
 # System Requirements & Prerequisites
 
 Review the toolchain, kernel dependencies, and hardware privileges before running `blackbox-sentinel`.
@@ -47,5 +42,4 @@ sudo setcap 'cap_net_admin,cap_net_raw,cap_bpf,cap_sys_resource=+ep' /usr/local/
 * **`CAP_NET_RAW`:** Required to open promiscuous raw sockets and inspect raw frames.
 * **`CAP_BPF`:** Required to load BPF bytecode and allocate maps.
 * **`CAP_SYS_RESOURCE`:** Required to pin memory pages (`mlock`) without `ulimit -l` bounds.
-```
 

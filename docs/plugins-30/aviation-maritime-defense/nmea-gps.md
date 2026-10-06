@@ -1,8 +1,3 @@
----
-
-### File: `blackbox-sentinel/docs/plugins-30/aviation-maritime-defense/nmea-gps.md`
-
-```markdown
 # NMEA 0183/2000 GPS Navigation Dissector (`libsentinel_plugin_nmea.so`)
 
 The NMEA dissector monitors marine and aviation GPS/GNSS receiver sentences communicated over UDP/TCP networks (ports **10110, 2000**) or RS-422 serial bridges. It verifies sentence checksums, Horizontal Dilution of Precision (HDOP), and position continuity across `$GPGGA`, `$GPRMC`, and `$GPVTG` sentences.
@@ -36,5 +31,4 @@ The NMEA dissector monitors marine and aviation GPS/GNSS receiver sentences comm
 
 * **SIMD XOR Checksumming:** Validates NMEA ASCII checksums using AVX2 instructions in **$< 40\,\text{ns}$**.
 * **Spoofing Alert:** When HDOP reports optimal geometry ($< 1.0$) but satellite constellation counts drop to zero, GPS jamming/spoofing is flagged immediately.
-```
 

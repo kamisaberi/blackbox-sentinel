@@ -1,8 +1,3 @@
----
-
-### File: `blackbox-sentinel/docs/subsystems-26/web-application/10-bad.md`
-
-```markdown
 # Subsystem 10: Bot & Automated Abuse Defense (`10_bad`)
 
 `10_bad` detects automated scrapers, credential-stuffing bots, and DDoS flooding scripts by analyzing the **kinematic curves** of client interactions and the statistical periodicity of incoming HTTP requests.
@@ -33,5 +28,4 @@ Human interactions (mouse movements, touch swipes) exhibit continuous accelerati
 ## 2. Request Periodicity FFT
 
 `10_bad` computes a Fast Fourier Transform (FFT) over the inter-arrival times of incoming requests per IP. Automated loops display sharp spectral peaks at fixed intervals (e.g., exactly every $100\,\text{ms}$), triggering automated mitigation.
-```
 

@@ -1,8 +1,3 @@
----
-
-### File: `blackbox-sentinel/docs/plugins-30/industrial-ot/hart-ip.md`
-
-```markdown
 # HART-IP Industrial Wireless Dissector (`libsentinel_plugin_hart.so`)
 
 The HART-IP dissector monitors process automation networks, chemical refineries, and smart wireless instrumentation communicating over TCP/UDP port **5094**. It decodes HART-IP protocol framing, token-passing PDU structures, and commands to detect transmitter calibration tampering.
@@ -129,5 +124,4 @@ The Omron FINS (Factory Interface Network Service) dissector inspects communicat
 
 * Traps **FINS Command `04 01` (Forced Set/Reset)** and **Command `04 02` (Forced Set/Reset Clear)**, which bypass standard ladder logic execution and force physical digital output bits on field equipment.
 * Enforces memory bounds on Omron DM Area (Data Memory) words, preventing recipe tampering in automated packaging lines.
-```
 

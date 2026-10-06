@@ -1,8 +1,3 @@
----
-
-### File: `blackbox-sentinel/docs/getting-started/verifying-appliance-health.md`
-
-```markdown
 # Verifying Appliance Health & Operational Telemetry
 
 Verify that all subsystems, hardware accelerators, and kernel hooks are operating within nominal parameters.
@@ -59,5 +54,4 @@ Open your browser and navigate to:
 👉 **`https://<APPLIANCE_IP>:8443`**
 
 Log in using the administrator credentials configured in `/etc/sentinel/sentinel.yaml`. The console displays real-time SVG topology graphs, live in-kernel drop tables, and explainable AI (XAI) feature deviations with zero external CDN dependencies.
-```
 

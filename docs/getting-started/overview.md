@@ -1,8 +1,3 @@
----
-
-### File: `blackbox-sentinel/docs/getting-started/overview.md`
-
-```markdown
 # Autonomous Edge Active Defense & SIEM Appliance Introduction
 
 Traditional Security Information and Event Management (SIEM) and Extended Detection and Response (XDR) architectures rely on forwarding raw logs and PCAP streams to centralized cloud data lakes. In critical infrastructure—such as power substations, semiconductor manufacturing plants, healthcare enclaves, and autonomous naval systems—this paradigm introduces operational failure modes:
@@ -44,5 +39,4 @@ The daemon transitions through five execution stages to ensure risk-free onboard
 3. **`STAGE_FULL_ACTIVE` (Autonomous Edge Mitigation):** Inline autonomous protection. Malicious flows are purged in driver memory in $< 0.84\,\mu\text{s}$.
 4. **`STAGE_DECEPTION_ACTIVE` (Active Honeypots):** Emulates vulnerable virtual PLC decoys on secondary VIPs to mislead reconnaissance scans.
 5. **`STAGE_FORENSIC_LOCKDOWN` (Emergency Air-Gap):** Automatically severs non-critical interfaces while preserving tamper-evident local PCAP evidence.
-```
 

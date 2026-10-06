@@ -1,8 +1,3 @@
----
-
-### File: `blackbox-sentinel/docs/subsystems-26/identity-access/14-ato.md`
-
-```markdown
 # Subsystem 14: Account Takeover & Geo-Velocity Protection (`14_ato`)
 
 `14_ato` detects compromised user credentials by calculating the physical **geo-velocity** between successive logins across distributed industrial and web endpoints.
@@ -33,5 +28,4 @@ If calculated velocity exceeds $900\,\text{km/h}$ (commercial jet speed), `14_at
 1. Terminates the active session token immediately.
 2. Injects the attacker's source IP into Tier 2 `blocked_ip_map`.
 3. Issues a high-severity alert to `01_siem_core`.
-```
 

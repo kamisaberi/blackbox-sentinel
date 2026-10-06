@@ -1,8 +1,3 @@
----
-
-### File: `blackbox-sentinel/docs/nexus-uplink/collective-defense-sync.md`
-
-```markdown
 # Collective Defense Synchronization: Sub-50ms Rule Propagation
 
 `blackbox-sentinel` participates in the Aryorithm **Collective Defense Grid** under the architectural invariant: *"Attacked Once, Immune Everywhere."* 
@@ -71,6 +66,5 @@ void NexusUplink::run_rule_stream_loop() {
         }
     }
 }
-```
 ```
 

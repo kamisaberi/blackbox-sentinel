@@ -1,8 +1,3 @@
----
-
-### File: `blackbox-sentinel/docs/subsystems-26/host-endpoint/09-cwpp.md`
-
-```markdown
 # Subsystem 09: Cloud Workload & Container Protection (`09_cwpp`)
 
 `09_cwpp` protects containers, Kubernetes pods, and microVMs by attaching eBPF probes directly to kernel syscall tracepoints (`tracepoint:raw_syscalls:sys_enter`). It intercepts container escape attempts and namespace privilege escalation in real time.
@@ -70,5 +65,4 @@ char _license[] SEC("license") = "Dual BSD/GPL";
 
 * Operates with **zero modifications** to container images (no sidecar injections required).
 * Fully compatible with standard OCI runtimes: `containerd`, `CRI-O`, and `Docker`.
-```
 

@@ -1,8 +1,3 @@
----
-
-### File: `blackbox-sentinel/docs/subsystems-26/forensics-advanced/25-fdp.md`
-
-```markdown
 # Subsystem 25: Financial Transaction Graph Anomaly Analyzer (`25_fdp`)
 
 `25_fdp` inspects high-frequency financial protocol streams (e.g., **ISO 20022 XML, FIX Protocol, and SWIFT MT messages**) over internal banking networks, identifying automated account draining, front-running attacks, and transaction graph anomalies.
@@ -38,5 +33,4 @@
 
 * **Parsing Latency:** $< 18\,\mu\text{s}$ per FIX 4.4 transaction frame.
 * **Memory Safety:** Operates on pre-allocated graph nodes, discarding completed transaction branches after verification.
-```
 

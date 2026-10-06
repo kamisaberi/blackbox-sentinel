@@ -1,8 +1,3 @@
----
-
-### File: `blackbox-sentinel/docs/plugins-30/healthcare-and-siem/snmp-v3-trap.md`
-
-```markdown
 # SNMPv3 Encrypted Operational Trap Forwarder (`libsentinel_plugin_snmp.so`)
 
 The SNMPv3 Trap forwarder alerts legacy Operations Technology (OT) Network Management Systems (NMS)—such as **Cisco Prime, SolarWinds, and Hirschmann Industrial HiVision**—via authenticated and encrypted SNMPv3 Inform and Trap PDUs on UDP port **162**.
@@ -29,6 +24,5 @@ SNMPv3 enforces User-based Security Model (USM) specifications:
        │    ├── .1.1.3 (threatMitigationLatency)
        │    └── .1.1.4 (threatAction)
        └── .1.2 (trapHardwareTamperAlarm)
-```
 ```
 

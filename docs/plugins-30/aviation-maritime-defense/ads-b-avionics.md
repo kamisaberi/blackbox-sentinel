@@ -1,8 +1,3 @@
----
-
-### File: `blackbox-sentinel/docs/plugins-30/aviation-maritime-defense/ads-b-avionics.md`
-
-```markdown
 # ADS-B Avionics Surveillance Dissector (`libsentinel_plugin_adsb.so`)
 
 The ADS-B dissector analyzes air traffic surveillance data feeds (1090 MHz Mode S Extended Squitter framed over Ethernet via **Eurocontrol ASTERIX Category 021** or SBS-1/BaseStation TCP port **30003**). It validates ICAO 24-bit aircraft transponder addresses, squawk codes, barometric altitudes, and flight paths.
@@ -45,5 +40,4 @@ The ADS-B dissector analyzes air traffic surveillance data feeds (1090 MHz Mode 
 Adversaries inject synthetic ADS-B messages near real commercial flight paths to induce false Traffic Collision Avoidance System (TCAS) **Resolution Advisories (RA)**, forcing aircraft into emergency dives. 
 
 `libsentinel_plugin_adsb.so` cross-references velocity vectors against ground radar returns, dropping synthetic collision vectors at the network perimeter.
-```
 

@@ -1,8 +1,3 @@
----
-
-### File: `blackbox-sentinel/docs/plugins-30/industrial-ot/modbus-tcp.md`
-
-```markdown
 # Modbus TCP Dissector Plugin (`libsentinel_plugin_modbus.so`)
 
 The Modbus TCP dissector inspects industrial Modbus Application Protocol Data Units (APDU) on TCP port **502**. It identifies unauthorized PLC function codes, illegal coil overrides, register range tampering, and high-frequency polling floods.
@@ -112,5 +107,4 @@ public:
 
 * **Dissection Latency:** $< 0.42\,\mu\text{s}$ per packet.
 * **Threats Mitigated:** Stuxnet PLC setpoint injection, Rogue Modbus Master sweeps.
-```
 

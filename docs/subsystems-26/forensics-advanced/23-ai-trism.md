@@ -1,8 +1,3 @@
----
-
-### File: `blackbox-sentinel/docs/subsystems-26/forensics-advanced/23-ai-trism.md`
-
-```markdown
 # Subsystem 23: AI Safety Firewall & Prompt Barrier (`23_ai_trism`)
 
 `23_ai_trism` (AI Trust, Risk and Security Management) acts as a specialized firewall for local and edge Artificial Intelligence workloads. It intercepts inference payloads directed to Large Language Models (LLMs) or neural vision runtimes, trapping **jailbreak prompts, toxic vectors, adversarial perturbation attacks, and model extraction attempts**.
@@ -43,5 +38,4 @@
 $$\text{Similarity}(A, B) = \frac{A \cdot B}{\|A\| \|B\|}$$
 
 If $\text{Similarity} > 0.88$, the transaction is blocked before reaching the downstream inference worker.
-```
 

@@ -1,8 +1,3 @@
----
-
-### File: `blackbox-sentinel/docs/plugins-30/aviation-maritime-defense/stanag-4586.md`
-
-```markdown
 # NATO STANAG 4586 Military UAV Datalink Dissector (`libsentinel_plugin_stanag.so`)
 
 The STANAG 4586 dissector inspects interoperable military unmanned aerial vehicle (UAV) Command and Control (C2) datalinks communicating over UDP/IP port **51000**. It parses Vehicle ID, Command, and Telemetry packets, enforcing strict Level of Interoperability (LOI 1 through 5) authorization boundaries.
@@ -44,5 +39,4 @@ The STANAG 4586 dissector inspects interoperable military unmanned aerial vehicl
 * **LOI 2 (Telemetry Receipt):** Station may read telemetry (Msg 2000 series) but cannot steer sensors.
 * **LOI 3 (Payload Control):** Station may steer cameras but cannot command flight dynamics.
 * **LOI 4/5 (Flight & Recovery Control):** Commands altering pitch, roll, throttle, or weapon hardpoints require hardware-backed cryptographic signatures. Unsigned commands are dropped immediately.
-```
 

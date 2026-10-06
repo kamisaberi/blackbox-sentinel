@@ -1,8 +1,3 @@
----
-
-### File: `blackbox-sentinel/docs/subsystems-26/host-endpoint/20-fse.md`
-
-```markdown
 # Subsystem 20: Firmware Security Evaluation (`20_fse`)
 
 `20_fse` inspects the appliance's underlying motherboard UEFI/BIOS SPI flash chip, Option ROMs, and PCIe peripheral firmware. It verifies hardware firmware integrity against cryptographically signed manufacturer baselines.
@@ -43,5 +38,4 @@
 `20_fse` cross-checks extracted firmware digests against **TPM 2.0 PCR 0**:
 * If an unauthorized SPI flash write occurs, the physical PCR 0 digest will not match the manufacturer quote.
 * The appliance enters **`STAGE_FORENSIC_LOCKDOWN`**, refusing to unseal cryptographic storage keys.
-```
 

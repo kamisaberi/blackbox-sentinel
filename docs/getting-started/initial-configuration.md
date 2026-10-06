@@ -1,8 +1,3 @@
----
-
-### File: `blackbox-sentinel/docs/getting-started/initial-configuration.md`
-
-```markdown
 # Initial Configuration (`/etc/sentinel/sentinel.yaml`)
 
 All operational settings for `blackbox-sentinel` are declared in `/etc/sentinel/sentinel.yaml`.
@@ -80,6 +75,5 @@ sentinel --validate-config /etc/sentinel/sentinel.yaml
 [+] Verifying eBPF bytecode /usr/local/lib/bpf/xdp_filter.o: VALID ELF
 [+] Checking AI model /opt/sentinel/models/network_threat_v2.onnx: VALID (SHA-256 Verified)
 [+] Configuration is structurally sound. Daemon ready for launch.
-```
 ```
 

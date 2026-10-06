@@ -1,8 +1,3 @@
----
-
-### File: `blackbox-sentinel/docs/architecture/memory-safety-invariants.md`
-
-```markdown
 # Memory Safety Invariants & Zero Heap Fragmentation
 
 Edge security appliances deployed in mission-critical environments must run continuously for months or years without degradation. Traditional C/C++ daemons often succumb to heap fragmentation, memory leaks, and unbounded virtual memory expansion over time.
@@ -77,5 +72,4 @@ private:
 
 * **Maximum Permitted RAM Footprint:** Configured strictly via `/etc/sentinel/sentinel.yaml` (default: $2.0\text{ GB}$).
 * **Memory Pool Overcommit Prevention:** If an unexpected traffic surge occurs, excess telemetry events trigger **Tail Drop** inside the SPMC ring buffer rather than dynamic memory expansion, preventing host kernel Out-of-Memory (OOM) panic events.
-```
 

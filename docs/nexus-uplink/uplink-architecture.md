@@ -1,12 +1,3 @@
-### Part 10: Nexus Uplink Subsystem (`nexus-uplink/*`)
-
-This section contains 7 technical implementation guides detailing the client-side fleet synchronization engine in `blackbox-sentinel`: background gRPC agent architecture, TPM-rooted registration handshakes, real-time telemetry streaming, $< 50\,\text{ms}$ collective defense rule ingestion, direct kernel BPF drop injection, OTA model hot-reloads, and 0ms instant graceful disconnects.
-
----
-
-### File: `blackbox-sentinel/docs/nexus-uplink/uplink-architecture.md`
-
-```markdown
 # Nexus Uplink Architecture & Thread Model
 
 `NexusUplink` (`src/nexus/NexusUplink.cpp`) is the client-side background subsystem responsible for maintaining continuous, bidirectional communication between an edge appliance (`blackbox-sentinel`) and the central fleet orchestrator (`sentinel-nexus`) over mutual TLS (mTLS) gRPC on port **50051**.
@@ -93,6 +84,5 @@ private:
 };
 
 } // namespace sentinel::nexus
-```
 ```
 

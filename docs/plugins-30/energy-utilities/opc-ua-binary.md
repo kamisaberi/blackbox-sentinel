@@ -1,8 +1,3 @@
----
-
-### File: `blackbox-sentinel/docs/plugins-30/energy-utilities/opc-ua-binary.md`
-
-```markdown
 # OPC UA Binary Protocol Dissector (`libsentinel_plugin_opcua.so`)
 
 The OPC UA (Open Platform Communications Unified Architecture) dissector inspects Industry 4.0 machine-to-machine communications on TCP port **4840**. It validates TCP transport framing (`HEL`, `ACK`, `OPN`, `MSG`), SecureChannel asymmetric handshakes, and node management services.
@@ -43,5 +38,4 @@ The OPC UA (Open Platform Communications Unified Architecture) dissector inspect
 
 Industrial adversaries force OPC UA servers into insecure states by requesting `SecurityPolicy#None`. 
 `libsentinel_plugin_opcua.so` intercepts OpenSecureChannel (`OPN`) requests, dropping sessions that attempt unencrypted communication in protected production zones.
-```
 

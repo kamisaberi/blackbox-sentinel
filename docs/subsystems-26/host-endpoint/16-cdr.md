@@ -1,8 +1,3 @@
----
-
-### File: `blackbox-sentinel/docs/subsystems-26/host-endpoint/16-cdr.md`
-
-```markdown
 # Subsystem 16: Content Disarm & Reconstruction (`16_cdr`)
 
 `16_cdr` neutralizes weaponized documents (PDFs, Office OOXML, RTF) transferred over network streams (HTTP, SMB, DICOM) by parsing document structures in memory and stripping executable components without writing untrusted payloads to disk.
@@ -43,5 +38,4 @@
 
 * **Zero Disk Footprint:** Documents are disassembled and rebuilt entirely in pre-allocated RAM scratchpads, preventing temporary-file race conditions.
 * **Latency Profile:** Sanitizes a $2\text{ MB}$ PDF in **$< 8.5\,\text{ms}$**.
-```
 

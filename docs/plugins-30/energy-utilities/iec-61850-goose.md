@@ -1,8 +1,3 @@
----
-
-### File: `blackbox-sentinel/docs/plugins-30/energy-utilities/iec-61850-goose.md`
-
-```markdown
 # IEC 61850 GOOSE Substation Multicast Dissector (`libsentinel_plugin_goose.so`)
 
 The IEC 61850 GOOSE (Generic Object Oriented Substation Events) dissector analyzes high-speed Layer 2 protection relay multicasts operating over **EtherType `0x88B8`**. It inspects State Numbers (`stNum`), Sequence Numbers (`sqNum`), and Dataset contents to prevent unauthorized protective relay tripping and replay-induced regional blackouts.
@@ -50,5 +45,4 @@ GOOSE runs directly over Ethernet multicast without IP or TCP/UDP headers to ach
 `libsentinel_plugin_goose.so` enforces monotonic sequence invariants per `gocbRef`:
 1. **Replay Rejection:** If an incoming GOOSE frame has an `stNum` less than or equal to the current state counter for that control block with an identical timestamp, it is flagged as a replayed injection attack.
 2. **MAC Verification:** Trip messages must match the pre-enrolled physical switchgear MAC address; spoofed source MACs are dropped at wire speed.
-```
 

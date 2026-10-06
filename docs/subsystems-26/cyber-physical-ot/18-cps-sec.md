@@ -1,8 +1,3 @@
----
-
-### File: `blackbox-sentinel/docs/subsystems-26/cyber-physical-ot/18-cps-sec.md`
-
-```markdown
 # Subsystem 18: SCADA Physical Constraint Validator (`18_cps_sec`)
 
 `18_cps_sec` bridges cyber defense with the laws of physical thermodynamics. It models industrial physical invariants (e.g., turbine RPM velocities, pipeline pressures, chemical dosing limits) and parses industrial protocol frames (**Modbus TCP, DNP3, Siemens S7Comm**) to drop out-of-bounds commands before they reach physical field actuators.
@@ -88,6 +83,5 @@ subsystems:
         max_value: 4500.0
         max_rate_of_change_per_sec: 150.0
         on_violation: "KERNEL_DROP"
-```
 ```
 

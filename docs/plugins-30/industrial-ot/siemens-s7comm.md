@@ -1,8 +1,3 @@
----
-
-### File: `blackbox-sentinel/docs/plugins-30/industrial-ot/siemens-s7comm.md`
-
-```markdown
 # Siemens S7Comm Dissector Plugin (`libsentinel_plugin_s7comm.so`)
 
 The Siemens S7Comm dissector inspects industrial communications targeting **Siemens S7-300, S7-400, S7-1200, and S7-1500 PLCs** on TCP port **102**. It decodes TPKT, COTP, and S7 Protocol Data Units, intercepting PLC stop commands, memory block tampering (DB/M blocks), and unauthorized firmware flashing.
@@ -51,5 +46,4 @@ Stuxnet modified specific organization blocks (e.g., `OB35`) and data blocks (`D
 * `libs7comm_dissector` parses the S7 parameter block for **Function `0x05` (Write Variable)**.
 * It compares the addressed Data Block (`DB`) number against a local whitelist.
 * Any attempt to issue `0x29` (PLC Stop) or overwrite safety-critical DB blocks triggers an immediate `XDP_DROP` mitigation rule, keeping the PLC operational.
-```
 

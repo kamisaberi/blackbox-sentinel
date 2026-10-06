@@ -1,8 +1,3 @@
----
-
-### File: `blackbox-sentinel/docs/getting-started/hardware-specifications.md`
-
-```markdown
 # Hardware Sizing & Appliance Specifications
 
 `blackbox-sentinel` is available across three reference deployment form factors:
@@ -64,5 +59,4 @@ Designed for private cloud datacenters, virtual SCADA testbeds, and edge VMware 
   * 64 GB Virtual Disk on fast NVMe storage.
   * Virtual Network Adapter: `vmxnet3` (VMware) or `virtio-net` (KVM).
   * Hardware Attestation: Virtual TPM (vTPM) 2.0 enabled in VM settings.
-```
 

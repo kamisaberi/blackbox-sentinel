@@ -1,12 +1,3 @@
-### Part 4: 26 Native Subsystems — Host, Workload, Binary & Identity Governance (`subsystems-26/*`)
-
-This section contains 9 technical implementation guides: the 5 **Host, Workload & Binary Security** modules (`06_edr`, `07_epp_ngav`, `09_cwpp`, `16_cdr`, `20_fse`) and the 4 **Identity & Access Governance** modules (`08_nac`, `12_itdr`, `14_ato`, `24_ztna`).
-
----
-
-### File: `blackbox-sentinel/docs/subsystems-26/host-endpoint/06-edr.md`
-
-```markdown
 # Subsystem 06: Endpoint Detection & Response (`06_edr`)
 
 `06_edr` provides local endpoint telemetry, process lineage reconstruction, and memory injection detection. It interfaces with the Linux kernel via the **Netlink Process Event Connector** (`cn_proc`) and Linux `/proc` filesystem auditing, maintaining an in-memory Directed Acyclic Graph (DAG) of all running processes.
@@ -107,5 +98,4 @@ private:
 
 * **Process Discovery Latency:** $< 15\,\mu\text{s}$ from kernel `execve` syscall to DAG node binding.
 * **Process Termination Action:** Emits targeted `SIGKILL` directly through kernel syscalls before malicious payload execution completes.
-```
 

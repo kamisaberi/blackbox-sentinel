@@ -1,9 +1,3 @@
-
----
-
-### File: `blackbox-sentinel/docs/plugins-30/energy-utilities/enip-cip.md`
-
-```markdown
 # EtherNet/IP CIP Robotics & Motion Dissector (`libsentinel_plugin_cip_motion.so`)
 
 This dissector provides specialized inspection of **CIP Motion, CIP Safety, and CIP Sync** extensions running on top of EtherNet/IP (TCP/UDP **44818** and UDP **2222**), protecting industrial robotics, automated workcells, and high-speed packaging conveyors.
@@ -40,5 +34,4 @@ This dissector provides specialized inspection of **CIP Motion, CIP Safety, and 
 
 * Intercepts `CIP Motion` velocity and position control commands, enforcing speed limits on 6-axis industrial robots.
 * Drops packets attempting to clear hardware safety interlocks without authenticated safety supervisor signatures.
-```
 

@@ -1,8 +1,3 @@
----
-
-### File: `blackbox-sentinel/docs/nexus-uplink/kernel-drop-injector.md`
-
-```markdown
 # Kernel Drop Injector Architecture (`KernelDropInjector.cpp`)
 
 `KernelDropInjector` provides the direct bridge between high-level user-space policy management and low-level Linux kernel eBPF hash maps.
@@ -70,5 +65,4 @@ private:
 If an incoming fleet rule updates an IP that is already blocked:
 1. `bpf_map_update_elem` is invoked with flag `BPF_ANY`.
 2. The kernel atomically overwrites the expiration timestamp and rule ID without tearing down active hash buckets, preventing lookup race conditions on the network data plane.
-```
 

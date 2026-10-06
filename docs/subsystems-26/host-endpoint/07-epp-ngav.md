@@ -1,8 +1,3 @@
----
-
-### File: `blackbox-sentinel/docs/subsystems-26/host-endpoint/07-epp-ngav.md`
-
-```markdown
 # Subsystem 07: Next-Gen Antivirus & Entropy Blocker (`07_epp_ngav`)
 
 `07_epp_ngav` defends edge storage from ransomware and wiper attacks. It hooks filesystem writes using the Linux **`fanotify`** API, calculating byte-level **Shannon Entropy** in real time via SIMD instructions. Rapid increases in entropy paired with high IOPS trigger immediate process termination and filesystem write suspension.
@@ -73,5 +68,4 @@ double calculate_shannon_entropy(std::span<const uint8_t> buffer) noexcept {
 
 * **Scanning Overhead:** Evaluates a $1\text{ MB}$ block in $< 120\,\mu\text{s}$ using AVX2 SIMD acceleration.
 * **False Positive Prevention:** Preserves an allowlist of legitimate compressed formats (`.tar.gz`, `.zip`, `.zst`) verified against magic byte headers.
-```
 

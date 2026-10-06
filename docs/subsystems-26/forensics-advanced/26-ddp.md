@@ -1,8 +1,3 @@
----
-
-### File: `blackbox-sentinel/docs/subsystems-26/forensics-advanced/26-ddp.md`
-
-```markdown
 # Subsystem 26: Distributed Deception Decoy PLCs (`26_ddp`)
 
 `26_ddp` deploys synthetic deception honeypots across unused IP addresses on the local network. It emulates realistic, responsive industrial controllers (**Modbus PLCs, Siemens S7 outstations, and medical DICOM servers**) on secondary Virtual IPs (VIPs) to trap adversaries during the reconnaissance phase.
@@ -68,5 +63,4 @@ public:
 
 * **Zero False Positives:** Legitimate operational software never attempts communication with decoy VIPs. Any connection attempt (SYN packet to port 502 or 102 on a decoy IP) is treated as malicious.
 * **Instant Quarantine:** The attacker’s source IP is inserted into `blocked_ip_map` immediately, severing their ability to scan the real production PLCs on the subnet.
-```
 

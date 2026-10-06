@@ -1,7 +1,3 @@
-
-### File: `blackbox-sentinel/docs/plugins-30/industrial-ot/mitsubishi-melsec.md`
-
-```markdown
 # Mitsubishi MELSEC Protocol Dissector (`libsentinel_plugin_melsec.so`)
 
 The Mitsubishi MELSEC dissector inspects communications targeting **Mitsubishi Electric iQ-R, Q, and FX Series PLCs** using the MC Protocol (3E/4E frame variants) on TCP port **5007 / 5006**. It verifies batch memory reads, bit/word device writes, and remote CPU execution commands.
@@ -41,5 +37,4 @@ The Mitsubishi MELSEC dissector inspects communications targeting **Mitsubishi E
 
 * **Protected Registers:** Enforces write barriers over critical MELSEC file registers (`R`, `ZR`) and internal relays (`M`).
 * **Dissection SLA:** Evaluates MC Protocol frames in **$< 0.48\,\mu\text{s}$**.
-```
 

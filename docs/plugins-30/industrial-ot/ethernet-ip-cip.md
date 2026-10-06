@@ -1,8 +1,3 @@
----
-
-### File: `blackbox-sentinel/docs/plugins-30/industrial-ot/ethernet-ip-cip.md`
-
-```markdown
 # EtherNet/IP & CIP Dissector (`libsentinel_plugin_enip.so`)
 
 The EtherNet/IP dissector inspects Rockwell Automation (Allen-Bradley) control networks operating on TCP/UDP port **44818**. It parses encapsulation headers and internal Common Industrial Protocol (CIP) commands, validating tag reads, tag writes, and assembly data integrity.
@@ -42,5 +37,4 @@ The EtherNet/IP dissector inspects Rockwell Automation (Allen-Bradley) control n
 Attackers exploit CIP by submitting unauthenticated `Write Tag` (Service `0x4D` / `0x4E`) requests to manipulate safety logic tags (e.g., `EMERGENCY_STOP_BYPASS` or `PRESSURE_RELIEF_OVERRIDE`). 
 
 `libsentinel_plugin_enip.so` parses symbolic CIP paths in memory and drops unauthorized mutations before the Rockwell ControlLogix controller updates its output table.
-```
 

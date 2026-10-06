@@ -1,8 +1,3 @@
----
-
-### File: `blackbox-sentinel/docs/plugins-30/energy-utilities/bacnet-ip.md`
-
-```markdown
 # BACnet/IP Smart Building Dissector (`libsentinel_plugin_bacnet.so`)
 
 The BACnet/IP dissector monitors building management systems (BMS), commercial HVAC controllers, fire alarms, and physical access entry points operating over UDP port **47808 (`0xBAC0`)**. It decodes BACnet Virtual Link Control (BVLC) and APDU layers to detect environmental sabotage and unauthorized access control overrides.
@@ -49,5 +44,4 @@ The BACnet/IP dissector monitors building management systems (BMS), commercial H
 
 * **Service 15 (`WriteProperty`):** Traps unauthorized setpoint changes (e.g., forcing datacenter cooling units to maximum temperature or disabling laboratory exhaust scrubbers).
 * **Service 17 (`DeviceCommunicationControl`):** Detects attempts to silence building automation controllers prior to physical intrusions.
-```
 

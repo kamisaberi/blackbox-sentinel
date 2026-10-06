@@ -1,8 +1,3 @@
----
-
-### File: `blackbox-sentinel/docs/architecture/under-the-hood-bindings.md`
-
-```markdown
 # In-Process Bindings to Tier 1 (`libxinfer`) & Tier 2 (`libblackbox`)
 
 `blackbox-sentinel` operates as an integrated Tier 3 appliance daemon by binding directly in-process to **`libxinfer.so`** and **`libblackbox.so`**, avoiding IPC serialization and process-switching overhead.
@@ -91,5 +86,3 @@ target_link_libraries(sentinel
         dl
 )
 ```
-```
-

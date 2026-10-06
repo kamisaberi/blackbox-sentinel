@@ -1,8 +1,3 @@
----
-
-### File: `blackbox-sentinel/docs/getting-started/shadow-mode-evaluation.md`
-
-```markdown
 # 14-Day Zero-Risk Passive SPAN Evaluation (`STAGE_SHADOW_MODE`)
 
 In municipal water plants, nuclear substations, and automotive manufacturing lines, deploying an unverified inline security agent risks unexpected disruption. 
@@ -54,5 +49,4 @@ sudo systemctl restart sentinel
 * **Zero Packet Drops:** The in-kernel eBPF filter will **never** return `XDP_DROP`. All packets pass unhindered.
 * **Passive Traffic Reflection:** The appliance does not transmit synthetic packets onto the wire unless deception decoys are explicitly enabled.
 * **Full Forensic Telemetry:** All 26 native subsystems execute in full evaluation mode. Detections, XAI feature attributions, and anomaly traces are stored in local SIEM memory and visible on the Web Command Center (port 8443).
-```
 

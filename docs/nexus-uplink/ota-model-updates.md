@@ -1,8 +1,3 @@
----
-
-### File: `blackbox-sentinel/docs/nexus-uplink/ota-model-updates.md`
-
-```markdown
 # Over-the-Air (OTA) Model Updates & Zero-Downtime Hot Reloads
 
 `blackbox-sentinel` supports remote neural network weight updates staged by the `xinfer-forge` training pipeline and distributed by `sentinel-nexus`.
@@ -47,5 +42,4 @@ When a validated model payload finishes downloading:
    POST /api/v1/control/reload-model
    ```
 3. The inference engine (`xinfer::InferenceEngine`) instantiates a new execution plan for the candidate model in secondary memory, performs an atomic pointer swap, and releases the old model weights—achieving **zero-downtime weight updates**.
-```
 

@@ -1,8 +1,3 @@
----
-
-### File: `blackbox-sentinel/docs/subsystems-26/forensics-advanced/19-swg.md`
-
-```markdown
 # Subsystem 19: Sovereign Web Gateway & Egress Filter (`19_swg`)
 
 `19_swg` enforces sovereign outbound data sovereignty policies. It monitors and restricts outbound connections from local edge devices to the internet, enforcing DNS-over-HTTPS sinkholing, TLS certificate validation, and zero cloud data egress invariants.
@@ -39,5 +34,4 @@
 
 * **Deterministic Sinkholing:** Unauthorized external DNS queries are redirected to `127.0.0.1` in driver space.
 * **$0.00 Egress Enforcement:** Enforces strict boundary policies preventing connected devices from pushing telemetry to unapproved public cloud endpoints.
-```
 

@@ -1,8 +1,3 @@
----
-
-### File: `blackbox-sentinel/docs/subsystems-26/enterprise-it/02-ueba.md`
-
-```markdown
 # Subsystem 02: User & Entity Behavior Analytics (`02_ueba`)
 
 `02_ueba` models baseline operational profiles for up to **100,000 network entities** (users, IP addresses, service accounts, and PLC nodes). It detects credential stuffing, insider threats, privilege escalation, and beaconing behavior by computing deviations from rolling statistical baselines.
@@ -52,6 +47,5 @@ subsystems:
     learning_window_hours: 168 # 7 Days baseline
     risk_threshold_alert: 75.0
     risk_threshold_mitigate: 90.0 # Triggers in-kernel drop
-```
 ```
 

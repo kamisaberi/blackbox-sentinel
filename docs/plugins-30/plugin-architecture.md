@@ -1,12 +1,3 @@
-### Part 6: 30 Protocol Dissectors — Architecture & Industrial OT Plugins (`plugins-30/*`)
-
-This section contains 9 technical implementation guides: the core plugin architecture and ABI contract, followed by the 8 **Industrial OT & Manufacturing Dissectors** (`modbus-tcp`, `dnp3-substation`, `siemens-s7comm`, `profinet-rt`, `ethernet-ip-cip`, `hart-ip`, `mitsubishi-melsec`, `omron-fins`).
-
----
-
-### File: `blackbox-sentinel/docs/plugins-30/plugin-architecture.md`
-
-```markdown
 # Protocol Dissector Plugin Architecture & Zero-Allocation ABI
 
 The 30 industrial and enterprise protocol dissectors in `blackbox-sentinel` are implemented as modular, dynamically loaded shared objects (`libsentinel_plugin_*.so`). They parse protocol Application Protocol Data Units (APDUs), extract semantic metrics, and identify command anomalies at wire speed.
@@ -99,5 +90,4 @@ extern "C" {
 1. **Zero Heap Allocations:** Dissectors must never call `malloc`, `new`, or resize containers. Results are returned using fixed-capacity stack structures (`DissectionResult`).
 2. **Bounds Enforcement:** All memory dereferences operate against `std::span` boundaries, preventing buffer over-reads on truncated packets.
 3. **Symbol Isolation:** Plugins are loaded using `dlopen(path, RTLD_LAZY | RTLD_LOCAL)`, isolating internal helper routines from other plugins.
-```
 

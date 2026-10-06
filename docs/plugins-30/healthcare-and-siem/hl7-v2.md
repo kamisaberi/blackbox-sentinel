@@ -1,8 +1,3 @@
----
-
-### File: `blackbox-sentinel/docs/plugins-30/healthcare-and-siem/hl7-v2.md`
-
-```markdown
 # HL7 v2 Clinical Protocol Dissector (`libsentinel_plugin_hl7.so`)
 
 The HL7 v2 dissector inspects electronic health record (EHR) and clinical messaging streams communicated over Minimal Lower Layer Protocol (MLLP) on TCP port **2575**. It parses pipe-delimited segment structures (`MSH`, `PID`, `PV1`, `OBX`) to prevent patient identifier tampering, clinical prescription injection, and SQL/Command injections embedded in patient data fields.
@@ -47,5 +42,4 @@ The HL7 v2 dissector inspects electronic health record (EHR) and clinical messag
 
 * **Zero Memory Allocation:** Uses `std::string_view` segment tokenization directly over the incoming network buffer.
 * **Dissection SLA:** Validates full admission, discharge, and transfer (ADT) messages in **$< 1.8\,\mu\text{s}$**.
-```
 

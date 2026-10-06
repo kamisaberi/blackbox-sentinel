@@ -1,12 +1,3 @@
-### Part 8: 30 Protocol Dissectors — Aviation, Maritime & Sovereign Defense Plugins (`plugins-30/*`)
-
-This section contains 7 technical implementation guides for the **Aviation, Maritime, Automotive & Sovereign Defense Dissectors**: `mavlink-uav`, `ais-maritime`, `nmea-gps`, `ads-b-avionics`, `stanag-4586`, `mil-std-1553`, and `canbus-automotive`.
-
----
-
-### File: `blackbox-sentinel/docs/plugins-30/aviation-maritime-defense/mavlink-uav.md`
-
-```markdown
 # MAVLink Autonomous UAV Protocol Dissector (`libsentinel_plugin_mavlink.so`)
 
 The MAVLink dissector inspects micro air vehicle telemetry and autonomous drone datalinks operating over UDP/TCP ports **14550, 14551, and 5760**. It validates **MAVLink v1 (`0xFE`) and v2 (`0xFD`)** framing, detecting GPS spoofing, unauthorized flight mode overrides, and waypoint injection attacks.
@@ -49,5 +40,4 @@ The MAVLink dissector inspects micro air vehicle telemetry and autonomous drone 
 $$v_{\text{calc}} = \frac{\Delta \text{Distance}}{\Delta t}$$
 
 If calculated horizontal velocity exceeds the drone's aerodynamic envelope ($v > 45\,\text{m/s}$ for quadcopters) or vertical acceleration violates physical gravity bounds, GPS spoofing is confirmed. The dissector commands Tier 2 `libblackbox` to block the attacking ground control station (GCS) telemetry link in $< 0.84\,\mu\text{s}$.
-```
 

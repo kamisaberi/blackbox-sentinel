@@ -1,8 +1,3 @@
----
-
-### File: `blackbox-sentinel/docs/getting-started/first-threat-mitigation.md`
-
-```markdown
 # Verifying Your First In-Kernel Threat Mitigation
 
 Once shadow evaluation is complete and baseline parameters are tuned, transition the appliance to **`STAGE_FULL_ACTIVE`** to enable autonomous in-kernel packet drops ($< 0.84\,\mu\text{s}$).
@@ -59,5 +54,4 @@ Socket Buffer Overhead  : 0 bytes allocated
 ```
 
 Notice that the packets were purged directly inside the driver ring: the host operating system's connection pool never registers open TCP sockets.
-```
 

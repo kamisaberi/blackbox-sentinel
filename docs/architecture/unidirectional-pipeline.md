@@ -1,8 +1,3 @@
----
-
-### File: `blackbox-sentinel/docs/architecture/unidirectional-pipeline.md`
-
-```markdown
 # The Unidirectional Processing Pipeline
 
 To maintain high throughput ($> 1{,}250{,}000\text{ EPS}$) and avoid thread synchronization deadlocks, `blackbox-sentinel` processes all network data through a **five-stage unidirectional pipeline**. Packets flow strictly forward from physical ingress to kernel mitigation.
@@ -56,5 +51,4 @@ To maintain high throughput ($> 1{,}250{,}000\text{ EPS}$) and avoid thread sync
 
 * **No Backwards Signaling:** A downstream subsystem never blocks an upstream ingestion worker. Telemetry logging and forensic PCAP writes operate asynchronously.
 * **Deterministic Forward Hand-off:** Memory pointers are passed across pipeline stages using `std::span` and move-constructed event handles, ensuring zero heap reallocation between ingress and egress.
-```
 

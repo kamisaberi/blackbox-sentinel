@@ -1,12 +1,3 @@
-### Part 5: 26 Native Subsystems — Cyber-Physical OT & Forensics (`subsystems-26/*`)
-
-This section contains 9 technical implementation guides for the remaining native subsystems: the 3 **Cyber-Physical OT & IoT Protection** modules (`17_iot_sec`, `18_cps_sec`, `21_side_channel`) and the 6 **Forensics, Traffic Control & Deception** modules (`13_ddos`, `19_swg`, `22_dfir`, `23_ai_trism`, `25_fdp`, `26_ddp`).
-
----
-
-### File: `blackbox-sentinel/docs/subsystems-26/cyber-physical-ot/17-iot-sec.md`
-
-```markdown
 # Subsystem 17: Medical IoT & PACS Protocol Security (`17_iot_sec`)
 
 `17_iot_sec` secures clinical healthcare networks, radiological picture archiving systems (DICOM PACS), and telemetry medical devices. It operates inline, parsing **DICOM C-STORE, C-FIND, and HL7 v2/v3** clinical protocol messages over the wire to detect unauthorized patient data exfiltration, ransomware encryption of radiological archives, and medical sensor manipulation.
@@ -87,5 +78,4 @@ public:
 * **DICOM Standard PS 3.8:** Network Communication Support for Message Exchange.
 * **HL7 Standards:** Health Level Seven International Versions 2.3, 2.5, and FHIR JSON.
 * **Regulatory Alignment:** Satisfies technical access and transmission security requirements under HIPAA § 164.312(e)(1).
-```
 

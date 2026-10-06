@@ -1,12 +1,3 @@
-### Part 9: 30 Protocol Dissectors — Healthcare & SIEM Forwarder Plugins (`plugins-30/*`)
-
-This section contains 8 technical implementation guides for the **Healthcare Diagnostic Dissectors & Enterprise SIEM Egress Forwarders**: `dicom-pacs`, `hl7-v2`, `cef-forwarder`, `leef-forwarder`, `syslog-rfc5424`, `kafka-producer`, `snmp-v3-trap`, and `netflow-v9-ipfix`.
-
----
-
-### File: `blackbox-sentinel/docs/plugins-30/healthcare-and-siem/dicom-pacs.md`
-
-```markdown
 # DICOM PACS Medical Imaging Dissector (`libsentinel_plugin_dicom.so`)
 
 The DICOM (Digital Imaging and Communications in Medicine) dissector inspects hospital radiological network traffic communicated over TCP ports **104 and 11112**. It decodes the DICOM Upper Layer Protocol (DULP), verifies C-STORE/C-FIND command structures, and validates 16-bit pixel stream metadata to prevent patient data manipulation, image-based steganography, and ransomware locking of Picture Archiving and Communication Systems (PACS).
@@ -107,5 +98,4 @@ public:
 
 * **C-MOVE Siphoning Prevention:** Detects mass patient record queries initiated outside standard radiology appointment windows.
 * **Malicious Pixel Traps:** Identifies unexpected DICOM Transfer Syntaxes (e.g., non-standard compressed payloads hiding executable shellcode inside Pixel Data).
-```
 

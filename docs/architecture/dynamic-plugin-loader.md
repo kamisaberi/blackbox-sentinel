@@ -1,8 +1,3 @@
----
-
-### File: `blackbox-sentinel/docs/architecture/dynamic-plugin-loader.md`
-
-```markdown
 # Dynamic Dissector Plugin Architecture & Symbol Isolation
 
 The 30 industrial protocol dissector plugins (e.g., Modbus, Siemens S7Comm, DICOM, MAVLink) are compiled as modular shared libraries (`libsentinel_plugin_*.so`) and loaded dynamically at runtime via `dlopen`.
@@ -84,5 +79,4 @@ extern "C" {
 ## 3. ABI Handshake Verification
 
 Before activating a protocol plugin, `blackbox-sentinel` queries `get_dissector_abi_version()`. If the ABI version does not match `SENTINEL_DISSECTOR_ABI_V1`, the plugin is rejected immediately to prevent memory corruption.
-```
 

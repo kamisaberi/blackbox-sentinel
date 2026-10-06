@@ -1,8 +1,3 @@
----
-
-### File: `blackbox-sentinel/docs/nexus-uplink/instant-graceful-disconnect.md`
-
-```markdown
 # Instant 0ms Graceful Disconnect on Process Teardown
 
 In distributed fleet management, when an edge node is halted (via `SIGINT`, `Ctrl+C`, system reboot, or `systemctl stop sentinel`), conventional architectures rely on server-side timeout detectors ($30 - 90\text{ seconds}$) to flag the appliance as offline.
@@ -74,5 +69,4 @@ void NexusUplink::execute_instant_disconnect() noexcept {
 
 * **Elimination of Phantom Alerts:** SOC operators never receive false "Node Down" alerts caused by polling heartbeat timeouts during routine appliance maintenance.
 * **Kernel Safety:** Disconnect triggers `blackbox::XdpManager::detach()` automatically, restoring standard network routing before process termination.
-```
 

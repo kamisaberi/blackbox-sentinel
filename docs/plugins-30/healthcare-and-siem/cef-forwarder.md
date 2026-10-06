@@ -1,8 +1,3 @@
----
-
-### File: `blackbox-sentinel/docs/plugins-30/healthcare-and-siem/cef-forwarder.md`
-
-```markdown
 # Common Event Format (CEF) SIEM Forwarder (`libsentinel_plugin_cef.so`)
 
 The CEF Forwarder converts normalized threat detections and mitigation events emitted by `blackbox-sentinel` into standard Micro Focus ArcSight **Common Event Format (CEF)** strings, forwarding them over TCP, TLS, or UDP to external enterprise SIEM platforms.
@@ -68,5 +63,4 @@ public:
 
 * Formats up to **$500{,}000\text{ events/sec}$** into stack-allocated string buffers.
 * Supports TLS 1.3 encrypted transmission to ArcSight, Splunk, and Microsoft Sentinel ingestion collectors.
-```
 

@@ -1,12 +1,3 @@
-### Part 2: Deep Systems Design (`architecture/*`)
-
-This section details the 6 architectural specifications governing `blackbox-sentinel`: decoupled subsystem orchestration, the five-stage unidirectional processing pipeline, memory safety invariants, dynamic protocol plugin loading, port arbitration (promiscuous raw sockets vs. secondary VIPs), and under-the-hood linkage to Tier 1 (`libxinfer`) and Tier 2 (`libblackbox`).
-
----
-
-### File: `blackbox-sentinel/docs/architecture/appliance-architecture.md`
-
-```markdown
 # Decoupled C++20 Appliance Engine Design & Orchestration
 
 `blackbox-sentinel` is designed as a modular, low-overhead appliance daemon (`sentinel`) that coordinates 26 native security subsystems and 30 industrial protocol dissectors without monolithic lock contention or inter-service IPC serialization.
@@ -91,5 +82,4 @@ If an individual subsystem experiences an unhandled internal error (e.g., an une
 1. **Isolated Context:** Subsystem worker threads run within dedicated exception boundaries.
 2. **Graceful Degradation:** The orchestrator transitions the faulty subsystem to `SubsystemState::DEGRADED` while the remaining 25 subsystems continue evaluating traffic.
 3. **Automated Recovery:** The orchestrator drains the affected module's input ring and re-instantiates its execution context without restarting the host daemon or dropping in-kernel eBPF network hooks.
-```
 

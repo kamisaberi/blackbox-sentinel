@@ -1,8 +1,3 @@
----
-
-### File: `blackbox-sentinel/docs/subsystems-26/forensics-advanced/22-dfir.md`
-
-```markdown
 # Subsystem 22: Circular PCAP Carver & Evidence Vault (`22_dfir`)
 
 `22_dfir` maintains a circular in-memory buffer that captures raw packet frames. When an attack is mitigated by any of the 26 subsystems, `22_dfir` dumps a pre-attack and post-attack packet window directly to NVMe storage, cryptographically sealing the carved `.pcap` evidence with SHA-256 for judicial admissibility.
@@ -77,5 +72,4 @@ void flush_carved_pcap(const std::string& path, const std::vector<uint8_t>& raw_
 ## 3. Regulatory Value
 
 Provides forensic evidence compliant with ISO/IEC 27037 standards for digital evidence handling, proving root-cause vectors during regulatory post-incident investigations.
-```
 

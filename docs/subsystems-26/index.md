@@ -1,12 +1,3 @@
-### Part 3: 26 Native Subsystems — Enterprise IT & Web Protection (`subsystems-26/*`)
-
-This section contains 9 technical implementation guides: the master subsystems dependency matrix, the 5 **Enterprise IT & Detection** modules (`01_siem_core`, `02_ueba`, `03_ndr`, `04_ids_ips`, `15_ngfw`), and the 3 **Web & Application Protection** modules (`05_waf`, `10_bad`, `11_rasp`).
-
----
-
-### File: `blackbox-sentinel/docs/subsystems-26/index.md`
-
-```markdown
 # The 26 Native C++20 Subsystems: Architecture & Dependency Matrix
 
 `blackbox-sentinel` integrates 26 decoupled security modules compiled directly into `sentinel`. Each subsystem operates within an isolated memory envelope and communicates through a lock-free, zero-allocation internal event bus.
@@ -63,6 +54,5 @@ This section contains 9 technical implementation guides: the master subsystems d
                │                               │
                ▼                               ▼
        [ 02_ueba Matrix ]              [ 22_dfir PCAP Carver ]
-```
 ```
 
