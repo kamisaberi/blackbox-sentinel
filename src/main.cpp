@@ -23,7 +23,7 @@ void signal_handler(int sig)
     g_appliance_running = false;
 }
 
-int main()
+int main(int argc, char* argv[])
 {
     std::signal(SIGINT, signal_handler);
     std::signal(SIGTERM, signal_handler);
