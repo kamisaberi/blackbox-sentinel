@@ -30,6 +30,10 @@ int main(int argc, char *argv[])
         std::cout << sentinel::licensing::LicenseManager::generate_hardware_token() << std::endl;
         return 0;
     }
+    // Load cryptographic license envelope (/etc/sentinel/license.lic)
+    sentinel::licensing::LicenseManager::instance().load_and_verify("/etc/sentinel/license.lic");
+    std::cout << "[Sentinel Engine] Active Licensing Status: "
+              << sentinel::licensing::LicenseManager::instance().get_tier_name() << std::endl;
 
     std::signal(SIGINT, signal_handler);
     std::signal(SIGTERM, signal_handler);
