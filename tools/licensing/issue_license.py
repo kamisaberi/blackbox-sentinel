@@ -1,9 +1,4 @@
 #!/usr/bin/env python3
-"""
-Aryorithm Commercial License Issuer
-Signs a tamper-proof JSON license envelope using the Ed25519 master private key.
-"""
-
 import os
 import sys
 import json
@@ -40,15 +35,18 @@ def main():
     parser = argparse.ArgumentParser(description="Issue an Aryorithm Commercial License (.lic)")
     parser.add_argument("--customer", required=True, help="Customer or organization name")
     parser.add_argument("--tier", choices=["ENTERPRISE_IT", "CRITICAL_OT", "SOVEREIGN_DEFENSE"], default="CRITICAL_OT")
-    parser.add_argument("--days", type=int, default=365, help="Validity period in days (0 for perpetual)")
-    parser.add_argument("--nodes", type=int, default=10, help="Maximum authorized appliances")
-    parser.add_argument("--hw-uuid", default="", help="Hardware UUID or TPM fingerprint to lock license to (optional)")
-    parser.add_argument("--output", default="license.lic", help="Output file path")
+    parser.add_argument("--days", type=int, default=365, help="Validity period in days")
+    parser.add_argument("--nodes", type=int, default=25, help="Max nodes")
+    parser.add_argument("--hw-uuid", default="", help="Hardware UUID or full ARY-HW- token")
+    parser.add_argument("--output", default="/tmp/license.lic", help="Output path")
     args = parser.parse_args()
+
+    # Clean hardware UUID (strip ARY-HW- prefix if present)
+    clean_uuid = args.hw_uuid.replace("ARY-HW-", "").strip()
 
     priv_path = os.path.join(KEY_DIR, "master_private.key")
     if not os.path.exists(priv_path):
-        print("[-] Error: master_private.key not found. Run keygen.py first.")
+        print("[-] Error: master_private.key not found.")
         sys.exit(1)
 
     with open(priv_path, "rb") as f:
@@ -58,15 +56,13 @@ def main():
     now_sec = int(time.time())
     expires_sec = (now_sec + (args.days * 86400)) if args.days > 0 else 0
 
-    # Determine entitlements based on tier
     if args.tier in ("CRITICAL_OT", "SOVEREIGN_DEFENSE"):
         modules = ALL_26_MODULES
         plugins = ALL_30_PLUGINS
-    else: # ENTERPRISE_IT (Excludes heavy industrial SCADA & medical)
+    else:
         modules = [m for m in ALL_26_MODULES if m not in ("17_iot_sec", "18_cps_sec", "20_fse", "21_side_channel", "26_ddp")]
         plugins = ["libcef_forwarder.so", "libleef_forwarder.so", "libsyslog_rfc5424.so", "libkafka_producer.so", "libbacnet_building.so"]
 
-    # Canonical payload for signing
     claims = {
         "license_id": f"LIC-{now_sec}-{args.customer[:3].upper()}",
         "customer": args.customer,
@@ -74,22 +70,23 @@ def main():
         "issued_at": now_sec,
         "expires_at": expires_sec,
         "max_nodes": args.nodes,
-        "locked_hardware_uuid": args.hw_uuid.strip(),
+        "locked_hardware_uuid": clean_uuid,
         "authorized_modules": modules,
         "authorized_plugins": plugins
     }
 
-    # Deterministic canonical JSON bytes
-    canonical_bytes = json.dumps(claims, sort_keys=True, separators=(',', ':')).encode('utf-8')
+    # Encode claims as Base64 payload
+    payload_json = json.dumps(claims)
+    payload_b64 = base64.b64encode(payload_json.encode('utf-8')).decode('utf-8')
 
-    # Sign with Ed25519 (64-byte raw signature)
-    raw_signature = private_key.sign(canonical_bytes)
-    b64_signature = base64.b64encode(raw_signature).decode('utf-8')
+    # Sign the exact payload_b64 string
+    raw_signature = private_key.sign(payload_b64.encode('utf-8'))
+    signature_b64 = base64.b64encode(raw_signature).decode('utf-8')
 
     envelope = {
-        "claims": claims,
-        "signature_algorithm": "ED25519",
-        "signature": b64_signature
+        "payload_b64": payload_b64,
+        "signature_b64": signature_b64,
+        "signature_algorithm": "ED25519"
     }
 
     with open(args.output, "w") as f:
@@ -101,11 +98,7 @@ def main():
     print(f"  • License ID    : {claims['license_id']}")
     print(f"  • Customer      : {claims['customer']}")
     print(f"  • Tier          : {claims['tier']}")
-    print(f"  • Max Nodes     : {claims['max_nodes']}")
-    print(f"  • Valid Days    : {args.days} (Expires: {time.ctime(expires_sec) if expires_sec else 'Perpetual'})")
-    print(f"  • Hardware Lock : {'None (Floating)' if not args.hw_uuid else args.hw_uuid}")
-    print(f"  • Modules Count : {len(modules)} / 26")
-    print(f"  • Plugins Count : {len(plugins)} / 30")
+    print(f"  • Hardware Lock : {clean_uuid if clean_uuid else 'Floating'}")
     print(f"  • Output File   : {args.output}")
     print("==================================================================")
 
