@@ -3,13 +3,12 @@
 #include <fstream>
 #include <sstream>
 #include <chrono>
+#include <algorithm>
 #include <openssl/evp.h>
-#include <openssl/bio.h>
-#include <openssl/buffer.h>
 
 namespace sentinel::licensing {
 
-// Master Aryorithm Ed25519 Public Verification Key (RFC 8032 Vector 1)
+// Master Aryorithm Ed25519 Public Verification Key (Matches DEFAULT_PRIVATE_SEED_HEX)
 static const uint8_t ARYORITHM_MASTER_PUBKEY[32] = {
     0xd7, 0x5a, 0x98, 0x01, 0x82, 0xb1, 0x0a, 0xb7,
     0xd5, 0x4b, 0xfe, 0xd3, 0xc9, 0x64, 0x07, 0x3a,
@@ -44,19 +43,26 @@ std::string LicenseManager::generate_hardware_token() {
     return "ARY-HW-" + probe_local_hardware_uuid();
 }
 
+// Clean, robust Base64 decoder using EVP_DecodeBlock
 static std::vector<uint8_t> base64_decode(const std::string& input) {
-    BIO* b64 = BIO_new(BIO_f_base64());
-    BIO_set_flags(b64, BIO_FLAGS_BASE64_NO_NL);
-    BIO* bmem = BIO_new_mem_buf(input.data(), static_cast<int>(input.size()));
-    bmem = BIO_push(b64, bmem);
+    std::string clean;
+    clean.reserve(input.size());
+    for (char c : input) {
+        if (c != '\r' && c != '\n' && c != ' ' && c != '\t') {
+            clean += c;
+        }
+    }
+    if (clean.empty() || clean.size() % 4 != 0) return {};
 
-    std::vector<uint8_t> output(input.size());
-    int decoded_size = BIO_read(bmem, output.data(), static_cast<int>(output.size()));
-    BIO_free_all(bmem);
+    int out_len = static_cast<int>((clean.size() / 4) * 3);
+    std::vector<uint8_t> out(out_len);
+    int decoded = EVP_DecodeBlock(out.data(), reinterpret_cast<const unsigned char*>(clean.data()), static_cast<int>(clean.size()));
+    if (decoded < 0) return {};
 
-    if (decoded_size > 0) output.resize(decoded_size);
-    else output.clear();
-    return output;
+    if (clean.size() >= 1 && clean[clean.size() - 1] == '=') out_len--;
+    if (clean.size() >= 2 && clean[clean.size() - 2] == '=') out_len--;
+    out.resize(out_len);
+    return out;
 }
 
 bool LicenseManager::verify_ed25519_signature(const std::string& payload_b64, const std::string& b64_sig) {
@@ -122,7 +128,7 @@ bool LicenseManager::load_and_verify(const std::string& license_file_path) {
         return false;
     }
 
-    // 1. Cryptographic Signature Verification (over raw payload_b64 string)
+    // 1. Cryptographic Signature Verification
     if (!verify_ed25519_signature(payload_b64, signature_b64)) {
         std::cerr << "\033[31m[LicenseManager] CRITICAL: Invalid cryptographic signature! "
                   << "License tampering detected. Reverting to Community Tier.\033[0m" << std::endl;
@@ -131,7 +137,7 @@ bool LicenseManager::load_and_verify(const std::string& license_file_path) {
         return false;
     }
 
-    // 2. Decode claims payload
+    // 2. Decode claims
     auto claims_bytes = base64_decode(payload_b64);
     std::string claims_json(claims_bytes.begin(), claims_bytes.end());
 
