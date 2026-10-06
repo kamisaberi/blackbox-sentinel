@@ -13,7 +13,6 @@
 #include "nexus/NexusUplink.hpp"
 #include "core/LicenseManager.hpp"
 
-
 std::atomic<bool> g_appliance_running{true};
 
 void signal_handler(int sig)
@@ -23,8 +22,15 @@ void signal_handler(int sig)
     g_appliance_running = false;
 }
 
-int main(int argc, char* argv[])
+int main(int argc, char *argv[])
 {
+
+    if (argc > 1 && std::string(argv[1]) == "--generate-hardware-token")
+    {
+        std::cout << sentinel::licensing::LicenseManager::generate_hardware_token() << std::endl;
+        return 0;
+    }
+
     std::signal(SIGINT, signal_handler);
     std::signal(SIGTERM, signal_handler);
 
