@@ -199,6 +199,7 @@ endif()
 # Source Files
 set(SENTINEL_SOURCES
     src/main.cpp
+    src/core/LicenseManager.cpp   # <--- ADD THIS LINE
     src/core/orchestrator.cpp
     src/core/config_manager.cpp
     src/plugin_manager.cpp
