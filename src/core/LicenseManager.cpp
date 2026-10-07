@@ -8,7 +8,7 @@
 
 namespace sentinel::licensing {
 
-// Master Aryorithm Ed25519 Public Verification Key (Matches DEFAULT_PRIVATE_SEED_HEX)
+// Master Aryorithm Ed25519 Public Verification Key (RFC 8032 Vector 1)
 static const uint8_t ARYORITHM_MASTER_PUBKEY[32] = {
     0xd7, 0x5a, 0x98, 0x01, 0x82, 0xb1, 0x0a, 0xb7,
     0xd5, 0x4b, 0xfe, 0xd3, 0xc9, 0x64, 0x07, 0x3a,
@@ -43,7 +43,6 @@ std::string LicenseManager::generate_hardware_token() {
     return "ARY-HW-" + probe_local_hardware_uuid();
 }
 
-// Clean, robust Base64 decoder using EVP_DecodeBlock
 static std::vector<uint8_t> base64_decode(const std::string& input) {
     std::string clean;
     clean.reserve(input.size());
@@ -68,6 +67,7 @@ static std::vector<uint8_t> base64_decode(const std::string& input) {
 bool LicenseManager::verify_ed25519_signature(const std::string& payload_b64, const std::string& b64_sig) {
     auto sig_bytes = base64_decode(b64_sig);
     if (sig_bytes.size() != 64) {
+        std::cerr << "[LicenseManager] Signature decode failed: expected 64 bytes, got " << sig_bytes.size() << std::endl;
         return false;
     }
 
@@ -96,12 +96,12 @@ static std::string extract_value(const std::string& json, const std::string& key
     size_t k = json.find("\"" + key + "\"");
     if (k == std::string::npos) return "";
     size_t colon = json.find(':', k);
+    if (colon == std::string::npos) return "";
     size_t s = json.find('"', colon + 1);
+    if (s == std::string::npos) return "";
     size_t e = json.find('"', s + 1);
-    if (s != std::string::npos && e != std::string::npos) {
-        return json.substr(s + 1, e - s - 1);
-    }
-    return "";
+    if (e == std::string::npos) return "";
+    return json.substr(s + 1, e - s - 1);
 }
 
 bool LicenseManager::load_and_verify(const std::string& license_file_path) {
@@ -137,7 +137,7 @@ bool LicenseManager::load_and_verify(const std::string& license_file_path) {
         return false;
     }
 
-    // 2. Decode claims
+    // 2. Decode claims payload
     auto claims_bytes = base64_decode(payload_b64);
     std::string claims_json(claims_bytes.begin(), claims_bytes.end());
 
