@@ -25,10 +25,34 @@ void signal_handler(int sig)
 int main(int argc, char *argv[])
 {
 
-    if (argc > 1 && std::string(argv[1]) == "--generate-hardware-token")
+    if (argc > 1)
     {
-        std::cout << sentinel::licensing::LicenseManager::generate_hardware_token() << std::endl;
-        return 0;
+        std::string cmd = argv[1];
+        if (cmd == "--generate-hardware-token")
+        {
+            std::cout << sentinel::licensing::LicenseManager::generate_hardware_token() << std::endl;
+            return 0;
+        }
+        if (cmd == "--subscribe" && argc >= 3)
+        {
+            std::string plan = argv[2];
+            std::string url = (argc >= 4) ? argv[3] : "http://127.0.0.1:8000/api/v1";
+            sentinel::licensing::LicenseManager::instance().subscribe_online(url, plan);
+            return 0;
+        }
+        if (cmd == "--activate")
+        {
+            std::string url = (argc >= 3) ? argv[2] : "http://127.0.0.1:8000/api/v1";
+            std::string token = (argc >= 4) ? argv[3] : "";
+            sentinel::licensing::LicenseManager::instance().activate_online(url, token);
+            return 0;
+        }
+        if (cmd == "--fetch-key")
+        {
+            std::string url = (argc >= 3) ? argv[2] : "http://127.0.0.1:8000/api/v1";
+            sentinel::licensing::LicenseManager::instance().fetch_public_key_online(url);
+            return 0;
+        }
     }
     // Load cryptographic license envelope (/etc/sentinel/license.lic)
     sentinel::licensing::LicenseManager::instance().load_and_verify("/etc/sentinel/license.lic");
