@@ -1,8 +1,11 @@
 #include "NexusUplink.hpp"
 #include "KernelDropInjector.hpp"
 #include "xai/ResidualAttributor.hpp"
-
-
+#include "modules/18_cps_sec/ActuatorWearTracker.hpp"
+#include "modules/22_dfir/PcapBufferCarver.hpp"
+#include "modules/26_ddp/VipInterfaceManager.hpp"
+#include "nexus/SimulationModeController.hpp"
+#include "core/LicenseManager.hpp"
 
 #include <iostream>
 #include <fstream>
@@ -58,10 +61,13 @@ namespace sentinel::nexus_client
 
         running_.store(true);
 
-        // Initialize eBPF kernel dropper connection
+        // 1. Initialize eBPF kernel dropper connection
         KernelDropInjector::instance().initialize();
 
-        // Initial Registration
+        // 2. Initialize Forensic PCAP circular RAM buffer (capacity: 2000 frames)
+        sentinel::dfir::PcapBufferCarver::instance().initialize("/var/log/sentinel/pcaps", 2000);
+
+        // 3. Initial Registration with Nexus
         if (!register_appliance())
         {
             std::cerr << "[NexusUplink] Failed initial appliance registration. Will retry in background." << std::endl;
@@ -84,7 +90,10 @@ namespace sentinel::nexus_client
             return;
         running_.store(false);
 
-        // POLISH 1: Instant graceful disconnect (0 ms transition to OFFLINE)
+        // Clean up any secondary deception VIPs before disconnecting
+        sentinel::deception::VipInterfaceManager::instance().unbind_all();
+
+        // Instant graceful disconnect (0 ms transition to OFFLINE in Nexus)
         send_graceful_disconnect("OPERATOR_TERMINATED_SIGINT");
 
         connected_.store(false);
@@ -145,6 +154,13 @@ namespace sentinel::nexus_client
             if (mid_file.is_open())
                 std::getline(mid_file, machine_uuid);
         }
+
+        // Clean UUID whitespace
+        size_t s = machine_uuid.find_first_not_of(" \t\r\n");
+        size_t e = machine_uuid.find_last_not_of(" \t\r\n");
+        if (s != std::string::npos && e != std::string::npos)
+            machine_uuid = machine_uuid.substr(s, e - s + 1);
+
         id.set_machine_uuid(machine_uuid);
 
         std::ifstream tpm_dev("/dev/tpmrm0");
@@ -215,7 +231,7 @@ namespace sentinel::nexus_client
             metrics->set_ring_buffer_fill_pct(4);
             metrics->set_avg_mitigation_latency_us(0.84f);
 
-            // Populate monitored sensor/PLC assets attached to this edge node
+            // 1. Monitored Sensor / PLC Asset (Siemens S7-1500)
             auto *s1 = req.add_sensors();
             s1->set_sensor_id("PLC-000C29A1-UNIT1");
             s1->set_name("Main Transformer PLC (Siemens S7)");
@@ -225,15 +241,28 @@ namespace sentinel::nexus_client
             s1->set_status("ACTIVE");
             s1->set_last_packet_seen_sec_ago(0.2f);
 
+            // 2. Monitored Actuator Coil 105 (Connected to ActuatorWearTracker)
             auto *s2 = req.add_sensors();
             s2->set_sensor_id("COIL-105-VALVE");
             s2->set_name("Cooling Valve Pressure Actuator");
             s2->set_type("SCADA_ACTUATOR");
             s2->set_protocol("MODBUS_TCP");
             s2->set_ip_address("192.168.1.10");
-            s2->set_status("ACTIVE");
-            s2->set_last_packet_seen_sec_ago(0.4f);
 
+            // Query live mechanical fatigue & chatter telemetry from ActuatorWearTracker
+            sentinel::cps::ActuatorMetrics wear_metrics{};
+            if (sentinel::cps::ActuatorWearTracker::instance().get_actuator_metrics(105, wear_metrics))
+            {
+                s2->set_status(wear_metrics.chatter_warning ? "DEGRADED" : "ACTIVE");
+                s2->set_last_packet_seen_sec_ago(0.1f);
+            }
+            else
+            {
+                s2->set_status("ACTIVE");
+                s2->set_last_packet_seen_sec_ago(0.4f);
+            }
+
+            // 3. Monitored Substation Perimeter Camera
             auto *s3 = req.add_sensors();
             s3->set_sensor_id("CAM-PERIMETER-CH01");
             s3->set_name("Substation Yard Thermal Camera");
@@ -283,20 +312,30 @@ namespace sentinel::nexus_client
 
             std::cout << "[NexusUplink] Subscribed to Collective Defense stream." << std::endl;
 
-            // Inbound rule reader
+            // Inbound rule reader thread
             std::jthread reader([&stream](std::stop_token r_st)
-                                {
-            ::sentinel::nexus::FleetDefenseRule rule;
-            while (!r_st.stop_requested() && stream->Read(&rule)) {
-                if (rule.emergency_purge()) {
-                    KernelDropInjector::instance().unblock_ip(rule.target_ip());
-                } else {
-                    KernelDropInjector::instance().block_ip(
-                        rule.target_ip(), rule.expires_at_ns(), rule.rule_id());
-                }
-            } });
+            {
+                ::sentinel::nexus::FleetDefenseRule rule;
+                while (!r_st.stop_requested() && stream->Read(&rule)) {
+                    if (rule.emergency_purge()) {
+                        KernelDropInjector::instance().unblock_ip(rule.target_ip());
+                    } else {
+                        // 1. Enforce in-kernel drop via eBPF blocked_ip_map
+                        KernelDropInjector::instance().block_ip(
+                            rule.target_ip(), rule.expires_at_ns(), rule.rule_id());
 
-            // Outbound threat writer
+                        // 2. Automatically carve preceding raw packets as evidence for Cloud Vault
+                        struct in_addr addr{};
+                        if (inet_pton(AF_INET, rule.target_ip().c_str(), &addr) > 0) {
+                            sentinel::dfir::CarvedIncident incident{};
+                            sentinel::dfir::PcapBufferCarver::instance().carve_incident_evidence(
+                                addr.s_addr, rule.rule_id(), incident);
+                        }
+                    }
+                } 
+            });
+
+            // Outbound threat writer loop
             while (!st.stop_requested() && running_.load())
             {
                 std::vector<::sentinel::nexus::ThreatIndicator> to_send;
@@ -322,7 +361,6 @@ namespace sentinel::nexus_client
         }
     }
 
-    // POLISH 2: Automated OTA Model Pull & Hot-Reload
     void NexusUplink::ota_poll_worker(std::stop_token st)
     {
         while (!st.stop_requested() && running_.load())
@@ -506,7 +544,6 @@ namespace sentinel::nexus_client
         if (connect(sock, (struct sockaddr *)&addr, sizeof(addr)) < 0)
         {
             close(sock);
-            // If internal HTTP API port 8443 is not bound, simulate local success
             std::cout << "[NexusUplink] Internal hot-reload simulated for model: " << model_filename << std::endl;
             return true;
         }
@@ -559,6 +596,26 @@ namespace sentinel::nexus_client
 
     void NexusUplink::report_local_threat(const std::string &attacker_ip, uint32_t port, uint32_t threat_type)
     {
+        // 1. Check if attack originates from an authorized simulator node (matrix-adversary)
+        bool suppress_alarm = sentinel::nexus_client::SimulationModeController::instance().should_suppress_panic_alarm(attacker_ip);
+        if (suppress_alarm) {
+            std::cout << "[NexusUplink] Notice: Threat from " << attacker_ip 
+                      << " is an authorized BAS simulation test. Panic alarms suppressed." << std::endl;
+        }
+
+        // 2. Track physical SCADA actuator wear if Modbus/DNP3 anomaly
+        if (threat_type == ::sentinel::nexus::THREAT_SCADA_ANOMALY) {
+            sentinel::cps::ActuatorWearTracker::instance().record_actuation(105, attacker_ip, 1.0f);
+        }
+
+        // 3. Automatically carve forensic PCAP evidence buffer
+        struct in_addr addr{};
+        if (inet_pton(AF_INET, attacker_ip.c_str(), &addr) > 0) {
+            sentinel::dfir::CarvedIncident incident{};
+            sentinel::dfir::PcapBufferCarver::instance().carve_incident_evidence(
+                addr.s_addr, "LOCAL_EXPLOIT_DROP", incident);
+        }
+
         std::lock_guard<std::mutex> lock(threat_queue_mutex_);
         ::sentinel::nexus::ThreatIndicator threat;
         threat.set_origin_node_id(assigned_node_id_);
