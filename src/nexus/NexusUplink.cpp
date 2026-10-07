@@ -1,6 +1,10 @@
 #include "NexusUplink.hpp"
 #include "KernelDropInjector.hpp"
 #include "xai/ResidualAttributor.hpp"
+#include "modules/18_cps_sec/ActuatorWearTracker.hpp"
+#include "modules/22_dfir/PcapBufferCarver.hpp"
+#include "nexus/SimulationModeController.hpp"
+
 
 #include <iostream>
 #include <fstream>
