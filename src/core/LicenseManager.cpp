@@ -10,6 +10,7 @@
 #include <netdb.h>
 #include <unistd.h>
 #include <openssl/evp.h>
+#include <cstring>
 
 namespace sentinel::licensing {
 
