@@ -11,10 +11,8 @@ import base64
 import argparse
 from cryptography.hazmat.primitives.asymmetric import ed25519
 
-KEY_DIR = os.path.dirname(os.path.abspath(__file__))
-
-# RFC 8032 Vector 1 Master Private Key Seed (Matches C++ ARYORITHM_MASTER_PUBKEY)
-DEFAULT_PRIVATE_SEED_HEX = "9d61b19deffd5a60ba844af492ec2cc44449c5697b326919703bac031cae7f60"
+# RFC 8032 Vector 1 Private Key Seed - EXACT MATCH to C++ ARYORITHM_MASTER_PUBKEY
+MASTER_PRIV_BYTES = bytes.fromhex("9d61b19deffd5a60ba844af492ec2cc44449c5697b326919703bac031cae7f60")
 
 ALL_26_MODULES = [
     "01_siem_core", "02_ueba", "03_ndr", "04_ids_ips", "05_waf", "06_edr",
@@ -38,30 +36,32 @@ ALL_30_PLUGINS = [
     "libnetflow_v9_ipfix.so"
 ]
 
+def get_local_machine_uuid():
+    """Auto-detects the host DMI / machine UUID."""
+    for p in ["/sys/class/dmi/id/product_uuid", "/etc/machine-id"]:
+        if os.path.exists(p):
+            with open(p, "r") as f:
+                val = f.read().strip()
+                if val:
+                    return val
+    return ""
+
 def main():
     parser = argparse.ArgumentParser(description="Issue an Aryorithm Commercial License (.lic)")
-    parser.add_argument("--customer", required=True, help="Customer name")
+    parser.add_argument("--customer", default="EuroGrid Energy Group", help="Customer name")
     parser.add_argument("--tier", choices=["ENTERPRISE_IT", "CRITICAL_OT", "SOVEREIGN_DEFENSE"], default="CRITICAL_OT")
     parser.add_argument("--days", type=int, default=365, help="Validity period in days")
     parser.add_argument("--nodes", type=int, default=25, help="Max nodes")
-    parser.add_argument("--hw-uuid", default="", help="Hardware UUID or full ARY-HW- token")
+    parser.add_argument("--hw-uuid", default="", help="Hardware UUID or full ARY-HW- token (auto-detects if empty)")
     parser.add_argument("--output", default="/etc/sentinel/license.lic", help="Output file path")
     args = parser.parse_args()
 
-    # Automatically strip ARY-HW- prefix if passed
-    clean_uuid = args.hw_uuid.replace("ARY-HW-", "").strip()
+    # Auto-detect real hardware UUID if not provided
+    clean_uuid = args.hw_uuid.replace("ARY-HW-", "").strip() if args.hw_uuid else get_local_machine_uuid()
 
-    # Load private key from file if present, else use default matched seed
-    priv_path = os.path.join(KEY_DIR, "master_private.key")
-    if os.path.exists(priv_path) and os.path.getsize(priv_path) == 32:
-        with open(priv_path, "rb") as f:
-            priv_bytes = f.read()
-    else:
-        priv_bytes = bytes.fromhex(DEFAULT_PRIVATE_SEED_HEX)
-        with open(priv_path, "wb") as f:
-            f.write(priv_bytes)
-
-    private_key = ed25519.Ed25519PrivateKey.from_private_bytes(priv_bytes)
+    # Load master private key directly from hardcoded seed (guarantees match to C++)
+    private_key = ed25519.Ed25519PrivateKey.from_private_bytes(MASTER_PRIV_BYTES)
+    public_key = private_key.public_key()
 
     now_sec = int(time.time())
     expires_sec = (now_sec + (args.days * 86400)) if args.days > 0 else 0
@@ -89,9 +89,12 @@ def main():
     payload_json = json.dumps(claims)
     payload_b64 = base64.b64encode(payload_json.encode('utf-8')).decode('utf-8')
 
-    # 2. Sign the exact payload_b64 string
+    # 2. Sign the exact payload_b64 ASCII string
     raw_signature = private_key.sign(payload_b64.encode('utf-8'))
     signature_b64 = base64.b64encode(raw_signature).decode('utf-8')
+
+    # Self-test signature validation in Python before writing
+    public_key.verify(raw_signature, payload_b64.encode('utf-8'))
 
     envelope = {
         "payload_b64": payload_b64,
@@ -111,6 +114,7 @@ def main():
     print(f"  • Tier          : {claims['tier']}")
     print(f"  • Hardware Lock : {clean_uuid if clean_uuid else 'Floating'}")
     print(f"  • Modules Count : {len(modules)} / 26")
+    print(f"  • Plugins Count : {len(plugins)} / 30")
     print(f"  • Output File   : {args.output}")
     print("==================================================================")
 
