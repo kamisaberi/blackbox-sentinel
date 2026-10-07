@@ -199,6 +199,12 @@ endif()
 # Source Files
 set(SENTINEL_SOURCES
     src/main.cpp
+    src/core/ZtpTokenAgent.cpp
+    src/sbom/SbomScanner.cpp
+    src/modules/18_cps_sec/ActuatorWearTracker.cpp
+    src/modules/26_ddp/VipInterfaceManager.cpp
+    src/modules/22_dfir/PcapBufferCarver.cpp
+    src/nexus/SimulationModeController.cpp
     src/core/LicenseManager.cpp   # <--- ADD THIS LINE
     src/core/orchestrator.cpp
     src/core/config_manager.cpp
