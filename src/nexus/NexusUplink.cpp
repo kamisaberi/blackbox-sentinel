@@ -5,7 +5,6 @@
 #include "modules/22_dfir/PcapBufferCarver.hpp"
 #include "nexus/SimulationModeController.hpp"
 
-
 #include <iostream>
 #include <fstream>
 #include <sstream>
@@ -248,6 +247,10 @@ namespace sentinel::nexus_client
             ::sentinel::nexus::HeartbeatResponse resp;
             grpc::ClientContext ctx;
             ctx.set_deadline(std::chrono::system_clock::now() + std::chrono::seconds(3));
+
+            // Inside heartbeat_worker():
+            // Append real actuator wear data to heartbeat sensor metrics
+            auto wear_json = sentinel::cps::ActuatorWearTracker::instance().export_wear_telemetry_json();
 
             grpc::Status status = fleet_stub_->SendHeartbeat(&ctx, req, &resp);
             if (status.ok())
