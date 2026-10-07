@@ -12,6 +12,9 @@
 #include "api/rest_controller.hpp"
 #include "nexus/NexusUplink.hpp"
 #include "core/LicenseManager.hpp"
+#include "core/ZtpTokenAgent.hpp"
+#include "sbom/SbomScanner.hpp"
+
 
 std::atomic<bool> g_appliance_running{true};
 
@@ -33,6 +36,13 @@ int main(int argc, char *argv[])
             std::cout << sentinel::licensing::LicenseManager::generate_hardware_token() << std::endl;
             return 0;
         }
+
+        if (cmd == "--generate-ztp-token")
+        {
+            std::cout << sentinel::core::ZtpTokenAgent::instance().generate_provisioning_token() << std::endl;
+            return 0;
+        }
+
         if (cmd == "--subscribe" && argc >= 3)
         {
             std::string plan = argv[2];
@@ -58,6 +68,10 @@ int main(int argc, char *argv[])
     sentinel::licensing::LicenseManager::instance().load_and_verify("/etc/sentinel/license.lic");
     std::cout << "[Sentinel Engine] Active Licensing Status: "
               << sentinel::licensing::LicenseManager::instance().get_tier_name() << std::endl;
+
+    sentinel::sbom::SbomScanner::instance().export_manifest("/etc/sentinel/sbom.json");
+
+
 
     std::signal(SIGINT, signal_handler);
     std::signal(SIGTERM, signal_handler);
