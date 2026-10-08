@@ -5,13 +5,14 @@
 #include <iostream>
 #include <fstream>
 #include <sstream>
+#include <cstring>    // <--- REQUIRED FOR std::memcpy
+#include <algorithm>  // <--- REQUIRED FOR std::min
 
 extern "C" {
 #include <lua.h>
 #include <lualib.h>
 #include <lauxlib.h>
 }
-
 namespace sentinel::sdk {
 
 // C-FFI layout definition injected into every sandboxed Lua state
