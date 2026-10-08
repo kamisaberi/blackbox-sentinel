@@ -12,15 +12,18 @@ extern "C" {
 #include <lua.h>
 #include <lualib.h>
 #include <lauxlib.h>
+
+// Direct LuaJIT FFI loader prototype
+int luaopen_ffi(lua_State *L);
 }
 
 namespace sentinel::sdk {
 
-// C-FFI layout definition and fast JIT-compiled dispatch trampoline
+// C-FFI layout definition and fast JIT trampoline (uses global ffi directly)
 static const char* LUA_FFI_CDEF = R"lua(
-local ffi = require("ffi")
+local _ffi = ffi or require("ffi")
 
-ffi.cdef[[
+_ffi.cdef[[
 typedef struct SentinelDissectorResult {
     int      verdict;
     uint32_t threat_score;
@@ -45,9 +48,9 @@ void     sentinel_host_emit_metric(const char* metric_name, uint64_t delta);
 uint64_t sentinel_host_monotonic_ns(void);
 ]]
 
--- High-speed JIT-traceable trampoline (bypasses Lua C-API bridge overhead per frame)
+-- High-speed JIT-traceable dispatcher
 function __sentinel_dispatch(rule, pkt_ptr)
-    local pkt = ffi.cast("const SentinelRawPacket*", pkt_ptr)
+    local pkt = _ffi.cast("const SentinelRawPacket*", pkt_ptr)
     return rule.inspect(pkt)
 end
 )lua";
@@ -189,17 +192,40 @@ lua_State* LuaHotReloadEngine::init_sandboxed_lua_state() {
     lua_State* L = luaL_newstate();
     if (!L) return nullptr;
 
-    // 1. Initialize all standard libraries properly (populates package & require)
-    luaL_openlibs(L);
+    // 1. Explicitly open base library into globals (_G)
+    lua_pushcfunction(L, luaopen_base);
+    lua_pushstring(L, "");
+    lua_call(L, 1, 0);
 
-    // 2. Sandbox: Disable dangerous system and execution primitives
-    lua_pushnil(L); lua_setglobal(L, "io");
-    lua_pushnil(L); lua_setglobal(L, "os");
-    lua_pushnil(L); lua_setglobal(L, "debug");
-    lua_pushnil(L); lua_setglobal(L, "dofile");
-    lua_pushnil(L); lua_setglobal(L, "loadfile");
+    // 2. Explicitly open package library into globals (defines 'require')
+    lua_pushcfunction(L, luaopen_package);
+    lua_pushstring(L, "package");
+    lua_call(L, 1, 0);
 
-    // 3. Prevent arbitrary dynamic C library loading via package.loadlib
+    // 3. Open table, string, math, and bit libraries
+    lua_pushcfunction(L, luaopen_table);
+    lua_pushstring(L, "table");
+    lua_call(L, 1, 0);
+
+    lua_pushcfunction(L, luaopen_string);
+    lua_pushstring(L, "string");
+    lua_call(L, 1, 0);
+
+    lua_pushcfunction(L, luaopen_math);
+    lua_pushstring(L, "math");
+    lua_call(L, 1, 0);
+
+    lua_pushcfunction(L, luaopen_bit);
+    lua_pushstring(L, "bit");
+    lua_call(L, 1, 0);
+
+    // 4. Directly load and register FFI into global '_G.ffi'
+    lua_pushcfunction(L, luaopen_ffi);
+    lua_pushstring(L, "ffi");
+    lua_call(L, 1, 1);              // pushes ffi table
+    lua_setglobal(L, "ffi");         // _G.ffi = ffi table
+
+    // 5. Restrict arbitrary C loading via package.loadlib and cpath
     lua_getglobal(L, "package");
     if (lua_istable(L, -1)) {
         lua_pushnil(L);
@@ -209,7 +235,11 @@ lua_State* LuaHotReloadEngine::init_sandboxed_lua_state() {
     }
     lua_pop(L, 1);
 
-    // 4. Inject C-FFI bindings and fast dispatcher
+    // 6. Strip dangerous primitives
+    lua_pushnil(L); lua_setglobal(L, "dofile");
+    lua_pushnil(L); lua_setglobal(L, "loadfile");
+
+    // 7. Inject C-FFI struct definitions and dispatcher
     if (luaL_dostring(L, LUA_FFI_CDEF) != 0) {
         if (host_iface_.log_message) {
             host_iface_.log_message(3, "LuaEngine", lua_tostring(L, -1));
@@ -309,7 +339,6 @@ SentinelDissectorResult LuaHotReloadEngine::inspect_packet(const SentinelRawPack
         lua_State* L = rule.L;
         if (!L) continue;
 
-        // Call JIT-traceable __sentinel_dispatch(Rule, pkt_ptr)
         lua_getglobal(L, "__sentinel_dispatch");
         lua_getglobal(L, "Rule");
         lua_pushlightuserdata(L, const_cast<SentinelRawPacket*>(&packet));
@@ -325,7 +354,7 @@ SentinelDissectorResult LuaHotReloadEngine::inspect_packet(const SentinelRawPack
                     std::memcpy(final_verdict.threat_name, rule.rule_name.data(), copy_len);
                     final_verdict.threat_name[copy_len] = '\0';
                     lua_pop(L, 1);
-                    return final_verdict; // Immediate drop short-circuit
+                    return final_verdict;
                 } else if (action == SENTINEL_VERDICT_ALERT) {
                     final_verdict.verdict = SENTINEL_VERDICT_ALERT;
                     final_verdict.rule_id = rule.rule_id;
