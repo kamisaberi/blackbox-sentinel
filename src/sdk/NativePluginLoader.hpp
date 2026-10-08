@@ -5,6 +5,7 @@
 #include <memory>
 #include <filesystem>
 #include <mutex>
+#include <vector>
 
 namespace sentinel::sdk {
 
