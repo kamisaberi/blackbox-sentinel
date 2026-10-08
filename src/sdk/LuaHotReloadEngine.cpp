@@ -5,17 +5,18 @@
 #include <iostream>
 #include <fstream>
 #include <sstream>
-#include <cstring>    // <--- REQUIRED FOR std::memcpy
-#include <algorithm>  // <--- REQUIRED FOR std::min
+#include <cstring>
+#include <algorithm>
 
 extern "C" {
 #include <lua.h>
 #include <lualib.h>
 #include <lauxlib.h>
 }
+
 namespace sentinel::sdk {
 
-// C-FFI layout definition injected into every sandboxed Lua state
+// C-FFI layout definition and fast JIT-compiled dispatch trampoline
 static const char* LUA_FFI_CDEF = R"lua(
 local ffi = require("ffi")
 
@@ -43,12 +44,17 @@ int      sentinel_host_drop_ipv4(uint32_t ipv4, uint32_t duration_sec);
 void     sentinel_host_emit_metric(const char* metric_name, uint64_t delta);
 uint64_t sentinel_host_monotonic_ns(void);
 ]]
+
+-- High-speed JIT-traceable trampoline (bypasses Lua C-API bridge overhead per frame)
+function __sentinel_dispatch(rule, pkt_ptr)
+    local pkt = ffi.cast("const SentinelRawPacket*", pkt_ptr)
+    return rule.inspect(pkt)
+end
 )lua";
 
 LuaHotReloadEngine::LuaHotReloadEngine(SentinelHostInterface host_interface,
                                        std::filesystem::path rules_directory)
     : host_iface_(host_interface), rules_dir_(std::move(rules_directory)) {
-    // Initial compile on startup
     auto initial_snap = compile_rules_from_disk();
     active_snapshot_.store(initial_snap, std::memory_order_release);
 }
@@ -111,7 +117,6 @@ void LuaHotReloadEngine::stop() {
         inotify_fd_ = -1;
     }
 
-    // Cleanup active states
     auto current = active_snapshot_.exchange(nullptr);
     if (current) {
         for (auto& rule : current->rules) {
@@ -126,7 +131,7 @@ void LuaHotReloadEngine::watcher_thread_loop() {
     struct pollfd pfd = { inotify_fd_, POLLIN, 0 };
 
     while (running_.load(std::memory_order_relaxed)) {
-        int poll_ret = poll(&pfd, 1, 250); // Poll every 250ms
+        int poll_ret = poll(&pfd, 1, 250);
         if (poll_ret <= 0) continue;
 
         ssize_t len = read(inotify_fd_, buffer, sizeof(buffer));
@@ -147,7 +152,6 @@ void LuaHotReloadEngine::watcher_thread_loop() {
         }
 
         if (has_lua_event) {
-            // Settle time for multi-write tools / editors
             std::this_thread::sleep_for(std::chrono::milliseconds(50));
             trigger_reload();
         }
@@ -163,7 +167,6 @@ bool LuaHotReloadEngine::trigger_reload() {
         return false;
     }
 
-    // RCU Pointer Swap
     auto old_snapshot = active_snapshot_.exchange(new_snapshot, std::memory_order_acq_rel);
 
     if (host_iface_.log_message) {
@@ -172,9 +175,7 @@ bool LuaHotReloadEngine::trigger_reload() {
         host_iface_.log_message(1, "LuaEngine", msg.c_str());
     }
 
-    // Cleanup previous states safely
     if (old_snapshot) {
-        // Sleep briefly to ensure concurrent hot-path readers finish current frame
         std::this_thread::sleep_for(std::chrono::milliseconds(10));
         for (auto& r : old_snapshot->rules) {
             if (r.L) lua_close(r.L);
@@ -188,21 +189,27 @@ lua_State* LuaHotReloadEngine::init_sandboxed_lua_state() {
     lua_State* L = luaL_newstate();
     if (!L) return nullptr;
 
-    // Load safe standard libraries
-    luaopen_base(L);
-    luaopen_string(L);
-    luaopen_table(L);
-    luaopen_math(L);
-    luaopen_bit(L);
-    luaopen_ffi(L);
+    // 1. Initialize all standard libraries properly (populates package & require)
+    luaL_openlibs(L);
 
-    // Sandbox: Strip dangerous execution primitives
+    // 2. Sandbox: Disable dangerous system and execution primitives
+    lua_pushnil(L); lua_setglobal(L, "io");
+    lua_pushnil(L); lua_setglobal(L, "os");
+    lua_pushnil(L); lua_setglobal(L, "debug");
     lua_pushnil(L); lua_setglobal(L, "dofile");
     lua_pushnil(L); lua_setglobal(L, "loadfile");
-    lua_pushnil(L); lua_setglobal(L, "load");
-    lua_pushnil(L); lua_setglobal(L, "loadstring");
 
-    // Execute FFI declarations
+    // 3. Prevent arbitrary dynamic C library loading via package.loadlib
+    lua_getglobal(L, "package");
+    if (lua_istable(L, -1)) {
+        lua_pushnil(L);
+        lua_setfield(L, -2, "loadlib");
+        lua_pushstring(L, "");
+        lua_setfield(L, -2, "cpath");
+    }
+    lua_pop(L, 1);
+
+    // 4. Inject C-FFI bindings and fast dispatcher
     if (luaL_dostring(L, LUA_FFI_CDEF) != 0) {
         if (host_iface_.log_message) {
             host_iface_.log_message(3, "LuaEngine", lua_tostring(L, -1));
@@ -226,7 +233,6 @@ bool LuaHotReloadEngine::load_rule_script(lua_State* L,
         return false;
     }
 
-    // Verify mandatory interface: global rule table must exist
     lua_getglobal(L, "Rule");
     if (!lua_istable(L, -1)) {
         if (host_iface_.log_message) {
@@ -236,7 +242,6 @@ bool LuaHotReloadEngine::load_rule_script(lua_State* L,
         return false;
     }
 
-    // Extract Metadata
     lua_getfield(L, -1, "id");
     out_rule.rule_id = lua_isnumber(L, -1) ? static_cast<uint32_t>(lua_tonumber(L, -1)) : 9999;
     lua_pop(L, 1);
@@ -249,16 +254,15 @@ bool LuaHotReloadEngine::load_rule_script(lua_State* L,
     out_rule.target_port = lua_isnumber(L, -1) ? static_cast<uint64_t>(lua_tonumber(L, -1)) : 0;
     lua_pop(L, 1);
 
-    // Verify inspect() function exists
     lua_getfield(L, -1, "inspect");
     if (!lua_isfunction(L, -1)) {
         if (host_iface_.log_message) {
-            std::string msg = "Missing 'Rule.inspect(pkt, res)' function in [" + file_path.filename().string() + "]";
+            std::string msg = "Missing 'Rule.inspect(pkt)' function in [" + file_path.filename().string() + "]";
             host_iface_.log_message(3, "LuaEngine", msg.c_str());
         }
         return false;
     }
-    lua_pop(L, 2); // pop inspect function and Rule table
+    lua_pop(L, 2);
 
     out_rule.rule_file = file_path.string();
     out_rule.L = L;
@@ -291,7 +295,6 @@ std::shared_ptr<LuaRuleSnapshot> LuaHotReloadEngine::compile_rules_from_disk() {
 }
 
 SentinelDissectorResult LuaHotReloadEngine::inspect_packet(const SentinelRawPacket& packet) {
-    // Acquire active snapshot with zero locks
     auto snapshot = active_snapshot_.load(std::memory_order_acquire);
     if (!snapshot || snapshot->rules.empty()) {
         SentinelDissectorResult pass_res{};
@@ -306,26 +309,12 @@ SentinelDissectorResult LuaHotReloadEngine::inspect_packet(const SentinelRawPack
         lua_State* L = rule.L;
         if (!L) continue;
 
-        // Retrieve Rule.inspect
+        // Call JIT-traceable __sentinel_dispatch(Rule, pkt_ptr)
+        lua_getglobal(L, "__sentinel_dispatch");
         lua_getglobal(L, "Rule");
-        lua_getfield(L, -1, "inspect");
-
-        // Pass raw packet pointer via C-FFI
-        lua_getglobal(L, "require");
-        lua_pushstring(L, "ffi");
-        lua_call(L, 1, 1);
-        lua_getfield(L, -1, "cast");
-        lua_pushstring(L, "const SentinelRawPacket*");
         lua_pushlightuserdata(L, const_cast<SentinelRawPacket*>(&packet));
-        lua_call(L, 2, 1); // ffi.cast pointer
 
-        // Call Rule.inspect(pkt_ptr) -> returns integer verdict
-        // Stack: [Rule, inspect_fn, ffi_table, pkt_cdata]
-        lua_remove(L, -2); // remove ffi_table
-        lua_remove(L, -3); // remove Rule table
-
-        // Now calling inspect(cdata)
-        if (lua_pcall(L, 1, 1, 0) == 0) {
+        if (lua_pcall(L, 2, 1, 0) == 0) {
             if (lua_isnumber(L, -1)) {
                 int action = static_cast<int>(lua_tointeger(L, -1));
                 if (action == SENTINEL_VERDICT_KERNEL_DROP) {
@@ -336,7 +325,7 @@ SentinelDissectorResult LuaHotReloadEngine::inspect_packet(const SentinelRawPack
                     std::memcpy(final_verdict.threat_name, rule.rule_name.data(), copy_len);
                     final_verdict.threat_name[copy_len] = '\0';
                     lua_pop(L, 1);
-                    return final_verdict; // Immediate short circuit
+                    return final_verdict; // Immediate drop short-circuit
                 } else if (action == SENTINEL_VERDICT_ALERT) {
                     final_verdict.verdict = SENTINEL_VERDICT_ALERT;
                     final_verdict.rule_id = rule.rule_id;
@@ -345,7 +334,6 @@ SentinelDissectorResult LuaHotReloadEngine::inspect_packet(const SentinelRawPack
             }
             lua_pop(L, 1);
         } else {
-            // Protected call trapped a script failure; log without crashing
             const char* err = lua_tostring(L, -1);
             if (host_iface_.log_message) {
                 std::string msg = "Runtime exception in [" + rule.rule_name + "]: " + (err ? err : "");
