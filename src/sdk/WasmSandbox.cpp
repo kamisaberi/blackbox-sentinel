@@ -8,7 +8,6 @@
 
 namespace sentinel::sdk {
 
-// Thread-local pointer to active host interface during host call bridge execution
 static thread_local const SentinelHostInterface* g_active_host_iface = nullptr;
 
 WasmSandbox::WasmSandbox(SentinelHostInterface host_interface,
@@ -62,12 +61,12 @@ void WasmSandbox::unload_all() {
 }
 
 // -----------------------------------------------------------------------------
-// Host Callback Bridges (Exports available to Wasm Linear Memory)
+// Host Callback Bridges (Wasm3 C-API)
 // -----------------------------------------------------------------------------
 
 m3ApiRawFunction(m3_bridge_log) {
-    m3ApiGetArg(uint32_t, level)
-    m3ApiGetArg(const char*, msg)
+    m3ApiGetArg(uint32_t, level);
+    m3ApiGetArgMem(const char*, msg);
 
     if (g_active_host_iface && g_active_host_iface->log_message) {
         g_active_host_iface->log_message(static_cast<int>(level), "WasmModule", msg ? msg : "");
@@ -76,8 +75,9 @@ m3ApiRawFunction(m3_bridge_log) {
 }
 
 m3ApiRawFunction(m3_bridge_drop_ipv4) {
-    m3ApiGetArg(uint32_t, ipv4)
-    m3ApiGetArg(uint32_t, duration_sec)
+    m3ApiReturnType(int32_t); // <--- Required to declare raw_return
+    m3ApiGetArg(uint32_t, ipv4);
+    m3ApiGetArg(uint32_t, duration_sec);
 
     int ret = 0;
     if (g_active_host_iface && g_active_host_iface->request_ebpf_drop_ip) {
@@ -87,8 +87,8 @@ m3ApiRawFunction(m3_bridge_drop_ipv4) {
 }
 
 m3ApiRawFunction(m3_bridge_metric) {
-    m3ApiGetArg(const char*, metric_name)
-    m3ApiGetArg(uint64_t, delta)
+    m3ApiGetArgMem(const char*, metric_name);
+    m3ApiGetArg(uint64_t, delta);
 
     if (g_active_host_iface && g_active_host_iface->emit_metric_counter) {
         g_active_host_iface->emit_metric_counter(metric_name ? metric_name : "", delta);
@@ -97,6 +97,8 @@ m3ApiRawFunction(m3_bridge_metric) {
 }
 
 m3ApiRawFunction(m3_bridge_time_ns) {
+    m3ApiReturnType(uint64_t); // <--- Required to declare raw_return
+
     uint64_t t = 0;
     if (g_active_host_iface && g_active_host_iface->get_monotonic_time_ns) {
         t = g_active_host_iface->get_monotonic_time_ns();
@@ -167,14 +169,8 @@ bool WasmSandbox::load_module(const std::filesystem::path& wasm_path) {
         return false;
     }
 
-    // Link Host System Calls
-    if (!link_host_functions(module)) {
-        if (host_iface_.log_message) {
-            host_iface_.log_message(2, "WasmSandbox", "Warning: Host bridge link partial failure");
-        }
-    }
+    link_host_functions(module);
 
-    // Resolve Mandatory Entry Point: `sentinel_dissect(pkt_offset, pkt_len) -> i32`
     IM3Function dissect_fn = nullptr;
     res = m3_FindFunction(&dissect_fn, runtime, "sentinel_dissect");
     if (res || !dissect_fn) {
@@ -213,20 +209,20 @@ SentinelDissectorResult WasmSandbox::inspect_packet(const SentinelRawPacket& pac
     g_active_host_iface = &host_iface_;
 
     for (auto& mod : modules_) {
-        // Query Linear Memory boundaries
-        uint32_t mem_size = 0;
-        uint8_t* mem_base = m3_GetMemory(mod.runtime, &mem_size, 0);
+        // Query module's linear memory using mod.module and size_t
+        size_t mem_size = 0;
+        uint8_t* mem_base = m3_GetMemory(mod.module, &mem_size, 0);
 
         if (!mem_base || mem_size < 4096 + packet.length) {
-            continue; // Linear memory insufficient to stage packet
+            continue;
         }
 
-        // Stage frame into Wasm linear memory at offset 0x1000 (Safe scratch area)
+        // Copy raw frame into linear memory scratch buffer (offset 0x1000)
         constexpr uint32_t PKT_OFFSET = 0x1000;
-        size_t copy_bytes = std::min(packet.length, static_cast<size_t>(mem_size - PKT_OFFSET));
+        size_t copy_bytes = std::min(packet.length, mem_size - PKT_OFFSET);
         std::memcpy(mem_base + PKT_OFFSET, packet.data, copy_bytes);
 
-        // Execute sandboxed entry point: sentinel_dissect(PKT_OFFSET, copy_bytes)
+        // Execute sandboxed dissector: sentinel_dissect(PKT_OFFSET, copy_bytes)
         M3Result res = m3_CallV(mod.dissect_fn, PKT_OFFSET, static_cast<uint32_t>(copy_bytes));
         if (res) {
             if (host_iface_.log_message) {
@@ -236,7 +232,6 @@ SentinelDissectorResult WasmSandbox::inspect_packet(const SentinelRawPacket& pac
             continue;
         }
 
-        // Retrieve 32-bit return verdict
         int32_t verdict_val = 0;
         m3_GetResultsV(mod.dissect_fn, &verdict_val);
 
@@ -248,7 +243,7 @@ SentinelDissectorResult WasmSandbox::inspect_packet(const SentinelRawPacket& pac
             std::memcpy(final_res.threat_name, mod.module_name.data(), name_len);
             final_res.threat_name[name_len] = '\0';
             g_active_host_iface = nullptr;
-            return final_res; // Short-circuit on instant drop
+            return final_res;
         } else if (verdict_val == SENTINEL_VERDICT_ALERT && final_res.verdict == SENTINEL_VERDICT_PASS) {
             final_res.verdict = SENTINEL_VERDICT_ALERT;
             final_res.rule_id = mod.rule_id;
