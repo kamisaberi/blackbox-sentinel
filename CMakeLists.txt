@@ -36,6 +36,12 @@ find_library(ELF_LIB elf REQUIRED)
 find_package(Protobuf REQUIRED)
 find_package(gRPC CONFIG REQUIRED)
 
+# -------------------------------------------------------------------
+# EXTENSIBILITY SUBSYSTEM: LUAJIT DEPENDENCY
+# -------------------------------------------------------------------
+find_package(PkgConfig REQUIRED)
+pkg_check_modules(LUAJIT REQUIRED luajit)
+
 find_library(BLACKBOX_LIB blackbox REQUIRED PATHS /usr/local/lib /usr/lib)
 find_library(XINFER_LIB xinfer REQUIRED PATHS /usr/local/lib /usr/lib)
 
@@ -89,6 +95,7 @@ include_directories(
     ${CMAKE_CURRENT_SOURCE_DIR}/src
     ${GENERATED_PROTO_DIR}
     ${OPENSSL_INCLUDE_DIR}
+    ${LUAJIT_INCLUDE_DIRS}
 )
 # -------------------------------------------------------------------
 # DEFINE IMPORTED GLOBAL TARGETS (FIXES THE CMAKE ERROR FOR ALL MODULES)
@@ -217,6 +224,10 @@ set(SENTINEL_SOURCES
     src/exporter/report_generator.cpp
     src/nexus/NexusUplink.cpp
     src/nexus/KernelDropInjector.cpp
+    # --- EXTENSIBILITY SUBSYSTEM ENGINE SOURCES ---
+    src/sdk/NativePluginLoader.cpp
+    src/sdk/LuaHotReloadEngine.cpp
+    src/sdk/PluginSupervisor.cpp
     ${PROTO_GEN_SRCS}
     ${GRPC_GEN_SRCS}
 )
@@ -240,6 +251,7 @@ target_link_libraries(sentinel PRIVATE
     protobuf::libprotobuf
     gRPC::grpc++
     gRPC::grpc++_reflection
+    ${LUAJIT_LIBRARIES}
 )
 
 # RPATH so executable finds shared libraries in /usr/local/lib
@@ -326,9 +338,9 @@ install(TARGETS
 )
 
 
-# -------------------------------------------------------------------
+# ---------------------------------------------------
 # MODULE TEST EXECUTABLES
-# -------------------------------------------------------------------
+# ---------------------------------------------------
 add_executable(test_module_ndr_ids examples/01_test_module_ndr_ids.cpp)
 target_link_libraries(test_module_ndr_ids PRIVATE 
     sentinel_module_ndr 
