@@ -15,5 +15,5 @@ add_library(sentinel_plugin_modbus_guard SHARED
 
 set_target_properties(sentinel_plugin_modbus_guard PROPERTIES
     PREFIX ""
-    OUTPUT_NAME "sentinel_modbus_guard"
+    OUTPUT_NAME "libsentinel_modbus_guard"
 )
