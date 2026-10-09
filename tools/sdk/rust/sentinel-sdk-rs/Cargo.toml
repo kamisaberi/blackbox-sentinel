@@ -1,0 +1,11 @@
+[package]
+name = "sentinel-sdk-rs"
+version = "1.0.0"
+edition = "2021"
+authors = ["Aryorithm Technologies B.V."]
+description = "Public Rust WebAssembly SDK for Blackbox Sentinel"
+
+[lib]
+crate-type = ["rlib"]
+
+[dependencies]
