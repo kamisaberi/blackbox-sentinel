@@ -101,7 +101,7 @@ int main(int argc, char *argv[])
         // --- NEW EXTENSION TELEMETRY CLI OPTION ---
         if (cmd == "--plugins-status" || cmd == "--list-plugins")
         {
-            sentinel::sdk::SentinelHostInterface host{};
+            SentinelHostInterface host{};
             host.engine_version = 10000;
             sentinel::sdk::PluginSupervisor supervisor(host,
                                                        "/etc/sentinel/plugins.d",
@@ -181,7 +181,7 @@ int main(int argc, char *argv[])
 
         // 4. Initialize 3-Tier Extensibility Subsystem (Native C++20, LuaJIT, Wasm3)
         std::cout << "[Blackbox Sentinel] Initializing 3-Tier Extensibility Subsystem..." << std::endl;
-        sentinel::sdk::SentinelHostInterface plugin_host{};
+        SentinelHostInterface plugin_host{};
         plugin_host.engine_version = 10000;
         plugin_host.log_message = [](int level, const char* sender, const char* msg) {
             const char* lvl_str[] = {"DEBUG", "INFO", "WARN", "ERROR"};
@@ -250,7 +250,7 @@ int main(int argc, char *argv[])
 
             // Evaluate incoming frames across 3-tier extension pipeline (Native -> Lua -> Wasm)
             uint8_t dummy_frame[16] = {0x00, 0x01, 0x00, 0x00, 0x00, 0x06, 0x01, 0x03, 0x00, 0x00, 0x00, 0x01};
-            sentinel::sdk::SentinelRawPacket raw_pkt{
+            SentinelRawPacket raw_pkt{
                 .data = dummy_frame,
                 .length = sizeof(dummy_frame),
                 .timestamp_ns = plugin_host.get_monotonic_time_ns(),
@@ -261,7 +261,7 @@ int main(int argc, char *argv[])
             };
 
             auto ext_verdict = plugin_supervisor.evaluate_frame(raw_pkt);
-            if (ext_verdict.verdict == sentinel::sdk::SENTINEL_VERDICT_KERNEL_DROP) {
+            if (ext_verdict.verdict == SENTINEL_VERDICT_KERNEL_DROP) {
                 // Instantly offloaded to kernel blocked_ip_map via request_ebpf_drop_ip
             }
 
