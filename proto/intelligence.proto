@@ -4,6 +4,9 @@ package sentinel.nexus;
 service IntelligenceService {
     // Bidirectional streaming: Edge sends zero-day triggers; Nexus fans out fleet-wide drops
     rpc SyncCollectiveImmunity (stream ThreatIndicator) returns (stream FleetDefenseRule);
+
+    // Dynamic extension rule distribution (Hot-Reload Lua / Wasm / Native)
+    rpc DeployExtensionRule (DynamicExtensionRule) returns (DeployRuleResponse);
 }
 
 enum ThreatType {
