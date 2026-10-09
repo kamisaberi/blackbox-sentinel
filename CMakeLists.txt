@@ -96,6 +96,8 @@ include_directories(
     ${GENERATED_PROTO_DIR}
     ${OPENSSL_INCLUDE_DIR}
     ${LUAJIT_INCLUDE_DIRS}
+    ${CMAKE_CURRENT_SOURCE_DIR}/third_party/wasm3/source  # <--- ADD THIS LINE
+
 )
 # -------------------------------------------------------------------
 # DEFINE IMPORTED GLOBAL TARGETS (FIXES THE CMAKE ERROR FOR ALL MODULES)
