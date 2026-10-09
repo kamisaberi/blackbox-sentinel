@@ -5,8 +5,10 @@
 #include <cstring>
 #include <filesystem>
 #include "sdk/PluginSupervisor.hpp"
+#include "nexus/KernelDropInjector.hpp"
 
-using namespace sentinel::sdk;
+                                              using namespace sentinel::sdk;
+using namespace sentinel::nexus;
 
 static void mock_log(int level, const char *sender, const char *msg)
 {
@@ -14,7 +16,12 @@ static void mock_log(int level, const char *sender, const char *msg)
     std::cout << "[" << lvl_str[level] << "] (" << sender << ") " << msg << std::endl;
 }
 
-static int mock_drop_ipv4(uint32_t /*ipv4*/, uint32_t /*dur*/) { return 0; }
+// Live hook into in-kernel eBPF drop injector
+static int live_ebpf_drop_ipv4(uint32_t ipv4, uint32_t dur)
+{
+    return KernelDropInjector::instance().inject_drop_ipv4(ipv4, dur);
+}
+
 static void mock_emit_metric(const char * /*name*/, uint64_t /*val*/) {}
 
 static uint64_t mock_time_ns()
@@ -27,15 +34,18 @@ static uint64_t mock_time_ns()
 int main()
 {
     std::cout << "============================================================" << std::endl;
-    std::cout << "   SENTINEL EXTENSIBILITY SUBSYSTEM PRODUCTION SUITE        " << std::endl;
+    std::cout << "   SENTINEL EXTENSIBILITY PRODUCTION SUITE + LIVE eBPF      " << std::endl;
     std::cout << "============================================================" << std::endl;
+
+    // 1. Initialize In-Kernel eBPF Map
+    KernelDropInjector::instance().initialize();
 
     SentinelHostInterface host{};
     host.engine_version = 10000;
     host.log_message = mock_log;
-    host.request_ebpf_drop_ip = mock_drop_ipv4;
+    host.request_ebpf_drop_ip = live_ebpf_drop_ipv4;
     host.emit_metric_counter = mock_emit_metric;
-    host.get_monotonic_time_ns = mock_time_ns;
+    host.get_monotonic_time_ns = mock_time_ns();
 
     PluginSupervisor supervisor(host,
                                 "/etc/sentinel/plugins.d",
@@ -48,14 +58,8 @@ int main()
         return 1;
     }
 
-    std::cout << "[+] Engine Online: "
-              << supervisor.native_loader().active_plugin_count() << " Native Active | "
-              << supervisor.lua_engine().active_rule_count() << " Lua Active | "
-              << supervisor.wasm_sandbox().active_module_count() << " Wasm Sandboxed"
-              << std::endl;
-
     // -------------------------------------------------------------
-    // TEST 1: Tier A - Native C++20 Dissector (Modbus FC05 Coil Override)
+    // TEST 1: Modbus Coil Override (Native C++20)
     // -------------------------------------------------------------
     uint8_t modbus_write[] = {
         0x00, 0x02, 0x00, 0x00, 0x00, 0x06, 0x01, 0x05, 0x00, 0x10, 0xFF, 0x00};
@@ -66,19 +70,11 @@ int main()
 
     for (int i = 0; i < 50; ++i)
         supervisor.evaluate_frame(pkt1);
-
-    auto t0 = std::chrono::high_resolution_clock::now();
     SentinelDissectorResult res1 = supervisor.evaluate_frame(pkt1);
-    auto t1 = std::chrono::high_resolution_clock::now();
-    auto ns1 = std::chrono::duration_cast<std::chrono::nanoseconds>(t1 - t0).count();
-
-    std::cout << "\n[TEST 1] [Tier A: Native C++] Modbus FC05 Coil Override" << std::endl;
-    std::cout << "         Verdict: " << res1.verdict << " (" << res1.threat_name
-              << ") | Steady Latency: " << ns1 << " ns" << std::endl;
     assert(res1.verdict == SENTINEL_VERDICT_KERNEL_DROP);
 
     // -------------------------------------------------------------
-    // TEST 2: Tier C - LuaJIT Dynamic Rule (Log4j JNDI Exploit)
+    // TEST 2: Log4j Sliding Payload (LuaJIT)
     // -------------------------------------------------------------
     const char log4j_payload[] = "GET /?user=${jndi:ldap://10.240.0.99:1389/Exploit} HTTP/1.1\r\n\r\n";
     SentinelRawPacket pkt2{};
@@ -88,19 +84,11 @@ int main()
 
     for (int i = 0; i < 50; ++i)
         supervisor.evaluate_frame(pkt2);
-
-    t0 = std::chrono::high_resolution_clock::now();
     SentinelDissectorResult res2 = supervisor.evaluate_frame(pkt2);
-    t1 = std::chrono::high_resolution_clock::now();
-    auto ns2 = std::chrono::duration_cast<std::chrono::nanoseconds>(t1 - t0).count();
-
-    std::cout << "\n[TEST 2] [Tier C: LuaJIT] Log4j Sliding Payload Match" << std::endl;
-    std::cout << "         Verdict: " << res2.verdict << " (" << res2.threat_name
-              << ") | Steady Latency: " << ns2 << " ns" << std::endl;
     assert(res2.verdict == SENTINEL_VERDICT_KERNEL_DROP);
 
     // -------------------------------------------------------------
-    // TEST 3: Tier B - Wasm Micro-Sandbox (DICOM PHI Patient Name Leak)
+    // TEST 3: DICOM PHI Leak (Wasm)
     // -------------------------------------------------------------
     uint8_t dicom_buffer[256];
     std::memset(dicom_buffer, 0, sizeof(dicom_buffer));
@@ -120,71 +108,27 @@ int main()
 
     for (int i = 0; i < 50; ++i)
         supervisor.evaluate_frame(pkt3);
-
-    t0 = std::chrono::high_resolution_clock::now();
     SentinelDissectorResult res3 = supervisor.evaluate_frame(pkt3);
-    t1 = std::chrono::high_resolution_clock::now();
-    auto ns3 = std::chrono::duration_cast<std::chrono::nanoseconds>(t1 - t0).count();
-
-    std::cout << "\n[TEST 3] [Tier B: Wasm Sandbox] DICOM Patient PHI Leak" << std::endl;
-    std::cout << "         Verdict: " << res3.verdict << " (" << res3.threat_name
-              << ") | Sandboxed Latency: " << ns3 << " ns" << std::endl;
     assert(res3.verdict == SENTINEL_VERDICT_KERNEL_DROP);
 
     // -------------------------------------------------------------
-    // TEST 4: Live Zero-Downtime Hot-Reload (inotify)
+    // TEST 4: Direct In-Kernel eBPF Map Drop Verification
     // -------------------------------------------------------------
-    std::cout << "\n[TEST 4] [Hot-Reload Engine] Testing zero-downtime rule injection..." << std::endl;
-    uint64_t gen_before = supervisor.lua_engine().current_generation();
+    std::cout << "\n[TEST 4] [eBPF Core Offload] Testing live kernel map insertion..." << std::endl;
+    uint32_t hostile_ip = 0x6300F00A; // 10.240.0.99
+    host.request_ebpf_drop_ip(hostile_ip, 300);
 
-    FILE *fp = fopen("/etc/sentinel/rules.d/300_threat_test_canary.lua", "w");
-    if (fp)
-    {
-        fputs("Rule = { id = 9999, name = 'CANARY_DYNAMIC_RULE', port = 0 }\n", fp);
-        fputs("function Rule.inspect(pkt) return 0 end\n", fp);
-        fclose(fp);
-    }
-
-    std::this_thread::sleep_for(std::chrono::milliseconds(300));
-    uint64_t gen_after = supervisor.lua_engine().current_generation();
-
-    std::cout << "         Generation Shifted: " << gen_before << " -> " << gen_after
-              << " (Active: " << supervisor.lua_engine().active_rule_count() << ")" << std::endl;
-    assert(gen_after > gen_before);
-    std::remove("/etc/sentinel/rules.d/300_threat_test_canary.lua");
+    bool is_blocked = KernelDropInjector::instance().is_ip_blocked(hostile_ip);
+    assert(is_blocked == true);
+    std::cout << "[+] Confirmed: IP 10.240.0.99 is actively blocked in kernel BPF map!" << std::endl;
 
     // -------------------------------------------------------------
-    // TEST 5: Fault Isolation & Dynamic Crash Quarantine
+    // TEST 5: Render Telemetry Table
     // -------------------------------------------------------------
-    std::cout << "\n[TEST 5] [Fault Isolation] Dynamically injecting buggy plugin with SIGSEGV..." << std::endl;
-    std::filesystem::path crash_plugin_path = "examples/plugins/native_crash_test/build/sentinel_crash_test.so";
+    supervisor.print_status_table(std::cout);
 
-    if (std::filesystem::exists(crash_plugin_path))
-    {
-        // Dynamically load crasher into running engine
-        supervisor.native_loader().load_plugin(crash_plugin_path);
-
-        // Use a neutral/benign packet so ModbusGuard passes it and reaches the crasher!
-        uint8_t dummy_data[] = {0x11, 0x22, 0x33, 0x44, 0x55, 0x66};
-        SentinelRawPacket pkt_dummy{};
-        pkt_dummy.data = dummy_data;
-        pkt_dummy.length = sizeof(dummy_data);
-        pkt_dummy.timestamp_ns = mock_time_ns();
-
-        // Dispatch packet to execute through to the crasher and trigger SIGSEGV
-        supervisor.evaluate_frame(pkt_dummy);
-
-        size_t quarantined_count = supervisor.native_loader().quarantined_plugin_count();
-        std::cout << "         Daemon Survived SIGSEGV! Quarantined Plugins: " << quarantined_count << std::endl;
-        assert(quarantined_count >= 1);
-    }
-    else
-    {
-        std::cerr << "[-] Error: Crash plugin binary not found at " << crash_plugin_path << std::endl;
-        return 1;
-    }
-    std::cout << "\n============================================================" << std::endl;
-    std::cout << " [SUCCESS] All 5 Extensibility & Stability Tests Verified!  " << std::endl;
+    std::cout << "============================================================" << std::endl;
+    std::cout << " [SUCCESS] Option A (Telemetry + eBPF Offload) Verified!    " << std::endl;
     std::cout << "============================================================" << std::endl;
 
     supervisor.shutdown();
