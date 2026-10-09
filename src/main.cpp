@@ -16,6 +16,10 @@
 #include "core/ZtpTokenAgent.hpp"
 #include "sbom/SbomScanner.hpp"
 
+// Extensibility & eBPF Subsystem Headers
+#include "sdk/PluginSupervisor.hpp"
+#include "nexus/KernelDropInjector.hpp"
+
 std::atomic<bool> g_appliance_running{true};
 
 void signal_handler(int sig)
@@ -38,6 +42,11 @@ void print_help(const char* prog_name)
               << "\033[1mCORE APPLIANCE OPTIONS:\033[0m\n"
               << "  \033[32m-h, --help\033[0m\n"
               << "      Show this help menu and exit.\n\n"
+
+              << "\033[1mEXTENSIBILITY & PLUGIN SUBSYSTEM:\033[0m\n"
+              << "  \033[32m--plugins-status, --list-plugins\033[0m\n"
+              << "      Inspect real-time telemetry, latencies (P50/Max), and\n"
+              << "      quarantine status across all Native C++20, LuaJIT, and Wasm plugins.\n\n"
 
               << "\033[1mHARDWARE & PROVISIONING TOKENS:\033[0m\n"
               << "  \033[32m--generate-hardware-token\033[0m\n"
@@ -63,11 +72,13 @@ void print_help(const char* prog_name)
               << "    1. Cryptographically loads & verifies \033[33m/etc/sentinel/license.lic\033[0m.\n"
               << "    2. Exports local CycloneDX SBOM manifest to \033[33m/etc/sentinel/sbom.json\033[0m.\n"
               << "    3. Starts Layer 2 eBPF kernel dropper & 26 decoupled native subsystems.\n"
-              << "    4. Launches local Web Command Center on port \033[34m8443\033[0m.\n"
-              << "    5. Connects NexusUplink gRPC client to Sentinel Nexus (\033[34m50051\033[0m).\n\n"
+              << "    4. Launches 3-Tier Extensibility Subsystem (Native C++20, LuaJIT, Wasm3).\n"
+              << "    5. Launches local Web Command Center on port \033[34m8443\033[0m.\n"
+              << "    6. Connects NexusUplink gRPC client to Sentinel Nexus (\033[34m50051\033[0m).\n\n"
 
               << "\033[1mEXAMPLES:\033[0m\n"
               << "  sudo " << prog_name << " --help\n"
+              << "  sudo " << prog_name << " --plugins-status\n"
               << "  sudo " << prog_name << " --generate-hardware-token\n"
               << "  sudo " << prog_name << " --subscribe community http://127.0.0.1:8000/api/v1\n"
               << "  sudo " << prog_name << " --activate http://127.0.0.1:8000/api/v1 \"eyJh...\"\n"
@@ -84,6 +95,21 @@ int main(int argc, char *argv[])
         if (cmd == "-h" || cmd == "--help")
         {
             print_help(argv[0]);
+            return 0;
+        }
+
+        // --- NEW EXTENSION TELEMETRY CLI OPTION ---
+        if (cmd == "--plugins-status" || cmd == "--list-plugins")
+        {
+            sentinel::sdk::SentinelHostInterface host{};
+            host.engine_version = 10000;
+            sentinel::sdk::PluginSupervisor supervisor(host,
+                                                       "/etc/sentinel/plugins.d",
+                                                       "/etc/sentinel/rules.d",
+                                                       "/etc/sentinel/wasm.d");
+            supervisor.initialize();
+            supervisor.print_status_table(std::cout);
+            supervisor.shutdown();
             return 0;
         }
 
@@ -150,15 +176,51 @@ int main(int argc, char *argv[])
         blackbox::BlackboxEngine security_engine("configs/sentinel_config.json");
         security_engine.start();
 
-        // 3. Bootstrap all 26 Modular Subsystems via Orchestrator
+        // 3. Initialize In-Kernel eBPF Drop Map Offload
+        sentinel::nexus::KernelDropInjector::instance().initialize("/sys/fs/bpf/blackbox_blocked_ips");
+
+        // 4. Initialize 3-Tier Extensibility Subsystem (Native C++20, LuaJIT, Wasm3)
+        std::cout << "[Blackbox Sentinel] Initializing 3-Tier Extensibility Subsystem..." << std::endl;
+        sentinel::sdk::SentinelHostInterface plugin_host{};
+        plugin_host.engine_version = 10000;
+        plugin_host.log_message = [](int level, const char* sender, const char* msg) {
+            const char* lvl_str[] = {"DEBUG", "INFO", "WARN", "ERROR"};
+            std::cout << "[" << lvl_str[level] << "] (" << sender << ") " << msg << std::endl;
+        };
+        plugin_host.request_ebpf_drop_ip = [](uint32_t ipv4, uint32_t duration_sec) -> int {
+            return sentinel::nexus::KernelDropInjector::instance().inject_drop_ipv4(ipv4, duration_sec);
+        };
+        plugin_host.emit_metric_counter = [](const char* name, uint64_t val) {
+            (void)name; (void)val;
+        };
+        plugin_host.get_monotonic_time_ns = []() -> uint64_t {
+            return std::chrono::duration_cast<std::chrono::nanoseconds>(
+                std::chrono::steady_clock::now().time_since_epoch()).count();
+        };
+
+        sentinel::sdk::PluginSupervisor plugin_supervisor(
+            plugin_host,
+            "/etc/sentinel/plugins.d",
+            "/etc/sentinel/rules.d",
+            "/etc/sentinel/wasm.d"
+        );
+        plugin_supervisor.initialize();
+
+        std::cout << "[Blackbox Sentinel] Extensibility Subsystem Active: "
+                  << plugin_supervisor.native_loader().active_plugin_count() << " Native | "
+                  << plugin_supervisor.lua_engine().active_rule_count() << " Lua | "
+                  << plugin_supervisor.wasm_sandbox().active_module_count() << " Wasm Sandboxed\n"
+                  << std::endl;
+
+        // 5. Bootstrap all 26 Modular Subsystems via Orchestrator
         sentinel::core::Orchestrator orchestrator;
         orchestrator.bootstrap_all_modules("configs/modules");
 
-        // 4. Initialize REST Command Center & Web Server on Port 8443
+        // 6. Initialize REST Command Center & Web Server on Port 8443
         sentinel::api::RESTController api_server(8443, security_engine);
         api_server.start();
 
-        // 5. Generate CMMC Audit Report
+        // 7. Generate CMMC Audit Report
         sentinel::exporter::ReportGenerator::generate_cmmc_compliance_report("cmmc_audit_report.txt");
 
         std::cout << "[Blackbox Sentinel] Web Command Center live at: http://localhost:8443\n"
@@ -173,7 +235,7 @@ int main(int argc, char *argv[])
             .active_model_name = "network_threat_v1.onnx"};
         sentinel::nexus_client::NexusUplink::instance().start(n_cfg);
 
-        // 6. Main Pipeline Event Ingestion Loop
+        // 8. Main Pipeline Event Ingestion Loop
         uint64_t counter = 0;
         while (g_appliance_running)
         {
@@ -186,6 +248,23 @@ int main(int argc, char *argv[])
             event.source_ip = "192.168.1." + std::to_string(100 + (counter % 30));
             event.features = {0.15f, 0.88f, (counter % 5 == 0 ? 0.95f : 0.1f), 0.2f};
 
+            // Evaluate incoming frames across 3-tier extension pipeline (Native -> Lua -> Wasm)
+            uint8_t dummy_frame[16] = {0x00, 0x01, 0x00, 0x00, 0x00, 0x06, 0x01, 0x03, 0x00, 0x00, 0x00, 0x01};
+            sentinel::sdk::SentinelRawPacket raw_pkt{
+                .data = dummy_frame,
+                .length = sizeof(dummy_frame),
+                .timestamp_ns = plugin_host.get_monotonic_time_ns(),
+                .ingress_ifindex = 1,
+                .network_proto = 0x0800,
+                .transport_proto = 6,
+                .reserved = 0
+            };
+
+            auto ext_verdict = plugin_supervisor.evaluate_frame(raw_pkt);
+            if (ext_verdict.verdict == sentinel::sdk::SENTINEL_VERDICT_KERNEL_DROP) {
+                // Instantly offloaded to kernel blocked_ip_map via request_ebpf_drop_ip
+            }
+
             // Dispatch event across the EventBus to all 26 modules asynchronously
             sentinel::EventBus::instance().publish(event);
 
@@ -196,6 +275,7 @@ int main(int argc, char *argv[])
         }
 
         api_server.stop();
+        plugin_supervisor.shutdown();
         orchestrator.shutdown_all_modules();
         security_engine.stop();
     }
