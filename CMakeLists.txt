@@ -229,6 +229,8 @@ set(SENTINEL_SOURCES
     # --- EXTENSIBILITY SUBSYSTEM ENGINE SOURCES ---
     src/sdk/NativePluginLoader.cpp
     src/sdk/LuaHotReloadEngine.cpp
+    src/sdk/WasmSandbox.cpp                               # <--- ADD THIS LINE
+
     src/sdk/PluginSupervisor.cpp
     ${PROTO_GEN_SRCS}
     ${GRPC_GEN_SRCS}
