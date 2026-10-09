@@ -7,13 +7,10 @@
 #include <openssl/evp.h>
 #include <openssl/pem.h>
 #include "nexus/DynamicRuleReceiver.hpp"
-#include "sdk/PluginSupervisor.hpp"
 
 using namespace sentinel::nexus;
-using namespace sentinel::sdk;
 
-// Read binary file
-std::vector<uint8_t> load_file(const std::string& path) {
+static std::vector<uint8_t> load_file(const std::string& path) {
     std::ifstream f(path, std::ios::binary | std::ios::ate);
     if (!f.is_open()) return {};
     size_t sz = f.tellg();
@@ -23,8 +20,7 @@ std::vector<uint8_t> load_file(const std::string& path) {
     return b;
 }
 
-// Sign payload using Ed25519 Private Key
-std::vector<uint8_t> sign_payload(EVP_PKEY* pkey, const uint8_t* data, size_t len) {
+static std::vector<uint8_t> sign_payload(EVP_PKEY* pkey, const uint8_t* data, size_t len) {
     std::vector<uint8_t> sig(64);
     EVP_MD_CTX* ctx = EVP_MD_CTX_new();
     EVP_DigestSignInit(ctx, nullptr, nullptr, nullptr, pkey);
@@ -57,7 +53,7 @@ int main(int argc, char* argv[]) {
     auto pub_bytes = load_file(pub_key_path);
     std::string pub_key_pem(pub_bytes.begin(), pub_bytes.end());
 
-    // 2. Load Rule Payload (e.g. Dynamic zero-day Lua rule)
+    // 2. Load Rule Payload
     auto rule_payload = load_file(rule_path);
     if (rule_payload.empty()) { std::cerr << "[-] Cannot read rule file\n"; return 1; }
 
@@ -66,7 +62,8 @@ int main(int argc, char* argv[]) {
     auto signature = sign_payload(pkey_priv, rule_payload.data(), rule_payload.size());
     EVP_PKEY_free(pkey_priv);
 
-    std::cout << "[+] [Nexus C2] Signed rule payload (" << rule_payload.size() << " bytes) with Ed25519" << std::endl;
+    std::cout << "[+] [Nexus C2 (sentinel::nexus)] Signed rule payload (" 
+              << rule_payload.size() << " bytes) with Ed25519" << std::endl;
 
     // 4. Initialize Local Appliance Receiver with Master Public Key
     DynamicRuleReceiver receiver("/etc/sentinel/rules.d", "/etc/sentinel/wasm.d", pub_key_pem);
@@ -74,7 +71,7 @@ int main(int argc, char* argv[]) {
     std::string err_msg;
     bool staged = receiver.process_and_stage_rule("9001",
                                                   "fleet_zeroday_hotfix",
-                                                  2, // TIER_LUA
+                                                  2, // EXTENSION_TIER_LUA
                                                   rule_payload.data(),
                                                   rule_payload.size(),
                                                   signature.data(),
@@ -88,10 +85,10 @@ int main(int argc, char* argv[]) {
         return 1;
     }
 
-    std::cout << "[+] [Appliance] Signature VERIFIED. Rule atomically staged into /etc/sentinel/rules.d/" << std::endl;
+    std::cout << "[+] [Appliance (sentinel::nexus)] Signature VERIFIED. Staged into /etc/sentinel/rules.d/" << std::endl;
     std::cout << "    Broadcast & Staging Latency: " << total_latency_us << " us (< 50,000 us SLA)" << std::endl;
 
-    // 5. Test Tampered Payload Rejection Gate
+    // 5. Test Tampered Payload Rejection
     std::cout << "\n[+] [Security Test] Testing tampered payload rejection..." << std::endl;
     std::vector<uint8_t> tampered_payload = rule_payload;
     tampered_payload[0] ^= 0xFF; // Corrupt a single byte
@@ -105,7 +102,7 @@ int main(int argc, char* argv[]) {
                                                            err_msg);
 
     if (!tampered_staged) {
-        std::cout << "[SUCCESS] Tampered payload was correctly REJECTED by cryptographic gate!" << std::endl;
+        std::cout << "[SUCCESS] Tampered payload correctly REJECTED by cryptographic gate!" << std::endl;
         std::cout << "          Error: " << err_msg << std::endl;
     } else {
         std::cerr << "[-] CRITICAL: Tampered payload was accepted!" << std::endl;
@@ -113,7 +110,7 @@ int main(int argc, char* argv[]) {
     }
 
     std::cout << "\n============================================================" << std::endl;
-    std::cout << " [SUCCESS] Fleet Rule Broadcast & Security Gate Verified!   " << std::endl;
+    std::cout << " [SUCCESS] Fleet Rule Broadcast Verified under sentinel::nexus! " << std::endl;
     std::cout << "============================================================" << std::endl;
     return 0;
 }
