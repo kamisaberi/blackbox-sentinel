@@ -381,3 +381,60 @@ target_link_libraries(test_module_cps_scada PRIVATE
     ${XINFER_LIB} 
     Threads::Threads
 )
+
+
+
+
+# -------------------------------------------------------------------
+# EXTENSIBILITY SUBSYSTEM TOOLS & TEST TARGETS
+# -------------------------------------------------------------------
+
+# 1. End-to-End Extensibility Test Suite (Native + LuaJIT + Wasm3)
+add_executable(test_extensibility
+    examples/05_test_extensibility_engine.cpp
+    src/sdk/NativePluginLoader.cpp
+    src/sdk/LuaHotReloadEngine.cpp
+    src/sdk/WasmSandbox.cpp
+    src/sdk/PluginSupervisor.cpp
+    src/nexus/KernelDropInjector.cpp
+)
+target_link_libraries(test_extensibility PRIVATE
+    ${LUAJIT_LIBRARIES}
+    ${BPF_LIB}
+    ${ELF_LIB}
+    OpenSSL::Crypto
+    Threads::Threads
+    ${CMAKE_DL_LIBS}
+    ${CMAKE_CURRENT_SOURCE_DIR}/third_party/wasm3/build/source/libm3.a
+)
+
+# 2. Cryptographic Packaging & Signing CLI (sentinel-plugin-pack)
+add_executable(sentinel_plugin_pack
+    tools/sdk/sentinel_plugin_pack.cpp
+)
+target_link_libraries(sentinel_plugin_pack PRIVATE
+    OpenSSL::Crypto
+)
+set_target_properties(sentinel_plugin_pack PROPERTIES
+    OUTPUT_NAME "sentinel-plugin-pack"
+)
+
+# 3. Nexus Dynamic Rule Broadcaster CLI (nexus-rule-broadcaster)
+add_executable(nexus_rule_broadcaster
+    tools/nexus_rule_broadcaster.cpp
+    src/nexus/DynamicRuleReceiver.cpp
+)
+target_link_libraries(nexus_rule_broadcaster PRIVATE
+    OpenSSL::Crypto
+    Threads::Threads
+)
+set_target_properties(nexus_rule_broadcaster PROPERTIES
+    OUTPUT_NAME "nexus-rule-broadcaster"
+)
+
+# Optional: Install CLI tools into /usr/local/bin
+install(TARGETS 
+    sentinel_plugin_pack 
+    nexus_rule_broadcaster
+    DESTINATION /usr/local/bin
+)
