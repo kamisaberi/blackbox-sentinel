@@ -1,0 +1,1 @@
+/home/kami/blackbox-sentinel/examples/plugins/wasm_s7comm_guard/target/wasm32-unknown-unknown/release/wasm_s7comm_guard.wasm: /home/kami/blackbox-sentinel/examples/plugins/wasm_s7comm_guard/src/lib.rs /home/kami/blackbox-sentinel/tools/sdk/rust/sentinel-sdk-rs/src/lib.rs
