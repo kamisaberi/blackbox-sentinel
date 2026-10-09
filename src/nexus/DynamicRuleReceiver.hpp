@@ -15,7 +15,6 @@ public:
                         std::string master_public_key_pem);
     ~DynamicRuleReceiver() = default;
 
-    // Disallow copying
     DynamicRuleReceiver(const DynamicRuleReceiver&) = delete;
     DynamicRuleReceiver& operator=(const DynamicRuleReceiver&) = delete;
 
