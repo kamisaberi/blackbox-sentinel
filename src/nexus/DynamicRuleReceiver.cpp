@@ -57,16 +57,16 @@ bool DynamicRuleReceiver::process_and_stage_rule(const std::string& rule_id,
 
     // 2. Determine target path based on extension tier
     std::filesystem::path target_file;
-    if (tier == 2) { // TIER_LUA
+    if (tier == 2) { // TIER_LUA (EXTENSION_TIER_LUA)
         target_file = rules_dir_ / (rule_id + "_" + rule_name + ".lua");
-    } else if (tier == 1) { // TIER_WASM
+    } else if (tier == 1) { // TIER_WASM (EXTENSION_TIER_WASM)
         target_file = wasm_dir_ / (rule_id + "_" + rule_name + ".wasm");
     } else {
         out_error_msg = "Unsupported extension tier for dynamic broadcast";
         return false;
     }
 
-    // 3. Atomic File Write: Write to temp file then rename
+    // 3. Atomic File Staging
     std::filesystem::path tmp_file = target_file.string() + ".tmp";
     {
         std::ofstream out(tmp_file, std::ios::binary);
@@ -78,7 +78,7 @@ bool DynamicRuleReceiver::process_and_stage_rule(const std::string& rule_id,
         out.flush();
     }
 
-    // Atomic rename triggers Linux inotify on the folder
+    // Atomic rename triggers Linux inotify on the directory
     std::filesystem::rename(tmp_file, target_file);
     return true;
 }
