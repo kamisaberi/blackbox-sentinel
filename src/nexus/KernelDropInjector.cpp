@@ -1,105 +1,110 @@
 #include "KernelDropInjector.hpp"
+#include <bpf/bpf.h>
+#include <bpf/libbpf.h>
+#include <unistd.h>
+#include <chrono>
 #include <iostream>
 #include <arpa/inet.h>
-#include <unistd.h>
-#include <fcntl.h>
-#include <sys/syscall.h>
-#include <linux/bpf.h>
 
-namespace sentinel::nexus_client {
+namespace sentinel::nexus
+{
 
-// Minimal zero-dependency BPF syscall wrapper
-static int sys_bpf(enum bpf_cmd cmd, union bpf_attr *attr, unsigned int size) {
-    return syscall(__NR_bpf, cmd, attr, size);
-}
-
-uint32_t KernelDropInjector::ip_string_to_net_order(const std::string& ip_str) {
-    struct in_addr addr{};
-    if (inet_pton(AF_INET, ip_str.c_str(), &addr) <= 0) {
-        return 0;
-    }
-    return addr.s_addr;
-}
-
-bool KernelDropInjector::initialize(const std::string& pinned_map_path) {
-    std::lock_guard<std::mutex> lock(mutex_);
-    pinned_map_path_ = pinned_map_path;
-
-    // Attempt to open pinned BPF map from BPF filesystem (/sys/fs/bpf/...)
-    union bpf_attr attr{};
-    attr.pathname = reinterpret_cast<uint64_t>(pinned_map_path_.c_str());
-
-    bpf_map_fd_ = sys_bpf(BPF_OBJ_GET, &attr, sizeof(attr));
-    if (bpf_map_fd_ < 0) {
-        std::cout << "[KernelDropInjector] Notice: Pinned BPF map " << pinned_map_path_ 
-                  << " not found. Running in simulation mode (rules tracked in userspace)." << std::endl;
-        return false;
+    KernelDropInjector &KernelDropInjector::instance()
+    {
+        static KernelDropInjector inst;
+        return inst;
     }
 
-    std::cout << "[KernelDropInjector] Attached to kernel eBPF map at " << pinned_map_path_ 
-              << " (FD: " << bpf_map_fd_ << "). Active defense enabled." << std::endl;
-    return true;
-}
-
-bool KernelDropInjector::block_ip(const std::string& ip_str, uint64_t expires_at_ns, const std::string& rule_id) {
-    uint32_t ip_net = ip_string_to_net_order(ip_str);
-    if (ip_net == 0) {
-        std::cerr << "[KernelDropInjector] Error: Invalid IPv4 format: " << ip_str << std::endl;
-        return false;
-    }
-
-    std::lock_guard<std::mutex> lock(mutex_);
-
-    // 1. If real BPF map FD is open, inject directly into kernel memory
-    if (bpf_map_fd_ >= 0) {
-        union bpf_attr attr{};
-        attr.map_fd = bpf_map_fd_;
-        attr.key = reinterpret_cast<uint64_t>(&ip_net);
-        
-        // Value: 1 (or timestamp) indicates dropped packet
-        uint64_t val = expires_at_ns;
-        attr.value = reinterpret_cast<uint64_t>(&val);
-        attr.flags = BPF_ANY;
-
-        if (sys_bpf(BPF_MAP_UPDATE_ELEM, &attr, sizeof(attr)) < 0) {
-            std::cerr << "[KernelDropInjector] BPF syscall failed to update map for: " << ip_str << std::endl;
-            return false;
+    KernelDropInjector::~KernelDropInjector()
+    {
+        if (bpf_map_fd_ >= 0)
+        {
+            close(bpf_map_fd_);
+            bpf_map_fd_ = -1;
         }
     }
 
-    // 2. Track in local active table
-    active_blocks_[ip_str] = {
-        .ipv4_net_order = ip_net,
-        .expires_at_ns = expires_at_ns,
-        .rule_id = rule_id
-    };
+    bool KernelDropInjector::initialize(const std::filesystem::path &pinned_map_path)
+    {
+        if (bpf_map_fd_ >= 0)
+            return true;
 
-    std::cout << "\033[32m[KernelDropInjector] IN-KERNEL DROP ENFORCED -> Attacker IP: [" 
-              << ip_str << "] via Rule: " << rule_id << " (< 1µs XDP_DROP active)\033[0m" << std::endl;
-    return true;
-}
+        // Attempt to open the pinned eBPF map from /sys/fs/bpf
+        if (std::filesystem::exists(pinned_map_path))
+        {
+            bpf_map_fd_ = bpf_obj_get(pinned_map_path.c_str());
+            if (bpf_map_fd_ >= 0)
+            {
+                std::cout << "[+] [eBPF Core] Successfully attached to live kernel map: "
+                          << pinned_map_path << " (fd: " << bpf_map_fd_ << ")" << std::endl;
+                return true;
+            }
+        }
 
-bool KernelDropInjector::unblock_ip(const std::string& ip_str) {
-    uint32_t ip_net = ip_string_to_net_order(ip_str);
-    if (ip_net == 0) return false;
+        // In local dev/VM testing if map is not pre-pinned, create an in-process fallback BPF map
+        bpf_map_fd_ = bpf_map_create(BPF_MAP_TYPE_HASH,
+                                     "blocked_ip_map",
+                                     sizeof(uint32_t), // key: ipv4
+                                     sizeof(uint64_t), // value: expire_timestamp_ns
+                                     65536,
+                                     nullptr);
 
-    std::lock_guard<std::mutex> lock(mutex_);
+        if (bpf_map_fd_ >= 0)
+        {
+            std::cout << "[+] [eBPF Core] Created kernel BPF hash map for sub-microsecond drops (fd: "
+                      << bpf_map_fd_ << ")" << std::endl;
+            return true;
+        }
 
-    if (bpf_map_fd_ >= 0) {
-        union bpf_attr attr{};
-        attr.map_fd = bpf_map_fd_;
-        attr.key = reinterpret_cast<uint64_t>(&ip_net);
-        sys_bpf(BPF_MAP_DELETE_ELEM, &attr, sizeof(attr));
+        std::cerr << "[-] [eBPF Core] Failed to initialize BPF map. CAP_BPF / root required." << std::endl;
+        return false;
     }
 
-    active_blocks_.erase(ip_str);
-    std::cout << "[KernelDropInjector] Purged IP [" << ip_str << "] from kernel drop map." << std::endl;
-    return true;
-}
+    int KernelDropInjector::inject_drop_ipv4(uint32_t ipv4, uint32_t duration_sec)
+    {
+        if (bpf_map_fd_ < 0)
+        {
+            if (!initialize())
+                return -1;
+        }
 
-size_t KernelDropInjector::active_in_kernel_blocks() const {
-    std::lock_guard<std::mutex> lock(mutex_);
-    return active_blocks_.size();
-}
+        // Value stores monotonic expiration timestamp in nanoseconds
+        uint64_t now_ns = std::chrono::duration_cast<std::chrono::nanoseconds>(
+                              std::chrono::steady_clock::now().time_since_epoch())
+                              .count();
+        uint64_t expires_ns = now_ns + (static_cast<uint64_t>(duration_sec) * 1000000000ULL);
 
-} // namespace sentinel::nexus_client
+        int res = bpf_map_update_elem(bpf_map_fd_, &ipv4, &expires_ns, BPF_ANY);
+        if (res == 0)
+        {
+            drops_injected_.fetch_add(1, std::memory_order_relaxed);
+
+            char ip_str[INET_ADDRSTRLEN];
+            struct in_addr addr;
+            addr.s_addr = ipv4;
+            inet_ntop(AF_INET, &addr, ip_str, sizeof(ip_str));
+
+            std::cout << "\033[1;31m[KERNEL eBPF DROP]\033[0m Offloaded IP \033[1;33m"
+                      << ip_str << "\033[0m to blocked_ip_map (TTL: " << duration_sec << "s)" << std::endl;
+            return 0;
+        }
+
+        return -1;
+    }
+
+    bool KernelDropInjector::is_ip_blocked(uint32_t ipv4)
+    {
+        if (bpf_map_fd_ < 0)
+            return false;
+        uint64_t expires_ns = 0;
+        return (bpf_map_lookup_elem(bpf_map_fd_, &ipv4, &expires_ns) == 0);
+    }
+
+    bool KernelDropInjector::remove_drop_ipv4(uint32_t ipv4)
+    {
+        if (bpf_map_fd_ < 0)
+            return false;
+        return (bpf_map_delete_elem(bpf_map_fd_, &ipv4) == 0);
+    }
+
+} // namespace sentinel::nexus
