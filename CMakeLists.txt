@@ -232,6 +232,8 @@ set(SENTINEL_SOURCES
     src/sdk/WasmSandbox.cpp                               # <--- ADD THIS LINE
 
     src/sdk/PluginSupervisor.cpp
+    src/nexus/DynamicRuleReceiver.cpp                     # <--- ADD THIS LINE
+
     ${PROTO_GEN_SRCS}
     ${GRPC_GEN_SRCS}
 )
