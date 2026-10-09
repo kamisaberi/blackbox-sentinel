@@ -122,6 +122,21 @@ int main() {
     std::cout << " [SUCCESS] All 3 Execution Tiers Passed Mitigation Tests!    " << std::endl;
     std::cout << "============================================================" << std::endl;
 
+
+    // -------------------------------------------------------------
+    // TEST 4: Fault Isolation: Deliberate SIGSEGV in Native Plugin
+    // -------------------------------------------------------------
+    std::cout << "\n[TEST 4] [Fault Isolation] Dispatching to crashing plugin..." << std::endl;
+    size_t active_before = supervisor.native_loader().active_plugin_count();
+    
+    // This packet hits the buggy plugin, triggers SIGSEGV, but supervisor survives!
+    SentinelDissectorResult res4 = supervisor.evaluate_frame(pkt1);
+    size_t quarantined_after = supervisor.native_loader().quarantined_plugin_count();
+
+    std::cout << "[+] Daemon survived SIGSEGV! Quarantined plugins: " << quarantined_after << std::endl;
+    assert(quarantined_after >= 1);
+
+    
     supervisor.shutdown();
     return 0;
 }
