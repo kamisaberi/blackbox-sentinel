@@ -258,6 +258,8 @@ target_link_libraries(sentinel PRIVATE
     gRPC::grpc++
     gRPC::grpc++_reflection
     ${LUAJIT_LIBRARIES}
+    ${CMAKE_CURRENT_SOURCE_DIR}/third_party/wasm3/build/source/libm3.a  # <--- ADD THIS LINE
+
 )
 
 # RPATH so executable finds shared libraries in /usr/local/lib
