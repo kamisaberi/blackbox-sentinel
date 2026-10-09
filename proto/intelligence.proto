@@ -47,3 +47,30 @@ message FleetDefenseRule {
     uint64 expires_at_ns = 4;   // Ephemeral kernel block TTL
     bool emergency_purge = 5;   // True if false positive unblock
 }
+
+// -----------------------------------------------------------------------------
+// EXTENSION SUBSYSTEM RULE BROADCAST CONTRACTS
+// -----------------------------------------------------------------------------
+
+enum ExtensionPayloadTier {
+    EXTENSION_TIER_NATIVE = 0;
+    EXTENSION_TIER_WASM   = 1;
+    EXTENSION_TIER_LUA    = 2;
+}
+
+message DynamicExtensionRule {
+    string               rule_id        = 1;
+    string               rule_name      = 2;
+    ExtensionPayloadTier tier           = 3;
+    bytes                payload        = 4; // Raw script (.lua) or binary (.wasm / .so)
+    bytes                signature      = 5; // 64-byte Ed25519 signature
+    uint64               timestamp_ns   = 6;
+    uint32               target_port    = 7;
+    string               author         = 8;
+}
+
+message DeployRuleResponse {
+    bool   success         = 1;
+    string message         = 2;
+    uint64 applied_time_ns = 3;
+}
