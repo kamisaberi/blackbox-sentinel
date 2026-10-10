@@ -438,3 +438,19 @@ install(TARGETS
     nexus_rule_broadcaster
     DESTINATION /usr/local/bin
 )
+
+
+# -------------------------------------------------------------------
+# SENTINEL PACKAGE (.spkg) TOOLCHAIN
+# -------------------------------------------------------------------
+add_executable(sentinel_spkg
+    tools/sdk/sentinel_spkg.cpp
+)
+target_link_libraries(sentinel_spkg PRIVATE
+    OpenSSL::Crypto
+)
+set_target_properties(sentinel_spkg PROPERTIES
+    OUTPUT_NAME "sentinel-spkg"
+)
+
+install(TARGETS sentinel_spkg DESTINATION /usr/local/bin)
