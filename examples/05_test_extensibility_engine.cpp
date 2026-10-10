@@ -7,7 +7,7 @@
 #include "sdk/PluginSupervisor.hpp"
 #include "nexus/KernelDropInjector.hpp"
 
-                                              using namespace sentinel::sdk;
+using namespace sentinel::sdk;
 using namespace sentinel::nexus;
 
 static void mock_log(int level, const char *sender, const char *msg)
@@ -45,7 +45,7 @@ int main()
     host.log_message = mock_log;
     host.request_ebpf_drop_ip = live_ebpf_drop_ipv4;
     host.emit_metric_counter = mock_emit_metric;
-    host.get_monotonic_time_ns = mock_time_ns();
+    host.get_monotonic_time_ns = mock_time_ns;
 
     PluginSupervisor supervisor(host,
                                 "/etc/sentinel/plugins.d",
