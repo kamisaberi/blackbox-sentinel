@@ -4,6 +4,7 @@
 #include <csignal>
 #include <atomic>
 #include <string>
+#include <filesystem>
 
 #include <blackbox/blackbox.hpp>
 #include "core/orchestrator.hpp"
@@ -18,9 +19,7 @@
 
 // Extensibility & eBPF Subsystem Headers
 #include "sdk/PluginSupervisor.hpp"
-
 #include "nexus/KernelDropInjector.hpp"
-
 #include "ai/ModelRouter.hpp"
 
 std::atomic<bool> g_appliance_running{true};
@@ -41,10 +40,14 @@ void print_help(const char *prog_name)
               << "==========================================================\033[0m\n\n"
               << "\033[1mUSAGE:\033[0m\n"
               << "  " << prog_name << " [OPTIONS]\n"
+              << "  " << prog_name << " --routes <path_to_model_routes.yaml>\n"
               << "  " << prog_name << " [CONFIG_FILE]\n\n"
               << "\033[1mCORE APPLIANCE OPTIONS:\033[0m\n"
               << "  \033[32m-h, --help\033[0m\n"
               << "      Show this help menu and exit.\n\n"
+              << "  \033[32m-r, --routes <path.yaml>\033[0m\n"
+              << "      Specify custom sensor routing & AI model pipeline configuration.\n"
+              << "      Default: \033[33mconfigs/model_routes.yaml\033[0m\n\n"
 
               << "\033[1mEXTENSIBILITY & PLUGIN SUBSYSTEM:\033[0m\n"
               << "  \033[32m--plugins-status, --list-plugins\033[0m\n"
@@ -76,24 +79,29 @@ void print_help(const char *prog_name)
               << "    2. Exports local CycloneDX SBOM manifest to \033[33m/etc/sentinel/sbom.json\033[0m.\n"
               << "    3. Starts Layer 2 eBPF kernel dropper & 26 decoupled native subsystems.\n"
               << "    4. Launches 3-Tier Extensibility Subsystem (Native C++20, LuaJIT, Wasm3).\n"
-              << "    5. Launches local Web Command Center on port \033[34m8443\033[0m.\n"
-              << "    6. Connects NexusUplink gRPC client to Sentinel Nexus (\033[34m50051\033[0m).\n\n"
+              << "    5. Loads Sensor-to-Model Routing DAG from \033[33mconfigs/model_routes.yaml\033[0m.\n"
+              << "    6. Launches local Web Command Center on port \033[34m8443\033[0m.\n"
+              << "    7. Connects NexusUplink gRPC client to Sentinel Nexus (\033[34m50051\033[0m).\n\n"
 
               << "\033[1mEXAMPLES:\033[0m\n"
               << "  sudo " << prog_name << " --help\n"
+              << "  sudo " << prog_name << " --routes configs/model_routes.yaml\n"
+              << "  sudo " << prog_name << " -r /etc/sentinel/profiles/substation_east.yaml\n"
               << "  sudo " << prog_name << " --plugins-status\n"
               << "  sudo " << prog_name << " --generate-hardware-token\n"
               << "  sudo " << prog_name << " --subscribe community http://127.0.0.1:8000/api/v1\n"
               << "  sudo " << prog_name << " --activate http://127.0.0.1:8000/api/v1 \"eyJh...\"\n"
-              << "  sudo " << prog_name << " /etc/sentinel/sentinel.yaml\n"
               << std::endl;
 }
 
 int main(int argc, char *argv[])
 {
-    if (argc > 1)
+    std::string routes_file = "configs/model_routes.yaml";
+
+    // Parse CLI arguments
+    for (int i = 1; i < argc; ++i)
     {
-        std::string cmd = argv[1];
+        std::string cmd = argv[i];
 
         if (cmd == "-h" || cmd == "--help")
         {
@@ -101,7 +109,7 @@ int main(int argc, char *argv[])
             return 0;
         }
 
-        // --- NEW EXTENSION TELEMETRY CLI OPTION ---
+        // --- EXTENSION TELEMETRY CLI OPTION ---
         if (cmd == "--plugins-status" || cmd == "--list-plugins")
         {
             SentinelHostInterface host{};
@@ -150,6 +158,38 @@ int main(int argc, char *argv[])
             sentinel::licensing::LicenseManager::instance().fetch_public_key_online(url);
             return 0;
         }
+
+        // --- DYNAMIC MODEL ROUTES CONFIGURATION OPTION ---
+        if (cmd == "-r" || cmd == "--routes")
+        {
+            if (i + 1 < argc)
+            {
+                routes_file = argv[++i];
+            }
+            else
+            {
+                std::cerr << "[-] Error: --routes requires a path to a YAML configuration file.\n";
+                return 1;
+            }
+            continue;
+        }
+
+        // Handle positional YAML argument (e.g. sudo ./sentinel my_custom_routes.yaml)
+        if (cmd.size() > 5 && cmd.substr(cmd.size() - 5) == ".yaml")
+        {
+            routes_file = cmd;
+            continue;
+        }
+    }
+
+    std::cout << "\033[1;36m[Sentinel Engine] Launching with Sensor Routing Specification: \033[1;33m"
+              << routes_file << "\033[0m" << std::endl;
+
+    if (!std::filesystem::exists(routes_file))
+    {
+        std::cerr << "\033[1;31m[-] Error: Routes file not found: " << routes_file << "\033[0m\n"
+                  << "    Run 'sentinel-ctl sync " << routes_file << "' to download required models and packages.\n";
+        return 1;
     }
 
     // Load cryptographic license envelope (/etc/sentinel/license.lic)
@@ -214,9 +254,13 @@ int main(int argc, char *argv[])
             "/etc/sentinel/wasm.d");
         plugin_supervisor.initialize();
 
-        // Initialize Hierarchical Sensor-to-Model Routing DAG
+        // 5. Initialize Hierarchical Sensor-to-Model Routing DAG from user-specified YAML file
         sentinel::ai::ModelRouter model_router;
-        model_router.load_routes("configs/model_routes.yaml");
+        if (!model_router.load_routes(routes_file))
+        {
+            std::cerr << "[-] Failed to load routing specification from " << routes_file << std::endl;
+            return 1;
+        }
 
         std::cout << "[Blackbox Sentinel] Extensibility Subsystem Active: "
                   << plugin_supervisor.native_loader().active_plugin_count() << " Native | "
@@ -224,15 +268,15 @@ int main(int argc, char *argv[])
                   << plugin_supervisor.wasm_sandbox().active_module_count() << " Wasm Sandboxed\n"
                   << std::endl;
 
-        // 5. Bootstrap all 26 Modular Subsystems via Orchestrator
+        // 6. Bootstrap all 26 Modular Subsystems via Orchestrator
         sentinel::core::Orchestrator orchestrator;
         orchestrator.bootstrap_all_modules("configs/modules");
 
-        // 6. Initialize REST Command Center & Web Server on Port 8443
+        // 7. Initialize REST Command Center & Web Server on Port 8443
         sentinel::api::RESTController api_server(8443, security_engine);
         api_server.start();
 
-        // 7. Generate CMMC Audit Report
+        // 8. Generate CMMC Audit Report
         sentinel::exporter::ReportGenerator::generate_cmmc_compliance_report("cmmc_audit_report.txt");
 
         std::cout << "[Blackbox Sentinel] Web Command Center live at: http://localhost:8443\n"
@@ -247,7 +291,7 @@ int main(int argc, char *argv[])
             .active_model_name = "network_threat_v1.onnx"};
         sentinel::nexus_client::NexusUplink::instance().start(n_cfg);
 
-        // 8. Main Pipeline Event Ingestion Loop
+        // 9. Main Pipeline Event Ingestion Loop
         uint64_t counter = 0;
         while (g_appliance_running)
         {
@@ -260,7 +304,7 @@ int main(int argc, char *argv[])
             event.source_ip = "192.168.1." + std::to_string(100 + (counter % 30));
             event.features = {0.15f, 0.88f, (counter % 5 == 0 ? 0.95f : 0.1f), 0.2f};
 
-            // Evaluate incoming frames across 3-tier extension pipeline (Native -> Lua -> Wasm)
+            // Evaluate incoming frames across 3-tier extension pipeline & ModelRouter DAG
             uint8_t dummy_frame[16] = {0x00, 0x01, 0x00, 0x00, 0x00, 0x06, 0x01, 0x03, 0x00, 0x00, 0x00, 0x01};
             SentinelRawPacket raw_pkt{
                 .data = dummy_frame,
@@ -271,7 +315,6 @@ int main(int argc, char *argv[])
                 .transport_proto = 6,
                 .reserved = 0};
 
-                
             auto pipeline_res = model_router.dispatch_and_evaluate(
                 "sensor_nic_10gbe_lan0",
                 raw_pkt,
@@ -279,8 +322,8 @@ int main(int argc, char *argv[])
 
             if (pipeline_res.verdict == SENTINEL_VERDICT_KERNEL_DROP)
             {
-                // Instantly offloaded to in-kernel eBPF driver ring
-                sentinel::nexus_client::KernelDropInjector::instance().inject_drop_ipv4(
+                // Instantly offload to in-kernel eBPF driver ring
+                sentinel::nexus::KernelDropInjector::instance().inject_drop_ipv4(
                     0x6300F00A, 300, pipeline_res.rule_or_model_id);
             }
 
