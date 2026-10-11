@@ -218,7 +218,6 @@ int main(int argc, char *argv[])
         sentinel::ai::ModelRouter model_router;
         model_router.load_routes("configs/model_routes.yaml");
 
-
         std::cout << "[Blackbox Sentinel] Extensibility Subsystem Active: "
                   << plugin_supervisor.native_loader().active_plugin_count() << " Native | "
                   << plugin_supervisor.lua_engine().active_rule_count() << " Lua | "
@@ -272,10 +271,17 @@ int main(int argc, char *argv[])
                 .transport_proto = 6,
                 .reserved = 0};
 
-            auto ext_verdict = plugin_supervisor.evaluate_frame(raw_pkt);
-            if (ext_verdict.verdict == SENTINEL_VERDICT_KERNEL_DROP)
+                
+            auto pipeline_res = model_router.dispatch_and_evaluate(
+                "sensor_nic_10gbe_lan0",
+                raw_pkt,
+                plugin_supervisor);
+
+            if (pipeline_res.verdict == SENTINEL_VERDICT_KERNEL_DROP)
             {
-                // Instantly offloaded to kernel blocked_ip_map via request_ebpf_drop_ip
+                // Instantly offloaded to in-kernel eBPF driver ring
+                sentinel::nexus_client::KernelDropInjector::instance().inject_drop_ipv4(
+                    0x6300F00A, 300, pipeline_res.rule_or_model_id);
             }
 
             // Dispatch event across the EventBus to all 26 modules asynchronously
