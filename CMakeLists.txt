@@ -455,3 +455,19 @@ set_target_properties(sentinel_spkg PROPERTIES
 )
 
 install(TARGETS sentinel_spkg DESTINATION /usr/local/bin)
+
+
+# -------------------------------------------------------------------
+# SENTINEL-CTL DEPENDENCY & APPLIANCE MANAGER
+# -------------------------------------------------------------------
+add_executable(sentinel_ctl
+    tools/sentinel_ctl.cpp
+)
+target_link_libraries(sentinel_ctl PRIVATE
+    Threads::Threads
+)
+set_target_properties(sentinel_ctl PROPERTIES
+    OUTPUT_NAME "sentinel-ctl"
+)
+
+install(TARGETS sentinel_ctl DESTINATION /usr/local/bin)
