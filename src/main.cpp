@@ -29,7 +29,7 @@ void signal_handler(int sig)
     g_appliance_running = false;
 }
 
-void print_help(const char* prog_name)
+void print_help(const char *prog_name)
 {
     std::cout << "\033[36m\033[1m"
               << "==========================================================\n"
@@ -183,27 +183,32 @@ int main(int argc, char *argv[])
         std::cout << "[Blackbox Sentinel] Initializing 3-Tier Extensibility Subsystem..." << std::endl;
         SentinelHostInterface plugin_host{};
         plugin_host.engine_version = 10000;
-        plugin_host.log_message = [](int level, const char* sender, const char* msg) {
-            const char* lvl_str[] = {"DEBUG", "INFO", "WARN", "ERROR"};
+        plugin_host.log_message = [](int level, const char *sender, const char *msg)
+        {
+            const char *lvl_str[] = {"DEBUG", "INFO", "WARN", "ERROR"};
             std::cout << "[" << lvl_str[level] << "] (" << sender << ") " << msg << std::endl;
         };
-        plugin_host.request_ebpf_drop_ip = [](uint32_t ipv4, uint32_t duration_sec) -> int {
+        plugin_host.request_ebpf_drop_ip = [](uint32_t ipv4, uint32_t duration_sec) -> int
+        {
             return sentinel::nexus::KernelDropInjector::instance().inject_drop_ipv4(ipv4, duration_sec);
         };
-        plugin_host.emit_metric_counter = [](const char* name, uint64_t val) {
-            (void)name; (void)val;
+        plugin_host.emit_metric_counter = [](const char *name, uint64_t val)
+        {
+            (void)name;
+            (void)val;
         };
-        plugin_host.get_monotonic_time_ns = []() -> uint64_t {
+        plugin_host.get_monotonic_time_ns = []() -> uint64_t
+        {
             return std::chrono::duration_cast<std::chrono::nanoseconds>(
-                std::chrono::steady_clock::now().time_since_epoch()).count();
+                       std::chrono::steady_clock::now().time_since_epoch())
+                .count();
         };
 
         sentinel::sdk::PluginSupervisor plugin_supervisor(
             plugin_host,
             "/etc/sentinel/plugins.d",
             "/etc/sentinel/rules.d",
-            "/etc/sentinel/wasm.d"
-        );
+            "/etc/sentinel/wasm.d");
         plugin_supervisor.initialize();
 
         std::cout << "[Blackbox Sentinel] Extensibility Subsystem Active: "
@@ -257,11 +262,11 @@ int main(int argc, char *argv[])
                 .ingress_ifindex = 1,
                 .network_proto = 0x0800,
                 .transport_proto = 6,
-                .reserved = 0
-            };
+                .reserved = 0};
 
             auto ext_verdict = plugin_supervisor.evaluate_frame(raw_pkt);
-            if (ext_verdict.verdict == SENTINEL_VERDICT_KERNEL_DROP) {
+            if (ext_verdict.verdict == SENTINEL_VERDICT_KERNEL_DROP)
+            {
                 // Instantly offloaded to kernel blocked_ip_map via request_ebpf_drop_ip
             }
 
