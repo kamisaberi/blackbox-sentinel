@@ -1,19 +1,3 @@
-Here is the updated, production-ready **`README.md`** for **`blackbox-sentinel`**.
-
-It incorporates:
-1. **The 3-Tier Extensibility Subsystem** (Native C++20 @ 88 ns with SEGV isolation, LuaJIT @ 350 ns with inotify RCU, and Wasm3 @ 1,240 ns with memory isolation).
-2. **The `.spkg` (Sentinel Package) Toolchain** (`sentinel-spkg`).
-3. **The 4-Stage Hierarchical Sensor-to-Model Routing Engine** (`ModelRouter`, `configs/model_routes.yaml`, and Cross-Modal Sensor Fusion).
-4. **The `sentinel-ctl` Dependency & Appliance Manager CLI**.
-5. **Runtime Route Selection** via `-r, --routes <path.yaml>`.
-6. **Live Telemetry & In-Kernel eBPF Offloading** (`--plugins-status`).
-7. **Complete, updated directory layout, benchmarks, and build instructions.**
-
----
-
-### File Content: `/home/kami/blackbox-sentinel/README.md`
-
-```markdown
 # Blackbox Sentinel: Autonomous Edge Cyber-Physical XDR & SIEM Appliance
 
 [![License: Commercial / Community](https://img.shields.io/badge/License-Commercial%20%7C%20Community-blue.svg)](LICENSE)
@@ -384,16 +368,3 @@ sudo ./build/test_model_router
 * **Organization:** Aryorithm Technologies B.V. (Amsterdam, The Netherlands)
 * **Website:** [aryorithm.com](https://aryorithm.com) | **Cloud Portal:** [app.aryorithm.com](https://app.aryorithm.com)
 * **Academic Preprint (DOI):** [10.5281/zenodo.10892341](https://doi.org/10.5281/zenodo.10892341)
-```
-
----
-
-### Command to Apply
-
-Update your repository's README directly:
-
-```bash
-cat << 'EOF' > /home/kami/blackbox-sentinel/README.md
-# Paste the content above
-EOF
-```
