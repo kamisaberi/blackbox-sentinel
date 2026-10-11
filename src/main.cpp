@@ -18,7 +18,10 @@
 
 // Extensibility & eBPF Subsystem Headers
 #include "sdk/PluginSupervisor.hpp"
+
 #include "nexus/KernelDropInjector.hpp"
+
+#include "ai/ModelRouter.hpp"
 
 std::atomic<bool> g_appliance_running{true};
 
