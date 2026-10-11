@@ -1,0 +1,223 @@
+# ============================================================================
+# ARYORITHM TECHNOLOGIES: MULTI-MODAL SENSOR & MODEL ROUTING SPECIFICATION
+# Architecture: 3-Tier Execution Pipeline (SPKG -> Plugins -> Subsystems -> XAI)
+# ============================================================================
+
+version: "2.0"
+
+# ----------------------------------------------------------------------------
+# 1. GLOBAL EXECUTION INVARIANTS & SILICON BUDGETS
+# ----------------------------------------------------------------------------
+global_policy:
+  short_circuit_on_kernel_drop: true     # Abort entire pipeline if any stage emits KERNEL_DROP
+  max_pipeline_latency_budget_us: 1000   # Hard SLA: 1.0 ms end-to-end
+  default_xinfer_backend: "INTEL_OPENVINO"
+  fallback_xinfer_backend: "CPU_AVX512"
+
+# ----------------------------------------------------------------------------
+# 2. SENSOR PIPELINE ROUTING TABLE
+# ----------------------------------------------------------------------------
+routes:
+
+  # ==========================================================================
+  # SENSOR 1: 10GbE / 100GbE Primary Data Plane (NIC SFP+ Adapter)
+  # ==========================================================================
+  - sensor_id: "sensor_nic_10gbe_lan0"
+    sensor_type: "NETWORK_INTERFACE"
+    driver_binding:
+      mode: "AF_XDP_UMEM"                # Zero-Copy descriptor exchange (falls back to XDP_COPY)
+      interface: "eth0"
+      rx_queue: 0
+
+    traffic_rules:
+
+      # ----------------------------------------------------------------------
+      # RULE 1A: Encrypted TLS Traffic (Port 443) -> Volumetric DDoS -> JA4 C2
+      # ----------------------------------------------------------------------
+      - match:
+          transport: "tcp"
+          port: 443
+
+        # [STAGE 1: SPKG REFLEX GATE] (< 450 ns on CPU)
+        # Evaluated on raw wire frames by PluginSupervisor before heap allocation
+        spkg_prefilter:
+          active_packages:
+            - package_id: "org.aryorithm.package.http_rapid_reset"
+              action_on_match: "IMMEDIATE_EBPF_DROP" # Mitigates CVE-2023-44487 in 350 ns
+
+        # [STAGE 2: SENSORY DISSECTOR] (Built-in Plugin)
+        # Parses TLS ClientHello, extracts cipher suites & handshake timing
+        dissector_plugin:
+          plugin_id: "tls_ja4_dissector_plugin.so"
+          emits_event: "SECURITY_EVENT_TLS_FLOW"
+          feature_dimension: 32           # Synthesizes 32-dim normalized feature vector
+
+        # [STAGE 3: SUBSYSTEM & SILICON MODEL CHAIN] (Executed via libxinfer.so)
+        subsystem_pipeline:
+          owner_subsystem: "03_ndr"       # Subsystem 03: Network Detection & Response
+          execution_mode: "CASCADE_SHORT_CIRCUIT" # Model 1 runs first; if drop, Model 2 aborts
+          
+          model_stages:
+            # Stage 3.1: Volumetric Line-Rate Filter (Intel OpenVINO NPU)
+            - model_id: "aryo-netflow-mae-v2"
+              format: "ONNX"
+              precision: "INT8"
+              silicon_target: "INTEL_NPU"
+              latency_budget_ns: 75000     # 75 µs budget
+              threshold_drop: 0.92
+
+            # Stage 3.2: Deep C2 Sequence Transformer (NVIDIA TensorRT GPU)
+            - model_id: "aryo-ja4-c2-transformer-v1"
+              format: "ONNX"
+              precision: "FP16"
+              silicon_target: "NVIDIA_GPU"
+              latency_budget_ns: 95000     # 95 µs budget
+              threshold_drop: 0.85
+              xai_explainer: "MRD_XAI"     # Microsecond Residual Decomposition (< 80 ns)
+
+      # ----------------------------------------------------------------------
+      # RULE 1B: Industrial SCADA Traffic (Port 502 Modbus TCP)
+      # ----------------------------------------------------------------------
+      - match:
+          transport: "tcp"
+          port: 502
+
+        # [STAGE 1: SPKG REFLEX GATE] (< 120 ns on CPU)
+        spkg_prefilter:
+          active_packages:
+            - package_id: "org.aryorithm.package.modbus_actuator_guard"
+              action_on_match: "IMMEDIATE_EBPF_DROP" # Drops unauthorized coil write in 88 ns
+
+        # [STAGE 2: SENSORY DISSECTOR]
+        dissector_plugin:
+          plugin_id: "scada_modbus_plugin.so"
+          emits_event: "SECURITY_EVENT_SCADA_CMD"
+          feature_dimension: 16
+
+        # [STAGE 3: SUBSYSTEM & SILICON MODEL CHAIN]
+        subsystem_pipeline:
+          owner_subsystem: "18_cps_sec"   # Subsystem 18: Cyber-Physical SCADA Defense
+          model_stages:
+            - model_id: "aryo-scada-kinematic-v1"
+              format: "ONNX"
+              precision: "FP16"
+              silicon_target: "INTEL_NPU"
+              latency_budget_ns: 110000
+              threshold_drop: 0.88
+              xai_explainer: "MRD_XAI"
+
+      # ----------------------------------------------------------------------
+      # RULE 1C: Siemens Industrial Telemetry (Port 102 S7Comm)
+      # ----------------------------------------------------------------------
+      - match:
+          transport: "tcp"
+          port: 102
+
+        spkg_prefilter:
+          active_packages:
+            - package_id: "org.aryorithm.package.s7comm_safety_interlock" # Rust Wasm3 Sandbox
+              action_on_match: "IMMEDIATE_EBPF_DROP"
+
+        dissector_plugin:
+          plugin_id: "s7comm_opcua_plugin.so"
+          emits_event: "SECURITY_EVENT_PLC_TELEMETRY"
+          feature_dimension: 24
+
+        subsystem_pipeline:
+          owner_subsystem: "18_cps_sec"
+          model_stages:
+            - model_id: "aryo-scada-kinematic-v1"
+              silicon_target: "INTEL_NPU"
+
+      # ----------------------------------------------------------------------
+      # RULE 1D: Generic Unclassified NetFlow / L3 IPFIX
+      # ----------------------------------------------------------------------
+      - match:
+          transport: "any"
+
+        dissector_plugin:
+          plugin_id: "generic_netflow_dissector.so"
+          emits_event: "SECURITY_EVENT_NETFLOW_RECORD"
+          feature_dimension: 32
+
+        subsystem_pipeline:
+          owner_subsystem: "13_ddos"
+          model_stages:
+            - model_id: "aryo-netflow-mae-v2"
+              silicon_target: "INTEL_NPU"
+
+  # ==========================================================================
+  # SENSOR 2: Optical Thermal Camera (Infrared Substation Monitor)
+  # ==========================================================================
+  - sensor_id: "sensor_thermal_cam_substation_01"
+    sensor_type: "OPTICAL_THERMAL"
+    driver_binding:
+      mode: "RTSP_STREAM"
+      endpoint: "rtsp://10.240.0.60:8554/thermal_transformer"
+
+    dissector_plugin:
+      plugin_id: "rtsp_vision_correlator_plugin.so"
+      emits_event: "SECURITY_EVENT_THERMAL_FRAME"
+      feature_dimension: 64
+
+    subsystem_pipeline:
+      owner_subsystem: "18_cps_sec"
+      model_stages:
+        - model_id: "aryo-thermal-heat-spike-v1"
+          format: "ONNX"
+          precision: "FP16"
+          silicon_target: "INTEL_NPU"
+          latency_budget_ns: 120000
+
+  # ==========================================================================
+  # SENSOR 3: Perimeter Security Video Stream (RTSP CCTV)
+  # ==========================================================================
+  - sensor_id: "sensor_cctv_perimeter_01"
+    sensor_type: "VISION_RTSP"
+    driver_binding:
+      mode: "RTSP_STREAM"
+      endpoint: "rtsp://10.240.0.60:8554/perimeter_gate"
+
+    dissector_plugin:
+      plugin_id: "rtsp_vision_correlator_plugin.so"
+      emits_event: "SECURITY_EVENT_OPTICAL_FRAME"
+
+    subsystem_pipeline:
+      owner_subsystem: "26_ddp"        # Subsystem 26: Distributed Deception & Physical Tamper
+      model_stages:
+        - model_id: "yolo_perimeter_intruder_v8"
+          format: "ONNX"
+          precision: "FP16"
+          silicon_target: "NVIDIA_GPU"  # Video object detection on TensorRT GPU
+
+# ----------------------------------------------------------------------------
+# 3. CROSS-MODAL SENSOR FUSION CORRELATION (ThreatCorrelator Rules)
+# ----------------------------------------------------------------------------
+cross_modal_correlations:
+
+  # --------------------------------------------------------------------------
+  # FUSION RULE 1: Stuxnet / HMI Blinding Attack Detection
+  # Correlates Cyber SCADA Commands (Sensor 1) against Physical Thermal (Sensor 2)
+  # --------------------------------------------------------------------------
+  - correlation_id: "FUSION-SCADA-THERMAL-DISCREPANCY"
+    description: "Detects spoofed normal Modbus status while physical transformer is overheating."
+    participating_subsystems: ["18_cps_sec"]
+    time_window_ms: 500
+
+    condition:
+      cyber_telemetry:
+        sensor_ref: "sensor_nic_10gbe_lan0"
+        condition: "event.scada_valve_status == 'NORMAL' && model_score < 0.20"
+      physical_telemetry:
+        sensor_ref: "sensor_thermal_cam_substation_01"
+        condition: "event.temperature_celsius > 120.0 && model_score > 0.85"
+
+    verdict_enforcement:
+      action: "EMERGENCY_PHYSICAL_ISOLATION"
+      mitigation_steps:
+        - step: "EBPF_KERNEL_DROP"      # Block the rogue engineering workstation IP in < 0.84 µs
+          target: "event.cyber_source_ip"
+        - step: "GPIO_RELAY_TRIP"       # Physically trip hardware safety relay cut-off
+          pin: 17
+        - step: "PCAP_CARVE_EVIDENCE"   # Carve 60 seconds of forensic evidence
+          duration_sec: 60
