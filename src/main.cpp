@@ -214,6 +214,11 @@ int main(int argc, char *argv[])
             "/etc/sentinel/wasm.d");
         plugin_supervisor.initialize();
 
+        // Initialize Hierarchical Sensor-to-Model Routing DAG
+        sentinel::ai::ModelRouter model_router;
+        model_router.load_routes("configs/model_routes.yaml");
+
+
         std::cout << "[Blackbox Sentinel] Extensibility Subsystem Active: "
                   << plugin_supervisor.native_loader().active_plugin_count() << " Native | "
                   << plugin_supervisor.lua_engine().active_rule_count() << " Lua | "
