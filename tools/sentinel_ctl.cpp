@@ -15,11 +15,12 @@ namespace fs = std::filesystem;
 #define SPKG_MAGIC 0x474B50534F595241ULL // "ARYOSPKG"
 #define SPKG_VERSION 1
 
-struct SpkgHeader {
+struct SpkgHeader
+{
     uint64_t magic{SPKG_MAGIC};
     uint32_t version{SPKG_VERSION};
-    uint32_t tier{0}; // 0=Native C++, 1=Rust Wasm, 2=LuaJIT
-    uint8_t  signature[64]{0}; // Ed25519 signature
+    uint32_t tier{0};         // 0=Native C++, 1=Rust Wasm, 2=LuaJIT
+    uint8_t signature[64]{0}; // Ed25519 signature
     uint32_t manifest_len{0};
     uint64_t payload_len{0};
     uint64_t source_len{0};
@@ -42,19 +43,22 @@ static std::string trim(const std::string &s)
     return s.substr(start, end - start + 1);
 }
 
-static std::vector<uint8_t> read_binary_file(const fs::path& p) {
+static std::vector<uint8_t> read_binary_file(const fs::path &p)
+{
     std::ifstream f(p, std::ios::binary | std::ios::ate);
-    if (!f.is_open()) return {};
+    if (!f.is_open())
+        return {};
     size_t sz = f.tellg();
     f.seekg(0, std::ios::beg);
     std::vector<uint8_t> b(sz);
-    f.read(reinterpret_cast<char*>(b.data()), sz);
+    f.read(reinterpret_cast<char *>(b.data()), sz);
     return b;
 }
 
-static std::vector<uint8_t> sha256_buffer(const uint8_t* data, size_t len) {
+static std::vector<uint8_t> sha256_buffer(const uint8_t *data, size_t len)
+{
     std::vector<uint8_t> hash(32);
-    EVP_MD_CTX* ctx = EVP_MD_CTX_new();
+    EVP_MD_CTX *ctx = EVP_MD_CTX_new();
     EVP_DigestInit_ex(ctx, EVP_sha256(), nullptr);
     EVP_DigestUpdate(ctx, data, len);
     unsigned int out_len = 0;
@@ -63,10 +67,12 @@ static std::vector<uint8_t> sha256_buffer(const uint8_t* data, size_t len) {
     return hash;
 }
 
-static std::string sha256_hex(const uint8_t* data, size_t len) {
+static std::string sha256_hex(const uint8_t *data, size_t len)
+{
     auto h = sha256_buffer(data, len);
     std::ostringstream ss;
-    for (uint8_t b : h) {
+    for (uint8_t b : h)
+    {
         ss << std::hex << std::setw(2) << std::setfill('0') << static_cast<int>(b);
     }
     return ss.str();
@@ -160,54 +166,76 @@ bool check_model_installed(const std::string &model_id)
 // -----------------------------------------------------------------------------
 // NEW FEATURE: sentinel-ctl status
 // -----------------------------------------------------------------------------
-int cmd_status() {
+int cmd_status()
+{
     std::cout << "\033[1;36m================================================================================\033[0m\n";
     std::cout << "\033[1;37m                 BLACKBOX SENTINEL APPLIANCE STATUS & HEALTH                    \033[0m\n";
     std::cout << "\033[1;36m================================================================================\033[0m\n";
 
     // 1. Licensing & Identity
     std::cout << "  \033[1m[1] Cryptographic Identity & Licensing:\033[0m\n";
-    if (fs::exists("/etc/sentinel/license.lic")) {
+    if (fs::exists("/etc/sentinel/license.lic"))
+    {
         std::cout << "      Status          : \033[1;32mACTIVE LICENSE LOADED\033[0m (/etc/sentinel/license.lic)\n";
-    } else {
+    }
+    else
+    {
         std::cout << "      Status          : \033[1;33mCOMMUNITY EVALUATION\033[0m (Unlicensed mode)\n";
     }
-    if (fs::exists("/dev/tpmrm0") || fs::exists("/dev/tpm0")) {
+    if (fs::exists("/dev/tpmrm0") || fs::exists("/dev/tpm0"))
+    {
         std::cout << "      Hardware Root   : \033[1;32mPHYSICAL TPM 2.0 ATTESTED\033[0m\n";
-    } else {
+    }
+    else
+    {
         std::cout << "      Hardware Root   : \033[1;33mDMI UUID FALLBACK\033[0m (Virtualization detected)\n";
     }
 
     // 2. Kernel eBPF/XDP State
     std::cout << "\n  \033[1m[2] In-Kernel eBPF/XDP Mitigation Subsystem:\033[0m\n";
-    if (fs::exists("/sys/fs/bpf/blackbox_blocked_ips") || fs::exists("/sys/fs/bpf/blocked_ip_map")) {
+    if (fs::exists("/sys/fs/bpf/blackbox_blocked_ips") || fs::exists("/sys/fs/bpf/blocked_ip_map"))
+    {
         std::cout << "      eBPF Map Status : \033[1;32mPINNED & ACTIVE IN KERNEL\033[0m (< 0.84 µs SLA)\n";
-    } else {
+    }
+    else
+    {
         std::cout << "      eBPF Map Status : \033[1;33mIN-PROCESS RUNTIME\033[0m (Local testing mode)\n";
     }
 
     // 3. Extensibility & Installed Extensions
     size_t count_native = 0, count_wasm = 0, count_lua = 0;
-    if (fs::exists("/etc/sentinel/plugins.d")) {
-        for (const auto& e : fs::directory_iterator("/etc/sentinel/plugins.d")) if (e.path().extension() == ".so") count_native++;
+    if (fs::exists("/etc/sentinel/plugins.d"))
+    {
+        for (const auto &e : fs::directory_iterator("/etc/sentinel/plugins.d"))
+            if (e.path().extension() == ".so")
+                count_native++;
     }
-    if (fs::exists("/etc/sentinel/wasm.d")) {
-        for (const auto& e : fs::directory_iterator("/etc/sentinel/wasm.d")) if (e.path().extension() == ".wasm") count_wasm++;
+    if (fs::exists("/etc/sentinel/wasm.d"))
+    {
+        for (const auto &e : fs::directory_iterator("/etc/sentinel/wasm.d"))
+            if (e.path().extension() == ".wasm")
+                count_wasm++;
     }
-    if (fs::exists("/etc/sentinel/rules.d")) {
-        for (const auto& e : fs::directory_iterator("/etc/sentinel/rules.d")) if (e.path().extension() == ".lua") count_lua++;
+    if (fs::exists("/etc/sentinel/rules.d"))
+    {
+        for (const auto &e : fs::directory_iterator("/etc/sentinel/rules.d"))
+            if (e.path().extension() == ".lua")
+                count_lua++;
     }
 
     std::cout << "\n  \033[1m[3] Installed Extensions & 3-Tier Plugins:\033[0m\n"
               << "      Tier A: Native C++20 Dissectors : " << count_native << " installed (< 120 ns SLA)\n"
-              << "      Tier C: LuaJIT Dynamic Rules    : " << count_lua    << " installed (< 450 ns SLA)\n"
-              << "      Tier B: Rust Wasm3 Sandboxes    : " << count_wasm   << " installed (< 1.5 µs SLA)\n";
+              << "      Tier C: LuaJIT Dynamic Rules    : " << count_lua << " installed (< 450 ns SLA)\n"
+              << "      Tier B: Rust Wasm3 Sandboxes    : " << count_wasm << " installed (< 1.5 µs SLA)\n";
 
     // 4. Default Routing Profile
     std::cout << "\n  \033[1m[4] Routing DAG Profile:\033[0m\n";
-    if (fs::exists("configs/model_routes.yaml")) {
+    if (fs::exists("configs/model_routes.yaml"))
+    {
         std::cout << "      Profile         : \033[1;32mconfigs/model_routes.yaml\033[0m (4-Stage Pipeline)\n";
-    } else {
+    }
+    else
+    {
         std::cout << "      Profile         : \033[1;31mMISSING\033[0m\n";
     }
     std::cout << "\033[1;36m================================================================================\033[0m\n";
@@ -217,14 +245,17 @@ int cmd_status() {
 // -----------------------------------------------------------------------------
 // NEW FEATURE: sentinel-ctl install <file.spkg>
 // -----------------------------------------------------------------------------
-int cmd_install_spkg(const fs::path& spkg_path) {
-    if (!fs::exists(spkg_path)) {
+int cmd_install_spkg(const fs::path &spkg_path)
+{
+    if (!fs::exists(spkg_path))
+    {
         std::cerr << "[-] Error: Package not found: " << spkg_path << std::endl;
         return 1;
     }
 
     auto container = read_binary_file(spkg_path);
-    if (container.size() < sizeof(SpkgHeader)) {
+    if (container.size() < sizeof(SpkgHeader))
+    {
         std::cerr << "[-] Error: File too small to be a valid .spkg" << std::endl;
         return 1;
     }
@@ -232,24 +263,27 @@ int cmd_install_spkg(const fs::path& spkg_path) {
     SpkgHeader hdr;
     std::memcpy(&hdr, container.data(), sizeof(hdr));
 
-    if (hdr.magic != SPKG_MAGIC) {
+    if (hdr.magic != SPKG_MAGIC)
+    {
         std::cerr << "[-] Error: Magic mismatch! Not a valid .spkg package." << std::endl;
         return 1;
     }
 
-    const uint8_t* man_ptr  = container.data() + sizeof(SpkgHeader);
-    const uint8_t* pay_ptr  = man_ptr + hdr.manifest_len;
-    const uint8_t* src_ptr  = pay_ptr + hdr.payload_len;
-    const uint8_t* test_ptr = src_ptr + hdr.source_len;
+    const uint8_t *man_ptr = container.data() + sizeof(SpkgHeader);
+    const uint8_t *pay_ptr = man_ptr + hdr.manifest_len;
+    const uint8_t *src_ptr = pay_ptr + hdr.payload_len;
+    const uint8_t *test_ptr = src_ptr + hdr.source_len;
 
     // Cryptographic Merkle Verification if Authority Key exists
     fs::path pub_key_path = "/home/kami/sentinel-hub/keys/authority_key_public.pem";
-    if (!fs::exists(pub_key_path)) pub_key_path = "/etc/sentinel/authority_key_public.pem";
+    if (!fs::exists(pub_key_path))
+        pub_key_path = "/etc/sentinel/authority_key_public.pem";
 
-    if (fs::exists(pub_key_path)) {
-        auto h_man  = sha256_buffer(man_ptr, hdr.manifest_len);
-        auto h_pay  = sha256_buffer(pay_ptr, hdr.payload_len);
-        auto h_src  = sha256_buffer(src_ptr, hdr.source_len);
+    if (fs::exists(pub_key_path))
+    {
+        auto h_man = sha256_buffer(man_ptr, hdr.manifest_len);
+        auto h_pay = sha256_buffer(pay_ptr, hdr.payload_len);
+        auto h_src = sha256_buffer(src_ptr, hdr.source_len);
         auto h_test = sha256_buffer(test_ptr, hdr.test_vector_len);
 
         std::vector<uint8_t> merkle_input;
@@ -258,18 +292,21 @@ int cmd_install_spkg(const fs::path& spkg_path) {
         merkle_input.insert(merkle_input.end(), h_src.begin(), h_src.end());
         merkle_input.insert(merkle_input.end(), h_test.begin(), h_test.end());
 
-        FILE* fp = fopen(pub_key_path.c_str(), "rb");
-        if (fp) {
-            EVP_PKEY* pkey = PEM_read_PUBKEY(fp, nullptr, nullptr, nullptr);
+        FILE *fp = fopen(pub_key_path.c_str(), "rb");
+        if (fp)
+        {
+            EVP_PKEY *pkey = PEM_read_PUBKEY(fp, nullptr, nullptr, nullptr);
             fclose(fp);
-            if (pkey) {
-                EVP_MD_CTX* ctx = EVP_MD_CTX_new();
+            if (pkey)
+            {
+                EVP_MD_CTX *ctx = EVP_MD_CTX_new();
                 EVP_DigestVerifyInit(ctx, nullptr, nullptr, nullptr, pkey);
                 int res = EVP_DigestVerify(ctx, hdr.signature, 64, merkle_input.data(), merkle_input.size());
                 EVP_MD_CTX_free(ctx);
                 EVP_PKEY_free(pkey);
 
-                if (res != 1) {
+                if (res != 1)
+                {
                     std::cerr << "\033[1;31m[-] CRITICAL ERROR: Cryptographic signature verification failed! Package is TAMPERED.\033[0m\n";
                     return 1;
                 }
@@ -282,13 +319,18 @@ int cmd_install_spkg(const fs::path& spkg_path) {
     fs::path target_dir;
     std::string ext;
 
-    if (hdr.tier == 0) {
+    if (hdr.tier == 0)
+    {
         target_dir = "/etc/sentinel/plugins.d";
         ext = ".so";
-    } else if (hdr.tier == 1) {
+    }
+    else if (hdr.tier == 1)
+    {
         target_dir = "/etc/sentinel/wasm.d";
         ext = ".wasm";
-    } else {
+    }
+    else
+    {
         target_dir = "/etc/sentinel/rules.d";
         ext = ".lua";
     }
@@ -297,10 +339,10 @@ int cmd_install_spkg(const fs::path& spkg_path) {
     fs::path dest = target_dir / (stem + ext);
 
     std::ofstream out(dest, std::ios::binary);
-    out.write(reinterpret_cast<const char*>(pay_ptr), hdr.payload_len);
+    out.write(reinterpret_cast<const char *>(pay_ptr), hdr.payload_len);
     out.close();
 
-    std::cout << "\033[1;32m[+] Successfully installed " << spkg_path.filename().string() 
+    std::cout << "\033[1;32m[+] Successfully installed " << spkg_path.filename().string()
               << " -> " << dest.string() << " (" << hdr.payload_len << " bytes)\033[0m\n";
     return 0;
 }
@@ -308,9 +350,11 @@ int cmd_install_spkg(const fs::path& spkg_path) {
 // -----------------------------------------------------------------------------
 // NEW FEATURE: sentinel-ctl pcap pull <slug>
 // -----------------------------------------------------------------------------
-int cmd_pcap_pull(const std::string& slug) {
+int cmd_pcap_pull(const std::string &slug)
+{
     std::string filename = slug;
-    if (filename.size() < 5 || filename.substr(filename.size() - 5) != ".pcap") {
+    if (filename.size() < 5 || filename.substr(filename.size() - 5) != ".pcap")
+    {
         filename += ".pcap";
     }
 
@@ -322,19 +366,21 @@ int cmd_pcap_pull(const std::string& slug) {
 
     std::vector<fs::path> candidates = {
         "/home/kami/sentinel-hub/dist/pcaps/" + filename,
-        "/home/kami/sentinel-matrix/shared/datasets/" + filename
-    };
+        "/home/kami/sentinel-matrix/shared/datasets/" + filename};
 
     bool found = false;
-    for (const auto& c : candidates) {
-        if (fs::exists(c)) {
+    for (const auto &c : candidates)
+    {
+        if (fs::exists(c))
+        {
             fs::copy_file(c, dest_path, fs::copy_options::overwrite_existing);
             found = true;
             break;
         }
     }
 
-    if (found) {
+    if (found)
+    {
         auto data = read_binary_file(dest_path);
         std::cout << "\033[1;32m[+] Successfully staged " << filename << " -> " << dest_path.string() << "\033[0m\n"
                   << "    Size: " << data.size() << " bytes | SHA-256: " << sha256_hex(data.data(), data.size()).substr(0, 16) << "...\n";
@@ -348,9 +394,11 @@ int cmd_pcap_pull(const std::string& slug) {
 // -----------------------------------------------------------------------------
 // NEW FEATURE: sentinel-ctl dataset pull <slug>
 // -----------------------------------------------------------------------------
-int cmd_dataset_pull(const std::string& slug) {
+int cmd_dataset_pull(const std::string &slug)
+{
     std::string filename = slug;
-    if (filename.size() < 5 || filename.substr(filename.size() - 5) != ".slab") {
+    if (filename.size() < 5 || filename.substr(filename.size() - 5) != ".slab")
+    {
         filename += ".slab";
     }
 
@@ -361,7 +409,8 @@ int cmd_dataset_pull(const std::string& slug) {
     std::cout << "[*] Resolving zero-copy research dataset: " << filename << "...\n";
 
     fs::path hub_file = "/home/kami/sentinel-hub/dist/datasets/" + filename;
-    if (fs::exists(hub_file)) {
+    if (fs::exists(hub_file))
+    {
         fs::copy_file(hub_file, dest_path, fs::copy_options::overwrite_existing);
         auto data = read_binary_file(dest_path);
         std::cout << "\033[1;32m[+] Successfully staged " << filename << " -> " << dest_path.string() << "\033[0m\n"
@@ -404,19 +453,23 @@ int main(int argc, char *argv[])
 
     std::string cmd = argv[1];
 
-    if (cmd == "status") {
+    if (cmd == "status")
+    {
         return cmd_status();
     }
 
-    if (cmd == "install" && argc >= 3) {
+    if (cmd == "install" && argc >= 3)
+    {
         return cmd_install_spkg(argv[2]);
     }
 
-    if (cmd == "pcap" && argc >= 4 && std::string(argv[2]) == "pull") {
+    if (cmd == "pcap" && argc >= 4 && std::string(argv[2]) == "pull")
+    {
         return cmd_pcap_pull(argv[3]);
     }
 
-    if (cmd == "dataset" && argc >= 4 && std::string(argv[2]) == "pull") {
+    if (cmd == "dataset" && argc >= 4 && std::string(argv[2]) == "pull")
+    {
         return cmd_dataset_pull(argv[3]);
     }
 
