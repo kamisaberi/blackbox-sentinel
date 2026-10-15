@@ -230,9 +230,19 @@ int cmd_status()
 
     // 4. Default Routing Profile
     std::cout << "\n  \033[1m[4] Routing DAG Profile:\033[0m\n";
-    if (fs::exists("configs/model_routes.yaml"))
+    std::string found_profile;
+    for (const auto &p : {"configs/model_routes.yaml", "../configs/model_routes.yaml", "/etc/sentinel/model_routes.yaml"})
     {
-        std::cout << "      Profile         : \033[1;32mconfigs/model_routes.yaml\033[0m (4-Stage Pipeline)\n";
+        if (fs::exists(p))
+        {
+            found_profile = p;
+            break;
+        }
+    }
+
+    if (!found_profile.empty())
+    {
+        std::cout << "      Profile         : \033[1;32m" << found_profile << "\033[0m (4-Stage Pipeline)\n";
     }
     else
     {
