@@ -1,3 +1,5 @@
+#include <unistd.h>          // <--- ADD THIS LINE (Declares geteuid)
+
 #include <iostream>
 #include <fstream>
 #include <sstream>
