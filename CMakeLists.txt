@@ -465,6 +465,8 @@ add_executable(sentinel_ctl
 )
 target_link_libraries(sentinel_ctl PRIVATE
     Threads::Threads
+    OpenSSL::Crypto
+
 )
 set_target_properties(sentinel_ctl PROPERTIES
     OUTPUT_NAME "sentinel-ctl"
