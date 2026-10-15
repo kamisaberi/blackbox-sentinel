@@ -86,7 +86,7 @@ static std::vector<uint8_t> sha256_buffer(const uint8_t* data, size_t len) {
     return hash;
 }
 
-static std::string sha256_hex(const uint8_t* data, size_t len) {
+[[maybe_unused]] static std::string sha256_hex(const uint8_t* data, size_t len) {
     auto h = sha256_buffer(data, len);
     std::ostringstream ss;
     for (uint8_t b : h) {
