@@ -10,6 +10,7 @@
 #include <cstdlib>
 #include <openssl/evp.h>
 #include <openssl/pem.h>
+#include <netinet/in.h>
 
 #define SPKG_MAGIC 0x474B50534F595241ULL // "ARYOSPKG"
 #define SPKG_VERSION 1
