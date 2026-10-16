@@ -712,6 +712,17 @@ int main(int argc, char *argv[])
             return cmd_cache_import(argv[3]);
     }
 
+    if (cmd == "slab" && argc >= 4 && std::string(argv[2]) == "stream")
+    {
+        uint16_t port = (argc >= 5) ? static_cast<uint16_t>(std::stoul(argv[4])) : 9999;
+        return cmd_slab_stream(argv[3], port);
+    }
+
+    if (cmd == "model" && argc >= 4 && std::string(argv[2]) == "pull")
+    {
+        return cmd_model_pull(argv[3]);
+    }
+
     if (cmd == "sync" || cmd == "check" || cmd == "launch")
     {
         fs::path yaml_path = (argc >= 3) ? argv[2] : "configs/model_routes.yaml";
