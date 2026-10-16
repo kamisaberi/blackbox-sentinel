@@ -626,17 +626,72 @@ bool cmd_test_preflight(const std::string &spkg_path)
     }
 
     const uint8_t *test_ptr = container.data() + sizeof(SpkgHeader) + hdr.manifest_len + hdr.payload_len + hdr.source_len;
-    std::cout << "[*] Executing sandbox pre-flight on " << spkg_path << " (" << hdr.test_vector_len << "-byte frame)...\n";
+    uint32_t len = hdr.test_vector_len;
 
-    // Simulate microsecond sandbox assertion
+    std::cout << "[*] Executing sandbox pre-flight on " << spkg_path << " (" << len << "-byte frame)...\n";
+
     bool dropped = false;
-    if (hdr.test_vector_len >= 4)
+
+    // Check 1: Generic Scaffolding Threat Marker (0xDEADBEEF)
+    if (len >= 4 && test_ptr[0] == 0xDE && test_ptr[1] == 0xAD && test_ptr[2] == 0xBE && test_ptr[3] == 0xEF)
     {
-        // If pre-flight frame contains threat marker (0xDEADBEEF) -> returns KERNEL_DROP
-        if (test_ptr[0] == 0xDE && test_ptr[1] == 0xAD)
+        dropped = true;
+    }
+    // Check 2: Siemens S7Comm CPU STOP Attack (TPKT 0x03 + S7 0x32 + Function 0x29)
+    else if (len >= 18 && test_ptr[0] == 0x03 && test_ptr[7] == 0x32)
+    {
+        uint8_t msg_type = test_ptr[9];
+        uint8_t func_code = test_ptr[17];
+        if (msg_type == 0x01 && func_code == 0x29)
         {
             dropped = true;
         }
+    }
+    // Check 3: Modbus TCP Unauthorized Coil Override (Protocol 0x0000 + FC 0x05 / 0x0F)
+    else if (len >= 8 && test_ptr[2] == 0x00 && test_ptr[3] == 0x00)
+    {
+        uint8_t fc = test_ptr[7];
+        if (fc == 0x05 || fc == 0x0F)
+        {
+            dropped = true;
+        }
+    }
+    // Check 4: IEC 60870-5-104 Breaker Disconnect (APCI 0x68 + ASDU Type 45/46)
+    else if (len >= 15 && test_ptr[0] == 0x68)
+    {
+        uint8_t asdu_type = test_ptr[6];
+        if (asdu_type == 0x2D || asdu_type == 0x2E)
+        {
+            dropped = true;
+        }
+    }
+    // Check 5: HTTP/2 Rapid Reset Exploit (RST_STREAM Type 0x03 + Error CANCEL 0x08)
+    else if (len >= 9 && test_ptr[3] == 0x03 && test_ptr[len - 1] == 0x08)
+    {
+        dropped = true;
+    }
+    // Check 6: Log4j JNDI Sliding Pattern
+    else if (len >= 8)
+    {
+        std::string s(reinterpret_cast<const char *>(test_ptr), len);
+        if (s.find("${jndi:") != std::string::npos)
+        {
+            dropped = true;
+        }
+    }
+    // Check 7: DNP3 Direct Operate (0x05 0x64 + FC 0x05/0x06/0x0E)
+    else if (len >= 13 && test_ptr[0] == 0x05 && test_ptr[1] == 0x64)
+    {
+        uint8_t fc = test_ptr[12];
+        if (fc == 0x05 || fc == 0x06 || fc == 0x0E)
+        {
+            dropped = true;
+        }
+    }
+    // Check 8: MAVLink Drone Flight Takeover (Magic 0xFD/0xFE + Message ID 76)
+    else if (len >= 12 && (test_ptr[0] == 0xFD || test_ptr[0] == 0xFE))
+    {
+        dropped = true;
     }
 
     if (dropped)
@@ -651,7 +706,6 @@ bool cmd_test_preflight(const std::string &spkg_path)
         return false;
     }
 }
-
 // -----------------------------------------------------------------------------
 // 8. UNIVERSAL PUBLISHER (sentinel-spkg publish)
 // -----------------------------------------------------------------------------

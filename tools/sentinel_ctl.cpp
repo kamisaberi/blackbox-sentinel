@@ -12,6 +12,9 @@
 #include <cstdlib>
 #include <openssl/evp.h>
 #include <openssl/pem.h>
+#include <sys/socket.h>      // <--- ADD
+#include <netinet/in.h>      // <--- ADD
+#include <arpa/inet.h>       // <--- ADD
 
 namespace fs = std::filesystem;
 
