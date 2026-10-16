@@ -591,6 +591,8 @@ Package & Asset Management:
   install <file.spkg>      Verify signature & deploy .spkg to active runtime
   pcap pull <slug>         Pull certified malware PCAP into cache & stage to /etc/sentinel/pcaps/
   dataset pull <slug>      Pull zero-copy .slab dataset into cache & stage to /etc/sentinel/datasets/
+  slab stream <file.slab> [port]   Stream zero-copy binary records at 65,000+ EPS
+  model pull <model_slug>          Pull verified ONNX model weights directly
 
 Air-Gapped & Sneakernet Cache:
   cache list               List all cached assets and their sizes
