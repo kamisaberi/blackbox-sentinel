@@ -282,14 +282,34 @@ int main(int argc, char *argv[])
         std::cout << "[Blackbox Sentinel] Web Command Center live at: http://localhost:8443\n"
                   << std::endl;
 
+
+                  
+        // Dynamically resolve Nexus C2 endpoint from container environment
+        const char *env_nexus_host = std::getenv("NEXUS_HOST");
+        std::string nexus_host = env_nexus_host ? env_nexus_host : "127.0.0.1";
+
+        const char *env_nexus_port = std::getenv("NEXUS_PORT");
+        uint16_t nexus_port = env_nexus_port ? static_cast<uint16_t>(std::stoul(env_nexus_port)) : 50051;
+
+        const char *env_site_id = std::getenv("SITE_IDENTIFIER");
+        std::string site_id = env_site_id ? env_site_id : "Edge-Substation-01";
+
+        
         sentinel::nexus_client::NexusConfig n_cfg{
             .enabled = true,
-            .host = "127.0.0.1",
-            .port = 50051,
+            .host = nexus_host,
+            .port = nexus_port,
             .heartbeat_interval_sec = 5,
-            .site_identifier = "Edge-Substation-01",
+            .site_identifier = site_id,
             .active_model_name = "network_threat_v1.onnx"};
+
+        std::cout << "[Blackbox Sentinel] Connecting NexusUplink to C2 at "
+                  << nexus_host << ":" << nexus_port
+                  << " [Site: " << site_id << "]..." << std::endl;
+
+
         sentinel::nexus_client::NexusUplink::instance().start(n_cfg);
+
 
         // 9. Main Pipeline Event Ingestion Loop
         uint64_t counter = 0;
