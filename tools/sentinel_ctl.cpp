@@ -603,6 +603,69 @@ Global Options:
 )" << std::endl;
 }
 
+// -----------------------------------------------------------------------------
+// NEW COMMAND: sentinel-ctl slab stream <file.slab> [--port 9999]
+// -----------------------------------------------------------------------------
+int cmd_slab_stream(const fs::path& slab_path, uint16_t port) {
+    if (!fs::exists(slab_path)) {
+        std::cerr << "[-] Error: SLAB dataset not found: " << slab_path << std::endl;
+        return 1;
+    }
+
+    std::ifstream file(slab_path, std::ios::binary);
+    if (!file.is_open()) return 1;
+
+    int sock = socket(AF_INET, SOCK_DGRAM, 0);
+    if (sock < 0) return 1;
+
+    sockaddr_in dest{};
+    dest.sin_family = AF_INET;
+    dest.sin_port = htons(port);
+    inet_pton(AF_INET, "127.0.0.1", &dest.sin_addr);
+
+    std::cout << "\033[1;36m[*] Blasting zero-copy SLAB stream from " << slab_path.filename().string() 
+              << " to 127.0.0.1:" << port << "...\033[0m\n";
+
+    char buffer[4096];
+    size_t records = 0;
+    auto t_start = std::chrono::steady_clock::now();
+
+    while (file.read(buffer, 144)) { // 144 bytes = 16B header + 32*4B features
+        sendto(sock, buffer, 144, 0, (struct sockaddr*)&dest, sizeof(dest));
+        records++;
+    }
+    close(sock);
+
+    auto elapsed_ms = std::chrono::duration_cast<std::chrono::milliseconds>(
+        std::chrono::steady_clock::now() - t_start).count();
+    uint64_t eps = (elapsed_ms > 0) ? (records * 1000 / elapsed_ms) : records;
+
+    std::cout << "\033[1;32m[SUCCESS] Streamed " << records << " records in " 
+              << elapsed_ms << " ms (" << eps << " EPS line rate!)\033[0m\n";
+    return 0;
+}
+
+// -----------------------------------------------------------------------------
+// NEW COMMAND: sentinel-ctl model pull <model_slug>
+// -----------------------------------------------------------------------------
+int cmd_model_pull(const std::string& model_slug) {
+    std::string filename = model_slug;
+    if (filename.size() < 5 || filename.substr(filename.size() - 5) != ".onnx") filename += ".onnx";
+
+    fs::path cached_path;
+    if (!resolve_cached_asset("models", filename, cached_path)) {
+        return 1;
+    }
+
+    fs::path dest = fs::path("models") / filename;
+    fs::create_directories("models");
+    fs::copy_file(cached_path, dest, fs::copy_options::overwrite_existing);
+
+    std::cout << "\033[1;32m[+] Staged AI model to active runtime: " << dest.string() << "\033[0m\n";
+    return 0;
+}
+
+
 int main(int argc, char *argv[])
 {
     if (argc < 2)
