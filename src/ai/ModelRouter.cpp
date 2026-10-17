@@ -260,11 +260,10 @@ namespace sentinel::ai
             return res;
         }
 
-        // Dynamic Port Resolution: Uses explicitly passed port if available, otherwise matching rules
+        // Dynamic Port Resolution
         uint16_t target_port = override_port;
         if (target_port == 0)
         {
-            // Port non-zero fallback check from configured rules
             for (const auto &r : it->second.rules)
             {
                 if (r.port != 0)
@@ -286,12 +285,14 @@ namespace sentinel::ai
         // STAGE 1: SPKG REFLEX GATE (< 150 ns)
         // -------------------------------------------------------------------------
         SentinelDissectorResult spkg_res = supervisor.evaluate_frame(packet);
+        float score = static_cast<float>(spkg_res.threat_score) / 1000.0f; // Scaled 0-1000 to 0.0f-1.0f
+
         if (spkg_res.verdict == SENTINEL_VERDICT_KERNEL_DROP)
         {
             res.verdict = SENTINEL_VERDICT_KERNEL_DROP;
             res.mitigated_by_stage = "SPKG_REFLEX_GATE";
             res.rule_or_model_id = spkg_res.threat_name;
-            res.anomaly_score = 1.0f;
+            res.anomaly_score = score;
             res.total_latency_ns = std::chrono::duration_cast<std::chrono::nanoseconds>(
                                        std::chrono::steady_clock::now() - t_start)
                                        .count();
@@ -299,10 +300,8 @@ namespace sentinel::ai
         }
 
         // -------------------------------------------------------------------------
-        // STAGE 2 & 3: SUBSYSTEM & SILICON MODEL CHAIN (Evaluated via Dissector/Plugin)
+        // STAGE 2 & 3: SUBSYSTEM & SILICON MODEL CHAIN
         // -------------------------------------------------------------------------
-        float score = spkg_res.anomaly_score; // Dynamic score provided by dissector result
-
         for (const auto &stage : rule->model_stages)
         {
             if (score >= stage.threshold_drop)
@@ -338,23 +337,10 @@ namespace sentinel::ai
         // 1. Evaluate via Dynamic ThreatCorrelator engine if attached
         if (correlator_)
         {
-            // Convert numerical IDs or match telemetry
             uint32_t cyber_id = 100;
             uint32_t phys_id = 101;
-            try
-            {
-                cyber_id = std::stoul(cyber_sensor_id);
-            }
-            catch (...)
-            {
-            }
-            try
-            {
-                phys_id = std::stoul(physical_sensor_id);
-            }
-            catch (...)
-            {
-            }
+            try { cyber_id = std::stoul(cyber_sensor_id); } catch (...) {}
+            try { phys_id = std::stoul(physical_sensor_id); } catch (...) {}
 
             SensorReading cyber_rd{cyber_id, static_cast<double>(cyber_anomaly_score), 0, 0};
             SensorReading phys_rd{phys_id, static_cast<double>(physical_temperature_celsius), 0, 0};
