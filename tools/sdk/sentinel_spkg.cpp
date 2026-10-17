@@ -739,89 +739,11 @@ bool cmd_publish(const std::string &file_path, const std::string &token, const s
     }
 }
 
-// -----------------------------------------------------------------------------
-// LIVE FASTAPI API PUBLISHING & TOKEN COMMANDS
-// -----------------------------------------------------------------------------
 
-// 1. Create Developer Publishing Token: sentinel-spkg token create --name <name>
-bool cmd_token_create(const std::string &token_name, const std::string &user_jwt, const std::string &api_url)
-{
-    std::string endpoint = api_url + "/registry/tokens";
-    std::cout << "[*] Requesting developer token '" << token_name << "' from " << endpoint << "...\n";
 
-    std::string payload = "{\"name\":\"" + token_name + "\",\"scopes\":[\"packages:publish\",\"packages:validate\"]}";
 
-    std::string curl_cmd = "curl -sSL -X POST \"" + endpoint + "\" " + "-H \"Content-Type: application/json\" " + "-H \"Authorization: Bearer " + user_jwt + "\" " + "-d '" + payload + "' 2>&1";
 
-    int ret = std::system(curl_cmd.c_str());
-    std::cout << "\n";
-    return (ret == 0);
-}
 
-// 2. List Developer Tokens: sentinel-spkg token list
-bool cmd_token_list(const std::string &user_jwt, const std::string &api_url)
-{
-    std::string endpoint = api_url + "/registry/tokens";
-    std::cout << "[*] Fetching active publishing tokens from " << endpoint << "...\n";
-
-    std::string curl_cmd = "curl -sSL -X GET \"" + endpoint + "\" " + "-H \"Authorization: Bearer " + user_jwt + "\" 2>&1";
-
-    int ret = std::system(curl_cmd.c_str());
-    std::cout << "\n";
-    return (ret == 0);
-}
-
-// 3. Live Publish Asset: sentinel-spkg publish <file> --token <KEY>
-bool cmd_publish_live(const std::string &file_path,
-                      const std::string &token,
-                      const std::string &asset_type,
-                      const std::string &api_url)
-{
-    if (!fs::exists(file_path))
-    {
-        std::cerr << "[-] Error: File not found: " << file_path << std::endl;
-        return false;
-    }
-
-    std::string endpoint = api_url + "/hub/publish";
-    std::cout << "\033[1;36m[*] Live publishing asset '" << file_path << "' to " << endpoint << "...\033[0m\n";
-
-    // Read file bytes for SHA256 and size
-    auto data = read_binary_file(file_path);
-    std::string file_sha256 = sha256_hex(data.data(), data.size());
-    std::string file_name = fs::path(file_path).filename().string();
-
-    std::string auth_header = (token.rfind("ary_", 0) == 0) ? "ApiKey " + token : "Bearer " + token;
-
-    // Constructed JSON Manifest for API
-    std::ostringstream manifest_json;
-    manifest_json << "{"
-                  << "\"id\":\"org.aryorithm.package." << fs::path(file_path).stem().string() << "\","
-                  << "\"name\":\"" << fs::path(file_path).stem().string() << "\","
-                  << "\"version\":\"1.0.0\","
-                  << "\"tier\":\"" << asset_type << "\","
-                  << "\"target_protocol\":\"CUSTOM\","
-                  << "\"sha256\":\"" << file_sha256 << "\""
-                  << "}";
-
-    // Execute multipart POST to FastAPI backend
-    std::string curl_cmd = "curl -sSL -X POST \"" + endpoint + "\" " + "-H \"Authorization: " + auth_header + "\" " + "-F \"asset_type=" + asset_type + "\" " + "-F \"file=@" + file_path + "\" " + "-F \"manifest=" + manifest_json.str() + "\" " + "-F \"signature=d7a48b3c2d1e0f9a8b7c6d5e4f3a2b1c0d9e8f7a6b5c4d3e2f1a0b9c8d7e6f5a\" 2>&1";
-
-    std::cout << "    --> Streaming multipart payload to backend...\n";
-    int ret = std::system(curl_cmd.c_str());
-    std::cout << "\n";
-
-    if (ret == 0)
-    {
-        std::cout << "\033[1;32m[+] Successfully published asset " << file_name << " to " << api_url << "!\033[0m\n";
-        return true;
-    }
-    else
-    {
-        std::cerr << "[-] Error: Publish failed or endpoint unreachable.\n";
-        return false;
-    }
-}
 
 void print_help()
 {
