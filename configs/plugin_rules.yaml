@@ -1,0 +1,17 @@
+# Dynamic Dissector Plugin Rules
+# Stores register ranges, chemical limits, and rate thresholds without recompiling C++ plugins.
+
+modbus_actuator_guard:
+  target_coils: [0x0001, 0x0002, 0x0005]
+  holding_registers_allowed:
+    min: 40001
+    max: 40100
+
+dnp3_water_telemetry:
+  chemical_limits:
+    sodium_hydroxide_max_ppm: 11100.0
+    chlorine_max_ppm: 4.0
+
+http_rapid_reset_shield:
+  rate_limits:
+    max_rst_stream_per_sec: 100
