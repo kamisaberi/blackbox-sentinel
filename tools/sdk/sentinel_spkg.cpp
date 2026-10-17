@@ -818,6 +818,55 @@ bool cmd_token_create(const std::string& token_name, const std::string& hub_url)
 }
 
 
+// Seal an ONNX model file + manifest + Ed25519 signature into an .smodel bundle
+bool cmd_model_pack(const std::string& priv_key_path,
+                    const std::string& manifest_path,
+                    const std::string& in_onnx_path,
+                    const std::string& out_smodel_path) {
+    auto manifest_data = read_binary_file(manifest_path);
+    auto onnx_data = read_binary_file(in_onnx_path);
+
+    if (manifest_data.empty() || onnx_data.empty()) {
+        std::cerr << "[-] Error: Missing manifest or ONNX binary." << std::endl;
+        return false;
+    }
+
+    FILE* fp = fopen(priv_key_path.c_str(), "rb");
+    if (!fp) return false;
+    EVP_PKEY* pkey = PEM_read_PrivateKey(fp, nullptr, nullptr, nullptr);
+    fclose(fp);
+    if (!pkey) return false;
+
+    auto h_man = sha256_buffer(manifest_data.data(), manifest_data.size());
+    auto h_onnx = sha256_buffer(onnx_data.data(), onnx_data.size());
+
+    std::vector<uint8_t> merkle_input;
+    merkle_input.insert(merkle_input.end(), h_man.begin(), h_man.end());
+    merkle_input.insert(merkle_input.end(), h_onnx.begin(), h_onnx.end());
+
+    std::vector<uint8_t> sig(64);
+    EVP_MD_CTX* ctx = EVP_MD_CTX_new();
+    EVP_DigestSignInit(ctx, nullptr, nullptr, nullptr, pkey);
+    size_t sig_len = 64;
+    EVP_DigestSign(ctx, sig.data(), &sig_len, merkle_input.data(), merkle_input.size());
+    EVP_MD_CTX_free(ctx);
+    EVP_PKEY_free(pkey);
+
+    std::ofstream out(out_smodel_path, std::ios::binary);
+    uint64_t magic = 0x4C444F4D53504B47ULL; // "SPKGMDL"
+    out.write(reinterpret_cast<const char*>(&magic), 8);
+    out.write(reinterpret_cast<const char*>(sig.data()), 64);
+    uint32_t man_len = manifest_data.size();
+    out.write(reinterpret_cast<const char*>(&man_len), 4);
+    out.write(reinterpret_cast<const char*>(manifest_data.data()), manifest_data.size());
+    out.write(reinterpret_cast<const char*>(onnx_data.data()), onnx_data.size());
+    out.close();
+
+    std::cout << "\033[1;32m[+] Certified and sealed ONNX model into: " << out_smodel_path << "\033[0m\n"
+              << "    SHA-256: " << sha256_hex(onnx_data.data(), onnx_data.size()).substr(0, 16) << "...\n";
+    return true;
+}
+
 void print_help()
 {
     std::cout << R"(
