@@ -739,48 +739,49 @@ bool cmd_publish(const std::string &file_path, const std::string &token, const s
     }
 }
 
-
-
 static std::string g_hub_url = "https://backend.aryorithm.com/api/v1/hub";
 
-fs::path get_token_storage_path() {
-    const char* home = std::getenv("HOME");
+fs::path get_token_storage_path()
+{
+    const char *home = std::getenv("HOME");
     fs::path dir = home ? fs::path(home) / ".sentinel" : fs::path("/tmp/.sentinel");
     fs::create_directories(dir);
     return dir / "hub_token";
 }
 
-
 // Login to backend.aryorithm.com and save JWT session token
-bool cmd_login(const std::string& email, const std::string& pass, const std::string& hub_url) {
+bool cmd_login(const std::string &email, const std::string &pass, const std::string &hub_url)
+{
     std::cout << "[*] Authenticating with " << hub_url << " (" << email << ")..." << std::endl;
-    
+
     std::string endpoint = hub_url + "/auth/login";
     std::string payload = "{\"email\":\"" + email + "\",\"password\":\"" + pass + "\"}";
-    
-    std::string curl_cmd = "curl -sSL -X POST \"" + endpoint + "\" "
-                         + "-H \"Content-Type: application/json\" "
-                         + "-d '" + payload + "' 2>&1";
-                         
-    FILE* pipe = popen(curl_cmd.c_str(), "r");
-    if (!pipe) return false;
+
+    std::string curl_cmd = "curl -sSL -X POST \"" + endpoint + "\" " + "-H \"Content-Type: application/json\" " + "-d '" + payload + "' 2>&1";
+
+    FILE *pipe = popen(curl_cmd.c_str(), "r");
+    if (!pipe)
+        return false;
 
     char buffer[4096];
     std::string resp;
-    while (fgets(buffer, sizeof(buffer), pipe) != nullptr) resp += buffer;
+    while (fgets(buffer, sizeof(buffer), pipe) != nullptr)
+        resp += buffer;
     pclose(pipe);
 
     // Extract access_token
     size_t pos = resp.find("\"access_token\"");
-    if (pos != std::string::npos) {
+    if (pos != std::string::npos)
+    {
         size_t start = resp.find('"', resp.find(':', pos) + 1);
         size_t end = resp.find('"', start + 1);
-        if (start != std::string::npos && end != std::string::npos) {
+        if (start != std::string::npos && end != std::string::npos)
+        {
             std::string token = resp.substr(start + 1, end - start - 1);
             std::ofstream out(get_token_storage_path());
             out << token;
             out.close();
-            std::cout << "\033[1;32m[+] Successfully authenticated! Token saved to " 
+            std::cout << "\033[1;32m[+] Successfully authenticated! Token saved to "
                       << get_token_storage_path().string() << "\033[0m\n";
             return true;
         }
@@ -791,9 +792,11 @@ bool cmd_login(const std::string& email, const std::string& pass, const std::str
 }
 
 // Generate a CLI Publishing API Token from backend.aryorithm.com
-bool cmd_token_create(const std::string& token_name, const std::string& hub_url) {
+bool cmd_token_create(const std::string &token_name, const std::string &hub_url)
+{
     fs::path t_path = get_token_storage_path();
-    if (!fs::exists(t_path)) {
+    if (!fs::exists(t_path))
+    {
         std::cerr << "[-] Error: Not logged in. Run 'sentinel-spkg login <email> <password>' first.\n";
         return false;
     }
@@ -807,35 +810,35 @@ bool cmd_token_create(const std::string& token_name, const std::string& hub_url)
     std::string endpoint = hub_url + "/registry/tokens";
     std::string payload = "{\"name\":\"" + token_name + "\",\"scopes\":[\"packages:publish\",\"packages:validate\"]}";
 
-    std::string curl_cmd = "curl -sSL -X POST \"" + endpoint + "\" "
-                         + "-H \"Authorization: Bearer " + jwt + "\" "
-                         + "-H \"Content-Type: application/json\" "
-                         + "-d '" + payload + "' 2>&1";
+    std::string curl_cmd = "curl -sSL -X POST \"" + endpoint + "\" " + "-H \"Authorization: Bearer " + jwt + "\" " + "-H \"Content-Type: application/json\" " + "-d '" + payload + "' 2>&1";
 
     std::system(curl_cmd.c_str());
     std::cout << "\n\033[1;32m[+] API Token Request Dispatched.\033[0m\n";
     return true;
 }
 
-
 // Seal an ONNX model file + manifest + Ed25519 signature into an .smodel bundle
-bool cmd_model_pack(const std::string& priv_key_path,
-                    const std::string& manifest_path,
-                    const std::string& in_onnx_path,
-                    const std::string& out_smodel_path) {
+bool cmd_model_pack(const std::string &priv_key_path,
+                    const std::string &manifest_path,
+                    const std::string &in_onnx_path,
+                    const std::string &out_smodel_path)
+{
     auto manifest_data = read_binary_file(manifest_path);
     auto onnx_data = read_binary_file(in_onnx_path);
 
-    if (manifest_data.empty() || onnx_data.empty()) {
+    if (manifest_data.empty() || onnx_data.empty())
+    {
         std::cerr << "[-] Error: Missing manifest or ONNX binary." << std::endl;
         return false;
     }
 
-    FILE* fp = fopen(priv_key_path.c_str(), "rb");
-    if (!fp) return false;
-    EVP_PKEY* pkey = PEM_read_PrivateKey(fp, nullptr, nullptr, nullptr);
+    FILE *fp = fopen(priv_key_path.c_str(), "rb");
+    if (!fp)
+        return false;
+    EVP_PKEY *pkey = PEM_read_PrivateKey(fp, nullptr, nullptr, nullptr);
     fclose(fp);
-    if (!pkey) return false;
+    if (!pkey)
+        return false;
 
     auto h_man = sha256_buffer(manifest_data.data(), manifest_data.size());
     auto h_onnx = sha256_buffer(onnx_data.data(), onnx_data.size());
@@ -845,7 +848,7 @@ bool cmd_model_pack(const std::string& priv_key_path,
     merkle_input.insert(merkle_input.end(), h_onnx.begin(), h_onnx.end());
 
     std::vector<uint8_t> sig(64);
-    EVP_MD_CTX* ctx = EVP_MD_CTX_new();
+    EVP_MD_CTX *ctx = EVP_MD_CTX_new();
     EVP_DigestSignInit(ctx, nullptr, nullptr, nullptr, pkey);
     size_t sig_len = 64;
     EVP_DigestSign(ctx, sig.data(), &sig_len, merkle_input.data(), merkle_input.size());
@@ -854,17 +857,67 @@ bool cmd_model_pack(const std::string& priv_key_path,
 
     std::ofstream out(out_smodel_path, std::ios::binary);
     uint64_t magic = 0x4C444F4D53504B47ULL; // "SPKGMDL"
-    out.write(reinterpret_cast<const char*>(&magic), 8);
-    out.write(reinterpret_cast<const char*>(sig.data()), 64);
+    out.write(reinterpret_cast<const char *>(&magic), 8);
+    out.write(reinterpret_cast<const char *>(sig.data()), 64);
     uint32_t man_len = manifest_data.size();
-    out.write(reinterpret_cast<const char*>(&man_len), 4);
-    out.write(reinterpret_cast<const char*>(manifest_data.data()), manifest_data.size());
-    out.write(reinterpret_cast<const char*>(onnx_data.data()), onnx_data.size());
+    out.write(reinterpret_cast<const char *>(&man_len), 4);
+    out.write(reinterpret_cast<const char *>(manifest_data.data()), manifest_data.size());
+    out.write(reinterpret_cast<const char *>(onnx_data.data()), onnx_data.size());
     out.close();
 
     std::cout << "\033[1;32m[+] Certified and sealed ONNX model into: " << out_smodel_path << "\033[0m\n"
               << "    SHA-256: " << sha256_hex(onnx_data.data(), onnx_data.size()).substr(0, 16) << "...\n";
     return true;
+}
+
+bool cmd_publish(const std::string &file_path, std::string token, const std::string &hub_url)
+{
+    if (!fs::exists(file_path))
+    {
+        std::cerr << "[-] Error: File to publish not found: " << file_path << std::endl;
+        return false;
+    }
+
+    // Auto-load stored token if not passed as CLI argument
+    if (token.empty())
+    {
+        fs::path t_path = get_token_storage_path();
+        if (fs::exists(t_path))
+        {
+            std::ifstream in(t_path);
+            in >> token;
+            in.close();
+        }
+    }
+
+    if (token.empty())
+    {
+        std::cerr << "[-] Error: No token provided. Run 'sentinel-spkg login' or pass --token <KEY>.\n";
+        return false;
+    }
+
+    std::cout << "[*] Initiating upload for " << file_path << " to " << hub_url << "...\n";
+    std::string upload_endpoint = hub_url + "/publish";
+
+    std::string asset_type = "package";
+    std::string ext = fs::path(file_path).extension().string();
+    if (ext == ".pcap" || ext == ".spcap")
+        asset_type = "pcap";
+    else if (ext == ".slab")
+        asset_type = "dataset";
+    else if (ext == ".onnx" || ext == ".smodel")
+        asset_type = "model";
+
+    std::string curl_cmd = "curl -sSL -X POST \"" + upload_endpoint + "\" " + "-H \"Authorization: Bearer " + token + "\" " + "-F \"asset_type=" + asset_type + "\" " + "-F \"file=@" + file_path + "\" 2>&1";
+
+    int ret = std::system(curl_cmd.c_str());
+    if (ret == 0)
+    {
+        std::cout << "\033[1;32m[+] Successfully published " << fs::path(file_path).filename().string()
+                  << " to " << hub_url << "!\033[0m\n";
+        return true;
+    }
+    return false;
 }
 
 void print_help()
