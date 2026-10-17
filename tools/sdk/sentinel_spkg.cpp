@@ -741,6 +741,14 @@ bool cmd_publish(const std::string &file_path, const std::string &token, const s
 
 
 
+static std::string g_hub_url = "https://backend.aryorithm.com/api/v1/hub";
+
+fs::path get_token_storage_path() {
+    const char* home = std::getenv("HOME");
+    fs::path dir = home ? fs::path(home) / ".sentinel" : fs::path("/tmp/.sentinel");
+    fs::create_directories(dir);
+    return dir / "hub_token";
+}
 
 
 
