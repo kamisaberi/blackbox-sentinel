@@ -1,0 +1,52 @@
+# Dynamic Sensor Definition File
+# Allows blackbox-sentinel to correlate network cyber state with physical plant telemetry.
+
+sensors:
+  - id: 101
+    name: "Substation Transformer Thermal Probe"
+    modality: "THERMAL"               # THERMAL, VIBRATION, PRESSURE, CHEMICAL, ELECTRICAL, CYBER
+    unit: "deg_C"
+    min_physical_bound: -20.0
+    max_physical_bound: 180.0
+    warning_threshold: 85.0
+    critical_threshold: 120.0
+
+  - id: 102
+    name: "Turbine Bearing Acoustic Vibration"
+    modality: "VIBRATION"
+    unit: "mm_s"
+    min_physical_bound: 0.0
+    max_physical_bound: 50.0
+    warning_threshold: 12.0
+    critical_threshold: 25.0
+
+  - id: 103
+    name: "Water Treatment Pump Hydraulic Pressure"
+    modality: "PRESSURE"
+    unit: "PSI"
+    min_physical_bound: 0.0
+    max_physical_bound: 300.0
+    warning_threshold: 180.0
+    critical_threshold: 240.0
+
+# Cross-Modal Correlation Rules (Cyber State vs. Physical Sensor Readings)
+correlation_rules:
+  - rule_id: 1001
+    name: "STUXNET_THERMAL_BLINDING_ATTACK"
+    cyber_sensor_id: 100               # Network SCADA Modbus Telemetry Channel
+    expected_cyber_status: 0           # 0 = Normal
+    physical_sensor_id: 101            # Thermal Probe
+    condition: "GREATER_THAN"          # GREATER_THAN, LESS_THAN, OUT_OF_BOUNDS
+    trigger_value: 120.0
+    action: "KERNEL_DROP_AND_ISOLATE"  # PASS, ALERT_ONLY, KERNEL_DROP_AND_ISOLATE
+    base_threat_score: 0.99
+
+  - rule_id: 1002
+    name: "TURBINE_OVERSPEED_DECEPTION"
+    cyber_sensor_id: 100
+    expected_cyber_status: 0
+    physical_sensor_id: 102
+    condition: "GREATER_THAN"
+    trigger_value: 25.0
+    action: "KERNEL_DROP_AND_ISOLATE"
+    base_threat_score: 0.95
