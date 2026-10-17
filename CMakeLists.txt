@@ -234,6 +234,7 @@ set(SENTINEL_SOURCES
     src/sdk/PluginSupervisor.cpp
     src/nexus/DynamicRuleReceiver.cpp                     # <--- ADD THIS LINE
     src/ai/ModelRouter.cpp                                # <--- ADD THIS LINE
+    src/ai/ThreatCorrelator.cpp                           # <--- ADDED THREAT CORRELATOR SOURCE
 
     ${PROTO_GEN_SRCS}
     ${GRPC_GEN_SRCS}
