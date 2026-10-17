@@ -751,6 +751,71 @@ fs::path get_token_storage_path() {
 }
 
 
+// Login to backend.aryorithm.com and save JWT session token
+bool cmd_login(const std::string& email, const std::string& pass, const std::string& hub_url) {
+    std::cout << "[*] Authenticating with " << hub_url << " (" << email << ")..." << std::endl;
+    
+    std::string endpoint = hub_url + "/auth/login";
+    std::string payload = "{\"email\":\"" + email + "\",\"password\":\"" + pass + "\"}";
+    
+    std::string curl_cmd = "curl -sSL -X POST \"" + endpoint + "\" "
+                         + "-H \"Content-Type: application/json\" "
+                         + "-d '" + payload + "' 2>&1";
+                         
+    FILE* pipe = popen(curl_cmd.c_str(), "r");
+    if (!pipe) return false;
+
+    char buffer[4096];
+    std::string resp;
+    while (fgets(buffer, sizeof(buffer), pipe) != nullptr) resp += buffer;
+    pclose(pipe);
+
+    // Extract access_token
+    size_t pos = resp.find("\"access_token\"");
+    if (pos != std::string::npos) {
+        size_t start = resp.find('"', resp.find(':', pos) + 1);
+        size_t end = resp.find('"', start + 1);
+        if (start != std::string::npos && end != std::string::npos) {
+            std::string token = resp.substr(start + 1, end - start - 1);
+            std::ofstream out(get_token_storage_path());
+            out << token;
+            out.close();
+            std::cout << "\033[1;32m[+] Successfully authenticated! Token saved to " 
+                      << get_token_storage_path().string() << "\033[0m\n";
+            return true;
+        }
+    }
+
+    std::cerr << "[-] Authentication failed: " << resp << std::endl;
+    return false;
+}
+
+// Generate a CLI Publishing API Token from backend.aryorithm.com
+bool cmd_token_create(const std::string& token_name, const std::string& hub_url) {
+    fs::path t_path = get_token_storage_path();
+    if (!fs::exists(t_path)) {
+        std::cerr << "[-] Error: Not logged in. Run 'sentinel-spkg login <email> <password>' first.\n";
+        return false;
+    }
+
+    std::ifstream in(t_path);
+    std::string jwt;
+    in >> jwt;
+    in.close();
+
+    std::cout << "[*] Requesting developer publishing token '" << token_name << "' from backend...\n";
+    std::string endpoint = hub_url + "/registry/tokens";
+    std::string payload = "{\"name\":\"" + token_name + "\",\"scopes\":[\"packages:publish\",\"packages:validate\"]}";
+
+    std::string curl_cmd = "curl -sSL -X POST \"" + endpoint + "\" "
+                         + "-H \"Authorization: Bearer " + jwt + "\" "
+                         + "-H \"Content-Type: application/json\" "
+                         + "-d '" + payload + "' 2>&1";
+
+    std::system(curl_cmd.c_str());
+    std::cout << "\n\033[1;32m[+] API Token Request Dispatched.\033[0m\n";
+    return true;
+}
 
 
 void print_help()
