@@ -7,6 +7,14 @@
 namespace sentinel::ai
 {
 
+    ModelRouter::ModelRouter(std::shared_ptr<ThreatCorrelator> correlator)
+        : correlator_(std::move(correlator)) {}
+
+    void ModelRouter::set_threat_correlator(std::shared_ptr<ThreatCorrelator> correlator)
+    {
+        correlator_ = std::move(correlator);
+    }
+
     static std::string trim_val(const std::string &s)
     {
         auto start = s.find_first_not_of(" \t\r\n\"-");
@@ -239,7 +247,8 @@ namespace sentinel::ai
     RouteExecutionResult ModelRouter::dispatch_and_evaluate(
         const std::string &sensor_id,
         const SentinelRawPacket &packet,
-        sentinel::sdk::PluginSupervisor &supervisor)
+        sentinel::sdk::PluginSupervisor &supervisor,
+        uint16_t override_port)
     {
         RouteExecutionResult res;
         auto t_start = std::chrono::steady_clock::now();
@@ -251,14 +260,19 @@ namespace sentinel::ai
             return res;
         }
 
-        uint16_t target_port = 502; // Heuristic default for Modbus testing
-        if (packet.length >= 8 && packet.data[2] == 0x00 && packet.data[3] == 0x00)
+        // Dynamic Port Resolution: Uses explicitly passed port if available, otherwise matching rules
+        uint16_t target_port = override_port;
+        if (target_port == 0)
         {
-            target_port = 502;
-        }
-        else if (packet.length >= 4 && packet.data[0] == 0x03)
-        {
-            target_port = 102;
+            // Port non-zero fallback check from configured rules
+            for (const auto &r : it->second.rules)
+            {
+                if (r.port != 0)
+                {
+                    target_port = r.port;
+                    break;
+                }
+            }
         }
 
         const TrafficRule *rule = match_rule(it->second, target_port, "tcp");
@@ -285,24 +299,19 @@ namespace sentinel::ai
         }
 
         // -------------------------------------------------------------------------
-        // STAGE 2 & 3: SUBSYSTEM & SILICON MODEL CHAIN (libxinfer.so simulation)
+        // STAGE 2 & 3: SUBSYSTEM & SILICON MODEL CHAIN (Evaluated via Dissector/Plugin)
         // -------------------------------------------------------------------------
+        float score = spkg_res.anomaly_score; // Dynamic score provided by dissector result
+
         for (const auto &stage : rule->model_stages)
         {
-            float score = 0.15f; // Benign baseline score
-
-            if (packet.length >= 8 && packet.data[7] == 0x05)
-            {
-                score = 0.94f; // Breaches threshold_drop (0.88)
-            }
-
             if (score >= stage.threshold_drop)
             {
                 res.verdict = SENTINEL_VERDICT_KERNEL_DROP;
                 res.mitigated_by_stage = "SUBSYSTEM_" + rule->owner_subsystem;
                 res.rule_or_model_id = stage.model_id + " [" + stage.silicon_target + "]";
                 res.anomaly_score = score;
-                res.mrd_xai_attribution = "SCADA_Function_Code (54.2%) | Physical_Actuator_Zone (28.1%)";
+                res.mrd_xai_attribution = "SCADA_Function_Code Attribution | Physical_Actuator_Zone";
                 res.total_latency_ns = std::chrono::duration_cast<std::chrono::nanoseconds>(
                                            std::chrono::steady_clock::now() - t_start)
                                            .count();
@@ -326,10 +335,36 @@ namespace sentinel::ai
         RouteExecutionResult res;
         res.verdict = SENTINEL_VERDICT_PASS;
 
+        // 1. Evaluate via Dynamic ThreatCorrelator engine if attached
+        if (correlator_)
+        {
+            // Convert numerical IDs or match telemetry
+            uint32_t cyber_id = 100;
+            uint32_t phys_id = 101;
+            try { cyber_id = std::stoul(cyber_sensor_id); } catch (...) {}
+            try { phys_id = std::stoul(physical_sensor_id); } catch (...) {}
+
+            SensorReading cyber_rd{cyber_id, static_cast<double>(cyber_anomaly_score), 0, 0};
+            SensorReading phys_rd{phys_id, static_cast<double>(physical_temperature_celsius), 0, 0};
+
+            correlator_->update_sensor_reading(cyber_rd);
+            correlator_->update_sensor_reading(phys_rd);
+
+            CorrelationVerdict verdict = correlator_->evaluate(cyber_id);
+            if (verdict.is_threat)
+            {
+                res.verdict = SENTINEL_VERDICT_KERNEL_DROP;
+                res.mitigated_by_stage = "DYNAMIC_CROSS_MODAL_CORRELATOR";
+                res.rule_or_model_id = verdict.threat_name;
+                res.anomaly_score = verdict.threat_score;
+                res.mrd_xai_attribution = verdict.explanation;
+                return res;
+            }
+        }
+
+        // 2. Fallback to model_routes.yaml CrossModalRule list
         for (const auto &rule : fusion_rules_)
         {
-            // Stuxnet HMI Discrepancy Detection:
-            // Cyber says normal (low score) BUT physical sensor says overheating (> 120°C)
             bool cyber_match = (rule.cyber_sensor_id.empty() || rule.cyber_sensor_id == cyber_sensor_id);
             bool physical_match = (rule.physical_sensor_id.empty() || rule.physical_sensor_id == physical_sensor_id);
 
@@ -338,7 +373,6 @@ namespace sentinel::ai
                 if (cyber_anomaly_score <= rule.cyber_max_score &&
                     physical_temperature_celsius >= rule.physical_min_temp)
                 {
-
                     res.verdict = SENTINEL_VERDICT_KERNEL_DROP;
                     res.mitigated_by_stage = "CROSS_MODAL_FUSION";
                     res.rule_or_model_id = rule.correlation_id;
