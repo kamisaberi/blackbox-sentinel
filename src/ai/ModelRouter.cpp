@@ -341,8 +341,20 @@ namespace sentinel::ai
             // Convert numerical IDs or match telemetry
             uint32_t cyber_id = 100;
             uint32_t phys_id = 101;
-            try { cyber_id = std::stoul(cyber_sensor_id); } catch (...) {}
-            try { phys_id = std::stoul(physical_sensor_id); } catch (...) {}
+            try
+            {
+                cyber_id = std::stoul(cyber_sensor_id);
+            }
+            catch (...)
+            {
+            }
+            try
+            {
+                phys_id = std::stoul(physical_sensor_id);
+            }
+            catch (...)
+            {
+            }
 
             SensorReading cyber_rd{cyber_id, static_cast<double>(cyber_anomaly_score), 0, 0};
             SensorReading phys_rd{phys_id, static_cast<double>(physical_temperature_celsius), 0, 0};
