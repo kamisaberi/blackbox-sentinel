@@ -443,7 +443,7 @@ install(TARGETS
 
 
 # -------------------------------------------------------------------
-# SENTINEL PACKAGE (.spkg) TOOLCHAIN
+# UNIVERSAL ARTIFACT TOOLCHAIN (sentinel-artifact / sentinel-spkg)
 # -------------------------------------------------------------------
 add_executable(sentinel_artifact
     tools/sdk/sentinel_artifact.cpp
@@ -455,8 +455,9 @@ set_target_properties(sentinel_artifact PROPERTIES
     OUTPUT_NAME "sentinel-artifact"
 )
 
+# Install sentinel-artifact and create sentinel-spkg backward-compatibility symlink
 install(TARGETS sentinel_artifact DESTINATION /usr/local/bin)
-
+install(CODE "execute_process(COMMAND ${CMAKE_COMMAND} -E create_symlink sentinel-artifact /usr/local/bin/sentinel-spkg)")
 
 # -------------------------------------------------------------------
 # SENTINEL-CTL DEPENDENCY & APPLIANCE MANAGER
