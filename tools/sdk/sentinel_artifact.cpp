@@ -227,15 +227,15 @@ bool cmd_keygen(const std::string &prefix)
 }
 
 // -----------------------------------------------------------------------------
-// 3. PACK-ALL COMMAND
+// 3. LOW-LEVEL RAW PACK COMMAND
 // -----------------------------------------------------------------------------
-bool cmd_pack(const std::string &priv_key_path,
-              uint32_t tier,
-              const std::string &manifest_path,
-              const std::string &payload_path,
-              const std::string &source_path,
-              const std::string &test_pkt_path,
-              const std::string &out_path)
+bool cmd_pack_raw(const std::string &priv_key_path,
+                  uint32_t tier,
+                  const std::string &manifest_path,
+                  const std::string &payload_path,
+                  const std::string &source_path,
+                  const std::string &test_pkt_path,
+                  const std::string &out_path)
 {
     auto manifest_data = read_binary_file(manifest_path);
     auto payload_data = read_binary_file(payload_path);
@@ -305,7 +305,168 @@ bool cmd_pack(const std::string &priv_key_path,
 }
 
 // -----------------------------------------------------------------------------
-// 4. INSPECT & VERIFY COMMANDS
+// 4. SMART DIRECTORY AUTO-PACKER (sentinel-artifact pack [dir])
+// -----------------------------------------------------------------------------
+bool cmd_pack_dir(const std::string &dir_str, const std::string &key_override = "")
+{
+    fs::path target_dir = dir_str.empty() ? "." : dir_str;
+    if (!fs::is_directory(target_dir))
+    {
+        std::cerr << "[-] Error: Directory '" << target_dir.string() << "' not found." << std::endl;
+        return false;
+    }
+
+    fs::path manifest_path = target_dir / "manifest.json";
+    if (!fs::exists(manifest_path))
+    {
+        std::cerr << "[-] Error: manifest.json not found in " << target_dir.string() << std::endl;
+        return false;
+    }
+
+    // Read manifest.json to extract name & tier
+    std::string manifest_str = reinterpret_cast<char *>(read_binary_file(manifest_path).data());
+    std::string proj_name = target_dir.filename().string();
+    if (proj_name == ".")
+        proj_name = fs::current_path().filename().string();
+
+    uint32_t tier = SPKG_TIER_WASM; // Default to Wasm
+    if (manifest_str.find("\"tier\": \"native\"") != std::string::npos || manifest_str.find("\"tier\": \"cpp\"") != std::string::npos)
+    {
+        tier = SPKG_TIER_NATIVE;
+    }
+    else if (manifest_str.find("\"tier\": \"lua\"") != std::string::npos)
+    {
+        tier = SPKG_TIER_LUA;
+    }
+
+    // 1. Locate Payload Binary
+    fs::path payload_path;
+    if (tier == SPKG_TIER_WASM)
+    {
+        std::vector<fs::path> candidates = {
+            target_dir / "target" / "wasm32-unknown-unknown" / "release" / (proj_name + ".wasm"),
+            target_dir / (proj_name + ".wasm"),
+            target_dir / "plugin.wasm"};
+        for (const auto &p : candidates)
+        {
+            if (fs::exists(p))
+            {
+                payload_path = p;
+                break;
+            }
+        }
+        if (payload_path.empty())
+        {
+            // Search for any .wasm file inside target directory
+            for (const auto &entry : fs::recursive_directory_iterator(target_dir))
+            {
+                if (entry.path().extension() == ".wasm")
+                {
+                    payload_path = entry.path();
+                    break;
+                }
+            }
+        }
+    }
+    else if (tier == SPKG_TIER_NATIVE)
+    {
+        std::vector<fs::path> candidates = {
+            target_dir / "build" / (proj_name + ".so"),
+            target_dir / (proj_name + ".so"),
+            target_dir / "plugin.so"};
+        for (const auto &p : candidates)
+        {
+            if (fs::exists(p))
+            {
+                payload_path = p;
+                break;
+            }
+        }
+    }
+    else if (tier == SPKG_TIER_LUA)
+    {
+        std::vector<fs::path> candidates = {
+            target_dir / (proj_name + ".lua"),
+            target_dir / "src" / (proj_name + ".lua"),
+            target_dir / "plugin.lua"};
+        for (const auto &p : candidates)
+        {
+            if (fs::exists(p))
+            {
+                payload_path = p;
+                break;
+            }
+        }
+    }
+
+    if (payload_path.empty() || !fs::exists(payload_path))
+    {
+        std::cerr << "[-] Error: Compiled payload binary not found in " << target_dir.string() << "\n"
+                  << "    Please compile your project first (e.g., 'cargo build --release --target wasm32-unknown-unknown' or 'cmake --build build')." << std::endl;
+        return false;
+    }
+
+    // 2. Locate Source Code File
+    fs::path source_path;
+    if (fs::exists(target_dir / "src" / "lib.rs"))
+        source_path = target_dir / "src" / "lib.rs";
+    else if (fs::exists(target_dir / "src" / "plugin.cpp"))
+        source_path = target_dir / "src" / "plugin.cpp";
+    else if (fs::exists(target_dir / (proj_name + ".lua")))
+        source_path = target_dir / (proj_name + ".lua");
+
+    // 3. Locate Pre-Flight Test Vector
+    fs::path test_pkt_path = target_dir / "tests" / "preflight_frame.bin";
+    if (!fs::exists(test_pkt_path))
+    {
+        fs::create_directories(target_dir / "tests");
+        std::ofstream tf(test_pkt_path, std::ios::binary);
+        uint8_t sample_frame[] = {0xDE, 0xAD, 0xBE, 0xEF, 0x01, 0x02, 0x03, 0x04};
+        tf.write(reinterpret_cast<const char *>(sample_frame), sizeof(sample_frame));
+    }
+
+    // 4. Locate Signing Key (Auto-generate if missing)
+    fs::path key_path = key_override;
+    if (key_path.empty())
+    {
+        std::vector<fs::path> key_candidates = {
+            target_dir / "keys" / "ed25519_private.pem",
+            target_dir / "ed25519_private.pem",
+            "keys/ed25519_private.pem",
+            "ed25519_private.pem"};
+        for (const auto &k : key_candidates)
+        {
+            if (fs::exists(k))
+            {
+                key_path = k;
+                break;
+            }
+        }
+    }
+
+    if (key_path.empty() || !fs::exists(key_path))
+    {
+        std::cout << "[*] No private key found. Auto-generating Ed25519 keypair in " << (target_dir / "keys").string() << "...\n";
+        fs::create_directories(target_dir / "keys");
+        cmd_keygen((target_dir / "keys" / "ed25519").string());
+        key_path = target_dir / "keys" / "ed25519_private.pem";
+    }
+
+    fs::path out_spkg_path = target_dir / (proj_name + ".spkg");
+
+    std::cout << "[*] Auto-Packing Project Directory: " << target_dir.string() << "\n"
+              << "    ├── Manifest : " << manifest_path.string() << "\n"
+              << "    ├── Binary   : " << payload_path.string() << "\n"
+              << "    ├── Source   : " << source_path.string() << "\n"
+              << "    ├── Key      : " << key_path.string() << "\n"
+              << "    └── Target   : " << out_spkg_path.string() << "\n";
+
+    return cmd_pack_raw(key_path.string(), tier, manifest_path.string(), payload_path.string(),
+                        source_path.string(), test_pkt_path.string(), out_spkg_path.string());
+}
+
+// -----------------------------------------------------------------------------
+// 5. INSPECT & VERIFY COMMANDS
 // -----------------------------------------------------------------------------
 bool cmd_inspect(const std::string &spkg_path)
 {
@@ -420,7 +581,7 @@ bool cmd_extract_source(const std::string &spkg_path, const std::string &out_sou
 }
 
 // -----------------------------------------------------------------------------
-// 5. SLAB PROTOCOL DATASET ENGINE (CONVERT & VERIFY)
+// 6. SLAB PROTOCOL DATASET ENGINE (CONVERT & VERIFY)
 // -----------------------------------------------------------------------------
 bool cmd_slab_convert(const std::string &in_csv_path, const std::string &out_slab_path, uint32_t expected_dim)
 {
@@ -548,7 +709,7 @@ bool cmd_slab_verify(const std::string &slab_path)
 }
 
 // -----------------------------------------------------------------------------
-// 6. PCAP PACKAGING ENGINE (pcap pack)
+// 7. PCAP PACKAGING ENGINE (pcap pack)
 // -----------------------------------------------------------------------------
 bool cmd_pcap_pack(const std::string &priv_key_path,
                    const std::string &manifest_path,
@@ -603,7 +764,7 @@ bool cmd_pcap_pack(const std::string &priv_key_path,
 }
 
 // -----------------------------------------------------------------------------
-// 7. IN-SANDBOX PRE-FLIGHT TEST RUNNER
+// 8. IN-SANDBOX PRE-FLIGHT TEST RUNNER
 // -----------------------------------------------------------------------------
 bool cmd_test_preflight(const std::string &spkg_path)
 {
@@ -683,7 +844,7 @@ bool cmd_test_preflight(const std::string &spkg_path)
 }
 
 // -----------------------------------------------------------------------------
-// 8. UNIVERSAL PUBLISHER (sentinel-artifact publish)
+// 9. UNIVERSAL PUBLISHER (sentinel-artifact publish)
 // -----------------------------------------------------------------------------
 bool cmd_publish(const std::string &file_path, const std::string &token, const std::string &hub_url)
 {
@@ -715,6 +876,9 @@ bool cmd_publish(const std::string &file_path, const std::string &token, const s
     }
 }
 
+// -----------------------------------------------------------------------------
+// 10. COLORIZED HELP MENU WITH PRACTICAL EXAMPLES
+// -----------------------------------------------------------------------------
 void print_help()
 {
     std::cout << R"(
@@ -723,24 +887,56 @@ sentinel-artifact - Aryorithm Universal Artifact Packaging & Registry Toolchain
 Usage:
   sentinel-artifact <command> [arguments]
 
-Artifact (.spkg) Authoring & Lifecycle:
+================================================================================
+1. ARTIFACT (.spkg) AUTHORING & LIFECYCLE
+================================================================================
   new <name> [rust|cpp|lua]               Scaffold a complete .spkg project
   keygen <prefix>                         Generate Ed25519 developer keypair
-  pack <key> <tier> <m> <p> <src> <t> <o> Pack all 4 sections into sealed .spkg
-  inspect <file.spkg>                     Inspect metadata, source info & SLA
+  pack [dir]                              Smart auto-pack & sign project directory into .spkg
+  pack-raw <key> <tier> <m> <p> <src> <t> <o> Low-level raw pack command
+  inspect <file.spkg>                     Inspect header, tier, source info & SLA
   verify <pub_key> <file.spkg>            Verify Ed25519 Merkle signature
   extract-source <file.spkg> <out_src>    Extract human-readable source for audit
   test <file.spkg>                        Run in-sandbox pre-flight test vector
 
-SLAB Dataset Protocol Engine:
-  slab convert <in.csv> <out.slab> <dim>  Convert CSV to 0x534C4142 zero-copy binary
+================================================================================
+2. SLAB DATASET PROTOCOL ENGINE (0x534C4142)
+================================================================================
+  slab convert <in.csv> <out.slab> <dim>  Convert CSV to zero-copy binary SLAB format
   slab verify <file.slab>                 Verify binary SLAB dataset integrity
 
-PCAP Packaging & Capture Vault:
-  pcap pack <key> <manifest> <in> <out>   Sign & seal raw PCAP into certified package
+================================================================================
+3. PCAP CAPTURE VAULT & SCENARIO PACKAGING
+================================================================================
+  pcap pack <key> <manifest> <in> <out>   Sign & seal raw PCAP into .spcap container
 
-Universal Cloud Registry Publishing:
-  publish <file> --token <API_KEY>        Publish .spkg, .onnx, .pcap, .slab, or .tar.gz to hub.aryorithm.com
+================================================================================
+4. UNIVERSAL CLOUD REGISTRY PUBLISHING
+================================================================================
+  publish <file> --token <API_KEY>        Publish .spkg, .onnx, .slab, .pcap, or .tar.gz
+                                          to https://hub.aryorithm.com
+
+--------------------------------------------------------------------------------
+PRACTICAL EXAMPLES:
+
+  # Example 1: Scaffold, compile, auto-pack, and test a Rust Wasm3 plugin
+    $ sentinel-artifact new plant_safety_filter rust
+    $ cd plant_safety_filter
+    $ cargo build --release --target wasm32-unknown-unknown
+    $ sentinel-artifact pack .
+    $ sentinel-artifact test plant_safety_filter.spkg
+
+  # Example 2: Inspect and verify an artifact package
+    $ sentinel-artifact inspect plant_safety_filter.spkg
+    $ sentinel-artifact verify keys/ed25519_public.pem plant_safety_filter.spkg
+
+  # Example 3: Convert a research CSV dataset to SLAB zero-copy binary format
+    $ sentinel-artifact slab convert cicids2017.csv cicids2017.slab 32
+    $ sentinel-artifact slab verify cicids2017.slab
+
+  # Example 4: Publish any artifact to hub.aryorithm.com
+    $ sentinel-artifact publish plant_safety_filter.spkg --token ARYO_DEV_KEY_2026
+    $ sentinel-artifact publish network_threat_int8.onnx --token ARYO_DEV_KEY_2026
 )" << std::endl;
 }
 
@@ -763,10 +959,16 @@ int main(int argc, char *argv[])
     {
         return cmd_keygen(argv[2]) ? 0 : 1;
     }
-    else if (cmd == "pack" && argc >= 9)
+    else if (cmd == "pack")
+    {
+        std::string dir = (argc >= 3) ? argv[2] : ".";
+        std::string key = (argc >= 4) ? argv[3] : "";
+        return cmd_pack_dir(dir, key) ? 0 : 1;
+    }
+    else if (cmd == "pack-raw" && argc >= 9)
     {
         uint32_t tier = std::stoul(argv[3]);
-        return cmd_pack(argv[2], tier, argv[4], argv[5], argv[6], argv[7], argv[8]) ? 0 : 1;
+        return cmd_pack_raw(argv[2], tier, argv[4], argv[5], argv[6], argv[7], argv[8]) ? 0 : 1;
     }
     else if (cmd == "inspect" && argc >= 3)
     {
