@@ -1,4 +1,4 @@
-#include <unistd.h> // <--- ADD THIS LINE (Declares geteuid)
+#include <unistd.h>
 
 #include <iostream>
 #include <fstream>
@@ -12,9 +12,9 @@
 #include <cstdlib>
 #include <openssl/evp.h>
 #include <openssl/pem.h>
-#include <sys/socket.h>      // <--- ADD
-#include <netinet/in.h>      // <--- ADD
-#include <arpa/inet.h>       // <--- ADD
+#include <sys/socket.h>
+#include <netinet/in.h>
+#include <arpa/inet.h>
 
 namespace fs = std::filesystem;
 
@@ -43,28 +43,37 @@ struct DependencyManifest
 // -----------------------------------------------------------------------------
 // CACHE & REGISTRY CONFIGURATION
 // -----------------------------------------------------------------------------
-static std::string g_hub_url = "https://hub.aryorithm.com/api/v1/hub";
+static std::string g_hub_url = "https://backend.aryorithm.com/api/v1";
 
 fs::path get_cache_root()
 {
-    // 1. If explicit environment variable is set
     const char *env_cache = std::getenv("SENTINEL_CACHE_DIR");
     if (env_cache && std::strlen(env_cache) > 0)
         return fs::path(env_cache);
 
-    // 2. Root daemon system-wide cache (/var/cache/sentinel)
     if (geteuid() == 0)
     {
         return fs::path("/var/cache/sentinel");
     }
 
-    // 3. User-space fallback (~/.cache/sentinel)
     const char *home = std::getenv("HOME");
     if (home)
     {
         return fs::path(home) / ".cache" / "sentinel";
     }
     return fs::path("/tmp/sentinel_cache");
+}
+
+fs::path get_credentials_path()
+{
+    const char *home = std::getenv("HOME");
+    if (home)
+    {
+        fs::path p = fs::path(home) / ".sentinel";
+        fs::create_directories(p);
+        return p / "credentials.json";
+    }
+    return fs::path("/etc/sentinel/credentials.json");
 }
 
 static std::string trim(const std::string &s)
@@ -114,7 +123,7 @@ static std::vector<uint8_t> sha256_buffer(const uint8_t *data, size_t len)
 // -----------------------------------------------------------------------------
 // CACHE-FIRST ASSET RESOLVER (Pip-Style Resolution Engine)
 // -----------------------------------------------------------------------------
-bool resolve_cached_asset(const std::string &category, // "packages", "models", "pcaps", "datasets"
+bool resolve_cached_asset(const std::string &category,
                           const std::string &filename,
                           fs::path &out_staged_path,
                           bool force_refresh = false)
@@ -132,10 +141,9 @@ bool resolve_cached_asset(const std::string &category, // "packages", "models", 
         return true;
     }
 
-    // STEP 2: CACHE MISS -> ATTEMPT PULL FROM REGISTRY OR LOCAL DEV MIRROR
+    // STEP 2: CACHE MISS -> ATTEMPT PULL FROM REGISTRY
     std::cout << "  \033[1;33m[CACHE MISS]\033[0m Resolving " << filename << "...\n";
 
-    // Fallback checks for local development / testing in VMware
     std::vector<fs::path> local_fallbacks = {
         fs::path("/home/kami/sentinel-hub/dist") / category / filename,
         fs::path("/home/kami/sentinel-hub/dist") / filename,
@@ -155,7 +163,6 @@ bool resolve_cached_asset(const std::string &category, // "packages", "models", 
         }
     }
 
-    // If not found locally, download over network from hub.aryorithm.com
     if (!resolved)
     {
         std::string download_url = g_hub_url + "/" + category + "/" + filename + "/download";
@@ -170,7 +177,6 @@ bool resolve_cached_asset(const std::string &category, // "packages", "models", 
         }
     }
 
-    // Fallback stub for unit testing if network and disk mirror are absent
     if (!resolved)
     {
         std::ofstream stub(cached_file, std::ios::binary);
@@ -242,6 +248,134 @@ std::string package_id_to_stem(const std::string &pkg_id)
 }
 
 // -----------------------------------------------------------------------------
+// CREDENTIALS & JWT LOGIN COMMAND
+// -----------------------------------------------------------------------------
+int cmd_login(const std::string &jwt_token, const std::string &hub_url)
+{
+    if (jwt_token.empty())
+    {
+        std::cerr << "[-] Error: JWT token required. Usage: sentinel-ctl login --jwt <TOKEN>" << std::endl;
+        return 1;
+    }
+
+    std::string token_endpoint = hub_url + "/registry/tokens";
+    std::cout << "[*] Authenticating with Registry Token API at " << token_endpoint << "...\n";
+
+    std::string response_file = "/tmp/sentinel_login_resp.json";
+    std::string curl_cmd = "curl -sSL -w \"\\n%{http_code}\" -X POST \"" + token_endpoint + "\" " +
+                           "-H \"Authorization: Bearer " + jwt_token + "\" " +
+                           "-H \"Content-Type: application/json\" > " + response_file + " 2>&1";
+
+    int ret = std::system(curl_cmd.c_str());
+
+    std::ifstream resp_in(response_file);
+    std::string line, last_line, full_body;
+    while (std::getline(resp_in, line))
+    {
+        if (!line.empty())
+        {
+            last_line = line;
+            full_body += line + "\n";
+        }
+    }
+    resp_in.close();
+    fs::remove(response_file);
+
+    int http_code = 0;
+    try
+    {
+        http_code = std::stoi(last_line);
+    }
+    catch (...)
+    {
+    }
+
+    if (http_code == 200 || http_code == 201)
+    {
+        std::string api_key = "";
+        size_t key_pos = full_body.find("\"api_key\"");
+        if (key_pos == std::string::npos)
+            key_pos = full_body.find("\"token\"");
+        if (key_pos == std::string::npos)
+            key_pos = full_body.find("\"key\"");
+
+        if (key_pos != std::string::npos)
+        {
+            size_t colon = full_body.find(':', key_pos);
+            size_t start = full_body.find('"', colon + 1);
+            size_t end = full_body.find('"', start + 1);
+            if (start != std::string::npos && end != std::string::npos)
+            {
+                api_key = full_body.substr(start + 1, end - start - 1);
+            }
+        }
+
+        if (api_key.empty())
+        {
+            api_key = jwt_token;
+        }
+
+        fs::path cred_path = get_credentials_path();
+        std::ofstream cred_out(cred_path);
+        cred_out << "{\n"
+                 << "  \"api_key\": \"" << api_key << "\",\n"
+                 << "  \"hub_url\": \"" << hub_url << "\"\n"
+                 << "}\n";
+        cred_out.close();
+
+        std::cout << "\033[1;32m[+] Authentication Successful!\033[0m\n"
+                  << "    ├── API Token: " << api_key.substr(0, 16) << "...\n"
+                  << "    └── Saved to : " << cred_path.string() << "\n";
+        return 0;
+    }
+    else
+    {
+        std::cerr << "\033[1;31m[-] Authentication Failed (HTTP " << http_code << ")\033[0m\n";
+        if (!full_body.empty())
+        {
+            std::cerr << "    Server message: " << full_body.substr(0, 200) << "\n";
+        }
+        return 1;
+    }
+}
+
+int cmd_whoami()
+{
+    fs::path cred_path = get_credentials_path();
+    if (!fs::exists(cred_path))
+    {
+        std::cout << "\033[1;33m[!] Not authenticated. Run 'sentinel-ctl login --jwt <TOKEN>' first.\033[0m\n";
+        return 1;
+    }
+
+    std::ifstream f(cred_path);
+    std::string line, api_key = "";
+    while (std::getline(f, line))
+    {
+        size_t pos = line.find("\"api_key\"");
+        if (pos != std::string::npos)
+        {
+            size_t colon = line.find(':', pos);
+            size_t start = line.find('"', colon + 1);
+            size_t end = line.find('"', start + 1);
+            if (start != std::string::npos && end != std::string::npos)
+            {
+                api_key = line.substr(start + 1, end - start - 1);
+            }
+        }
+    }
+
+    std::cout << "\033[1;36m================================================================================\033[0m\n";
+    std::cout << "\033[1;37m                 AUTHENTICATED REGISTRY IDENTITY                                \033[0m\n";
+    std::cout << "\033[1;36m================================================================================\033[0m\n"
+              << "Credentials File : " << cred_path.string() << "\n"
+              << "Active API Key   : \033[1;32m" << api_key.substr(0, 16) << "...\033[0m\n"
+              << "Registry Hub URL : " << g_hub_url << "\n"
+              << "\033[1;36m================================================================================\033[0m\n";
+    return 0;
+}
+
+// -----------------------------------------------------------------------------
 // COMMAND: sentinel-ctl status
 // -----------------------------------------------------------------------------
 int cmd_status()
@@ -250,7 +384,6 @@ int cmd_status()
     std::cout << "\033[1;37m                 BLACKBOX SENTINEL APPLIANCE STATUS & HEALTH                    \033[0m\n";
     std::cout << "\033[1;36m================================================================================\033[0m\n";
 
-    // 1. Licensing & Identity
     std::cout << "  \033[1m[1] Cryptographic Identity & Licensing:\033[0m\n";
     if (fs::exists("/etc/sentinel/license.lic"))
     {
@@ -269,7 +402,6 @@ int cmd_status()
         std::cout << "      Hardware Root   : \033[1;33mDMI UUID FALLBACK\033[0m (Virtualization detected)\n";
     }
 
-    // 2. Kernel eBPF/XDP State
     std::cout << "\n  \033[1m[2] In-Kernel eBPF/XDP Mitigation Subsystem:\033[0m\n";
     if (fs::exists("/sys/fs/bpf/blackbox_blocked_ips") || fs::exists("/sys/fs/bpf/blocked_ip_map"))
     {
@@ -280,13 +412,11 @@ int cmd_status()
         std::cout << "      eBPF Map Status : \033[1;33mIN-PROCESS RUNTIME\033[0m (Local testing mode)\n";
     }
 
-    // 3. Central Cache Root
     std::cout << "\n  \033[1m[3] Central Asset Cache Engine:\033[0m\n";
     fs::path c_root = get_cache_root();
     std::cout << "      Cache Location  : " << c_root.string() << "\n"
               << "      Registry URL    : " << g_hub_url << "\n";
 
-    // 4. Installed Extensions & 3-Tier Plugins
     size_t count_native = 0, count_wasm = 0, count_lua = 0;
     if (fs::exists("/etc/sentinel/plugins.d"))
     {
@@ -312,7 +442,6 @@ int cmd_status()
               << "      Tier C: LuaJIT Dynamic Rules    : " << count_lua << " active (< 450 ns SLA)\n"
               << "      Tier B: Rust Wasm3 Sandboxes    : " << count_wasm << " active (< 1.5 µs SLA)\n";
 
-    // 5. Default Routing Profile (Smart Multi-Path Detection)
     std::cout << "\n  \033[1m[5] Routing DAG Profile:\033[0m\n";
     std::string found_profile;
     for (const auto &p : {"configs/model_routes.yaml", "../configs/model_routes.yaml", "/etc/sentinel/model_routes.yaml"})
@@ -367,7 +496,6 @@ int cmd_install_spkg(const fs::path &spkg_path)
     const uint8_t *src_ptr = pay_ptr + hdr.payload_len;
     const uint8_t *test_ptr = src_ptr + hdr.source_len;
 
-    // Verify Merkle Signature if Authority Key exists
     std::vector<fs::path> key_candidates = {
         "/home/kami/sentinel-hub/keys/authority_key_public.pem",
         "/etc/sentinel/authority_key_public.pem",
@@ -584,32 +712,36 @@ sentinel-ctl - Blackbox Sentinel Appliance & Cache-First Dependency Manager
 Usage:
   sentinel-ctl <command> [options]
 
+Authentication & Registry Identity:
+  login --jwt <JWT_TOKEN>          Exchange JWT for live API key & save to ~/.sentinel/credentials.json
+  whoami                           Display current authenticated registry user / API key status
+
 Routing & Lifecycle:
-  sync <routes.yaml>       Audit dependencies & resolve missing packages/models via cache
-  check <routes.yaml>      Check if all dependencies are satisfied locally
-  launch <routes.yaml>     Synchronize and launch Sentinel daemon in one step
-  status                   Inspect appliance licensing, hardware root & eBPF health
+  sync <routes.yaml>               Audit dependencies & resolve missing packages/models via cache
+  check <routes.yaml>              Check if all dependencies are satisfied locally
+  launch <routes.yaml>             Synchronize and launch Sentinel daemon in one step
+  status                           Inspect appliance licensing, hardware root & eBPF health
 
 Package & Asset Management:
-  install <file.spkg>      Verify signature & deploy .spkg to active runtime
-  pcap pull <slug>         Pull certified malware PCAP into cache & stage to /etc/sentinel/pcaps/
-  dataset pull <slug>      Pull zero-copy .slab dataset into cache & stage to /etc/sentinel/datasets/
+  install <file.spkg>              Verify signature & deploy .spkg to active runtime
+  pcap pull <slug>                 Pull certified malware PCAP into cache & stage to /etc/sentinel/pcaps/
+  dataset pull <slug>              Pull zero-copy .slab dataset into cache & stage to /etc/sentinel/datasets/
   slab stream <file.slab> [port]   Stream zero-copy binary records at 65,000+ EPS
   model pull <model_slug>          Pull verified ONNX model weights directly
 
 Air-Gapped & Sneakernet Cache:
-  cache list               List all cached assets and their sizes
-  cache clean              Purge the local asset cache
-  cache export <out.tar.gz> Export cache to a bundle for offline USB Sneakernet transfer
-  cache import <in.tar.gz>  Import an offline bundle into the local appliance cache
+  cache list                       List all cached assets and their sizes
+  cache clean                      Purge the local asset cache
+  cache export <out.tar.gz>        Export cache to a bundle for offline USB Sneakernet transfer
+  cache import <in.tar.gz>         Import an offline bundle into the local appliance cache
 
 Global Options:
-  --hub-url <url>          Override registry endpoint (Default: https://hub.aryorithm.com/api/v1/hub)
+  --hub-url <url>                  Override registry endpoint (Default: https://backend.aryorithm.com/api/v1)
 )" << std::endl;
 }
 
 // -----------------------------------------------------------------------------
-// NEW COMMAND: sentinel-ctl slab stream <file.slab> [--port 9999]
+// COMMAND: sentinel-ctl slab stream <file.slab> [--port 9999]
 // -----------------------------------------------------------------------------
 int cmd_slab_stream(const fs::path &slab_path, uint16_t port)
 {
@@ -640,7 +772,7 @@ int cmd_slab_stream(const fs::path &slab_path, uint16_t port)
     auto t_start = std::chrono::steady_clock::now();
 
     while (file.read(buffer, 144))
-    { // 144 bytes = 16B header + 32*4B features
+    {
         sendto(sock, buffer, 144, 0, (struct sockaddr *)&dest, sizeof(dest));
         records++;
     }
@@ -657,7 +789,7 @@ int cmd_slab_stream(const fs::path &slab_path, uint16_t port)
 }
 
 // -----------------------------------------------------------------------------
-// NEW COMMAND: sentinel-ctl model pull <model_slug>
+// COMMAND: sentinel-ctl model pull <model_slug>
 // -----------------------------------------------------------------------------
 int cmd_model_pull(const std::string &model_slug)
 {
@@ -687,7 +819,6 @@ int main(int argc, char *argv[])
         return 0;
     }
 
-    // Inspect environment variable override
     const char *env_url = std::getenv("SENTINEL_HUB_URL");
     if (env_url && std::strlen(env_url) > 0)
         g_hub_url = env_url;
@@ -696,6 +827,24 @@ int main(int argc, char *argv[])
 
     if (cmd == "status")
         return cmd_status();
+    if (cmd == "whoami")
+        return cmd_whoami();
+    if (cmd == "login")
+    {
+        std::string jwt = "";
+        std::string hub_url = g_hub_url;
+        for (int i = 2; i < argc; ++i)
+        {
+            if (std::string(argv[i]) == "--jwt" && i + 1 < argc)
+                jwt = argv[++i];
+            else if (std::string(argv[i]) == "--hub-url" && i + 1 < argc)
+                hub_url = argv[++i];
+            else if (jwt.empty() && argv[i][0] != '-')
+                jwt = argv[i];
+        }
+        return cmd_login(jwt, hub_url);
+    }
+
     if (cmd == "install" && argc >= 3)
         return cmd_install_spkg(argv[2]);
     if (cmd == "pcap" && argc >= 4 && std::string(argv[2]) == "pull")
@@ -703,7 +852,6 @@ int main(int argc, char *argv[])
     if (cmd == "dataset" && argc >= 4 && std::string(argv[2]) == "pull")
         return cmd_dataset_pull(argv[3]);
 
-    // Cache management subcommands
     if (cmd == "cache" && argc >= 3)
     {
         std::string sub = argv[2];
@@ -732,7 +880,6 @@ int main(int argc, char *argv[])
     {
         fs::path yaml_path = (argc >= 3) ? argv[2] : "configs/model_routes.yaml";
 
-        // Smart path resolution
         if (!fs::exists(yaml_path))
         {
             if (fs::exists("../" + yaml_path.string()))
@@ -760,7 +907,6 @@ int main(int argc, char *argv[])
                   << "    ├── Packages (.spkg): " << deps.required_spkgs.size() << "\n"
                   << "    └── Models (ONNX)   : " << deps.required_models.size() << "\n\n";
 
-        // 1. Resolve .spkg Packages via Cache Engine
         std::cout << "\033[1;33m--- [1/2] RESOLVING SENTINEL PACKAGES (.spkg) ---\033[0m\n";
         size_t spkg_installed = 0;
         fs::create_directories("/etc/sentinel/plugins.d");
@@ -783,7 +929,6 @@ int main(int argc, char *argv[])
             }
         }
 
-        // 2. Resolve ONNX Models via Cache Engine
         std::cout << "\n\033[1;33m--- [2/2] RESOLVING NEURAL ONNX MODELS ---\033[0m\n";
         size_t models_installed = 0;
         fs::create_directories("models");
