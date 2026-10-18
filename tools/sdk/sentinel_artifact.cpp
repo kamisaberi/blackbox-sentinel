@@ -855,27 +855,63 @@ bool cmd_publish(const std::string &file_path, const std::string &token, const s
     }
 
     std::string ext = fs::path(file_path).extension().string();
-    std::cout << "[*] Initiating publish for " << file_path << " (" << ext << ") to " << hub_url << "...\n";
-    std::string upload_endpoint = hub_url + "/publish";
+    
+    // Construct clean upload endpoint
+    std::string upload_endpoint = hub_url;
+    if (upload_endpoint.rfind("/publish") == std::string::npos) {
+        if (!upload_endpoint.empty() && upload_endpoint.back() == '/') {
+            upload_endpoint.pop_back();
+        }
+        upload_endpoint += "/publish";
+    }
 
-    std::string curl_cmd = "curl -sSL -X POST \"" + upload_endpoint + "\" " + "-H \"Authorization: Bearer " + token + "\" " + "-F \"file=@" + file_path + "\" 2>&1";
+    std::cout << "[*] Initiating publish for " << file_path << " (" << ext << ") to " << upload_endpoint << "...\n";
+
+    // Write curl response to temporary buffer file to parse status
+    std::string response_file = "/tmp/sentinel_pub_resp.txt";
+    std::string curl_cmd = "curl -sSL -w \"\\n%{http_code}\" -X POST \"" + upload_endpoint + "\" " +
+                           "-H \"Authorization: Bearer " + token + "\" " +
+                           "-F \"file=@" + file_path + "\" > " + response_file + " 2>&1";
 
     std::cout << "    --> Executing upload stream to Hub Intake API...\n";
     int ret = std::system(curl_cmd.c_str());
 
-    if (ret == 0)
+    // Read response body and HTTP status code
+    std::ifstream resp_in(response_file);
+    std::string line, last_line, full_body;
+    while (std::getline(resp_in, line)) {
+        if (!line.empty()) {
+            last_line = line;
+            full_body += line + "\n";
+        }
+    }
+    resp_in.close();
+    fs::remove(response_file);
+
+    int http_code = 0;
+    try { http_code = std::stoi(last_line); } catch (...) {}
+
+    if (http_code == 200 || http_code == 201)
     {
         std::cout << "\033[1;32m[+] Successfully published artifact " << fs::path(file_path).filename().string()
-                  << " to " << hub_url << "!\033[0m\n";
+                  << " to " << upload_endpoint << "!\033[0m\n";
         return true;
+    }
+    else if (http_code == 404)
+    {
+        std::cerr << "\033[1;31m[-] Error 404: Endpoint " << upload_endpoint << " not found on Hub server.\033[0m\n"
+                  << "    Verify Next.js route app/api/v1/publish/route.ts is active.\n";
+        return false;
     }
     else
     {
-        std::cerr << "[-] Error: Publish failed or endpoint unreachable.\n";
+        std::cerr << "\033[1;31m[-] Error (HTTP " << http_code << "): Upload failed.\033[0m\n";
+        if (full_body.find("<!DOCTYPE html>") == std::string::npos && !full_body.empty()) {
+            std::cerr << "    Server message: " << full_body.substr(0, 200) << "\n";
+        }
         return false;
     }
 }
-
 // -----------------------------------------------------------------------------
 // 10. COLORIZED HELP MENU WITH PRACTICAL EXAMPLES
 // -----------------------------------------------------------------------------
