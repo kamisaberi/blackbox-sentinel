@@ -1060,7 +1060,7 @@ int main(int argc, char *argv[])
     {
         std::string target_file = argv[2];
         std::string token = "";
-        std::string hub_url = "https://backend.aryorithm.com/api/v1"; // Fixed default API backend
+        std::string hub_url = "https://backend.aryorithm.com/api/v1/hub"; // Fixed default endpoint
 
         for (int i = 3; i < argc; ++i)
         {
@@ -1071,6 +1071,7 @@ int main(int argc, char *argv[])
         }
         return cmd_publish(target_file, token, hub_url) ? 0 : 1;
     }
+
     std::cerr << "[-] Invalid arguments. Run 'sentinel-artifact' for help." << std::endl;
     return 1;
 }
