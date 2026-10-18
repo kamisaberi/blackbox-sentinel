@@ -1060,7 +1060,7 @@ int main(int argc, char *argv[])
     {
         std::string target_file = argv[2];
         std::string token = "";
-        std::string hub_url = "https://hub.aryorithm.com/api/v1"; // Fixed default path
+        std::string hub_url = "https://backend.aryorithm.com/api/v1"; // Fixed default API backend
 
         for (int i = 3; i < argc; ++i)
         {
