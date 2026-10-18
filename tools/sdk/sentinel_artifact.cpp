@@ -191,7 +191,7 @@ bool cmd_new(const std::string &name, std::string lang)
                                              << "end\n";
     }
 
-    std::cout << "\033[1;32m[+] Successfully scaffolded .spkg project in ./" << name << "/\033[0m\n";
+    std::cout << "\033[1;32m[+] Successfully scaffolded artifact project in ./" << name << "/\033[0m\n";
     return true;
 }
 
@@ -296,7 +296,7 @@ bool cmd_pack(const std::string &priv_key_path,
         out.write(reinterpret_cast<const char *>(test_data.data()), test_data.size());
     out.close();
 
-    std::cout << "\033[1;32m[+] Successfully packed unified Sentinel Package: " << out_path << "\033[0m\n"
+    std::cout << "\033[1;32m[+] Successfully packed unified Sentinel Artifact: " << out_path << "\033[0m\n"
               << "    ├── Header Size      : " << sizeof(hdr) << " bytes\n"
               << "    ├── Executable Binary: " << hdr.payload_len << " bytes\n"
               << "    ├── Auditable Source : " << hdr.source_len << " bytes\n"
@@ -312,7 +312,7 @@ bool cmd_inspect(const std::string &spkg_path)
     auto container = read_binary_file(spkg_path);
     if (container.size() < sizeof(SpkgHeader))
     {
-        std::cerr << "[-] Error: File too small for .spkg" << std::endl;
+        std::cerr << "[-] Error: File too small for .spkg container" << std::endl;
         return false;
     }
 
@@ -320,7 +320,7 @@ bool cmd_inspect(const std::string &spkg_path)
     std::memcpy(&hdr, container.data(), sizeof(hdr));
     if (hdr.magic != SPKG_MAGIC)
     {
-        std::cerr << "[-] Error: Magic mismatch! Not a valid .spkg." << std::endl;
+        std::cerr << "[-] Error: Magic mismatch! Not a valid Sentinel Artifact container." << std::endl;
         return false;
     }
 
@@ -329,7 +329,7 @@ bool cmd_inspect(const std::string &spkg_path)
     std::string manifest_str(reinterpret_cast<const char *>(container.data() + sizeof(SpkgHeader)), hdr.manifest_len);
 
     std::cout << "\033[1;36m================================================================================\033[0m\n";
-    std::cout << "\033[1;37m                 SENTINEL PACKAGE INSPECTION (.spkg)                            \033[0m\n";
+    std::cout << "\033[1;37m                 SENTINEL ARTIFACT INSPECTION                                   \033[0m\n";
     std::cout << "\033[1;36m================================================================================\033[0m\n"
               << "File Path       : " << spkg_path << "\n"
               << "Execution Tier  : \033[1;33m" << tier_str << "\033[0m\n"
@@ -389,7 +389,7 @@ bool cmd_verify(const std::string &pub_key_path, const std::string &spkg_path)
 
     if (res == 1)
     {
-        std::cout << "\033[1;32m[VERIFIED] .spkg Merkle signature is 100% AUTHENTIC and TAMPER-FREE!\033[0m\n";
+        std::cout << "\033[1;32m[VERIFIED] Sentinel Artifact Merkle signature is 100% AUTHENTIC and TAMPER-FREE!\033[0m\n";
         return true;
     }
     else
@@ -442,16 +442,15 @@ bool cmd_slab_convert(const std::string &in_csv_path, const std::string &out_sla
     uint32_t event_id = 0;
     size_t converted_rows = 0;
 
-    // Optional: Skip header line if non-numeric
     if (std::getline(csv, line))
     {
         if (line.find_first_not_of("0123456789,.-+eE \t\r\n") != std::string::npos)
         {
-            // Header skipped
+            // Skip CSV header
         }
         else
         {
-            csv.seekg(0); // Rewind
+            csv.seekg(0);
         }
     }
 
@@ -481,7 +480,6 @@ bool cmd_slab_convert(const std::string &in_csv_path, const std::string &out_sla
         if (features.empty())
             continue;
 
-        // Last column is typically label (0=clean, 1=anomalous)
         if (features.size() > expected_dim)
         {
             ground_truth = static_cast<uint32_t>(features.back() > 0.5f ? 1 : 0);
@@ -493,7 +491,6 @@ bool cmd_slab_convert(const std::string &in_csv_path, const std::string &out_sla
         if (features.size() > expected_dim)
             features.resize(expected_dim);
 
-        // Convert and pack Big-Endian SLAB record
         SlabRecordHeader r_hdr;
         r_hdr.magic = htonl(SLAB_MAGIC);
         r_hdr.event_id = htonl(++event_id);
@@ -502,7 +499,6 @@ bool cmd_slab_convert(const std::string &in_csv_path, const std::string &out_sla
 
         slab.write(reinterpret_cast<const char *>(&r_hdr), sizeof(r_hdr));
 
-        // Write float values in big-endian network byte order
         for (float val : features)
         {
             uint32_t raw_bits;
@@ -568,7 +564,6 @@ bool cmd_pcap_pack(const std::string &priv_key_path,
         return false;
     }
 
-    // Load Ed25519 Key
     FILE *fp = fopen(priv_key_path.c_str(), "rb");
     if (!fp)
         return false;
@@ -592,7 +587,6 @@ bool cmd_pcap_pack(const std::string &priv_key_path,
     EVP_MD_CTX_free(ctx);
     EVP_PKEY_free(pkey);
 
-    // Write .spcap envelope
     std::ofstream out(out_spcap_path, std::ios::binary);
     uint64_t magic = 0x5043415053504B47ULL; // "SPKGPAP"
     out.write(reinterpret_cast<const char *>(&magic), 8);
@@ -609,7 +603,7 @@ bool cmd_pcap_pack(const std::string &priv_key_path,
 }
 
 // -----------------------------------------------------------------------------
-// 7. IN-SANDBOX PRE-FLIGHT TEST RUNNER (sentinel-spkg test)
+// 7. IN-SANDBOX PRE-FLIGHT TEST RUNNER
 // -----------------------------------------------------------------------------
 bool cmd_test_preflight(const std::string &spkg_path)
 {
@@ -621,7 +615,7 @@ bool cmd_test_preflight(const std::string &spkg_path)
     std::memcpy(&hdr, container.data(), sizeof(hdr));
     if (hdr.magic != SPKG_MAGIC || hdr.test_vector_len == 0)
     {
-        std::cerr << "[-] Error: No pre-flight test vector embedded in package.\n";
+        std::cerr << "[-] Error: No pre-flight test vector embedded in artifact package.\n";
         return false;
     }
 
@@ -632,62 +626,44 @@ bool cmd_test_preflight(const std::string &spkg_path)
 
     bool dropped = false;
 
-    // Check 1: IEC 60870-5-104 Breaker Disconnect (APCI Start 0x68 + ASDU Type 45/46)
     if (len >= 15 && test_ptr[0] == 0x68)
     {
         uint8_t asdu_type = test_ptr[6];
         if (asdu_type == 0x2D || asdu_type == 0x2E)
-        {
             dropped = true;
-        }
     }
-    // Check 2: Siemens S7Comm CPU STOP Attack (TPKT 0x03 + S7 0x32 + Function 0x29)
     else if (len >= 18 && test_ptr[0] == 0x03 && test_ptr[7] == 0x32)
     {
         uint8_t func_code = test_ptr[17];
         if (func_code == 0x29)
-        { // S7 Function 0x29 = CPU STOP
             dropped = true;
-        }
     }
-    // Check 3: Modbus TCP Unauthorized Coil Override (Protocol 0x0000 + FC 0x05 / 0x0F)
     else if (len >= 8 && test_ptr[0] != 0x68 && test_ptr[0] != 0x03 && test_ptr[2] == 0x00 && test_ptr[3] == 0x00)
     {
         uint8_t fc = test_ptr[7];
         if (fc == 0x05 || fc == 0x0F)
-        {
             dropped = true;
-        }
     }
-    // Check 4: DNP3 Direct Operate (0x05 0x64 + FC 0x05/0x06/0x0E)
     else if (len >= 13 && test_ptr[0] == 0x05 && test_ptr[1] == 0x64)
     {
         uint8_t fc = test_ptr[12];
         if (fc == 0x05 || fc == 0x06 || fc == 0x0E)
-        {
             dropped = true;
-        }
     }
-    // Check 5: HTTP/2 Rapid Reset Exploit (RST_STREAM Type 0x03 + Error CANCEL 0x08)
     else if (len >= 9 && test_ptr[3] == 0x03 && test_ptr[len - 1] == 0x08)
     {
         dropped = true;
     }
-    // Check 6: Log4j JNDI Sliding Pattern
     else if (len >= 8)
     {
         std::string s(reinterpret_cast<const char *>(test_ptr), len);
         if (s.find("${jndi:") != std::string::npos)
-        {
             dropped = true;
-        }
     }
-    // Check 7: MAVLink Drone Flight Takeover (Magic 0xFD/0xFE)
     else if (len >= 12 && (test_ptr[0] == 0xFD || test_ptr[0] == 0xFE))
     {
         dropped = true;
     }
-    // Check 8: Generic Scaffolding Threat Marker (0xDEADBEEF)
     else if (len >= 4 && test_ptr[0] == 0xDE && test_ptr[1] == 0xAD && test_ptr[2] == 0xBE && test_ptr[3] == 0xEF)
     {
         dropped = true;
@@ -695,32 +671,32 @@ bool cmd_test_preflight(const std::string &spkg_path)
 
     if (dropped)
     {
-        std::cout << "\033[1;32m[PRE-FLIGHT PASS] Package correctly enforced KERNEL_DROP on embedded threat vector!\033[0m\n"
+        std::cout << "\033[1;32m[PRE-FLIGHT PASS] Artifact correctly enforced KERNEL_DROP on embedded threat vector!\033[0m\n"
                   << "                  Latency assertion satisfied. Approved for production deployment.\n";
         return true;
     }
     else
     {
-        std::cerr << "\033[1;31m[PRE-FLIGHT FAIL] Package failed to mitigate embedded test threat!\033[0m\n";
+        std::cerr << "\033[1;31m[PRE-FLIGHT FAIL] Artifact failed to mitigate embedded test threat!\033[0m\n";
         return false;
     }
 }
 
 // -----------------------------------------------------------------------------
-// 8. UNIVERSAL PUBLISHER (sentinel-spkg publish)
+// 8. UNIVERSAL PUBLISHER (sentinel-artifact publish)
 // -----------------------------------------------------------------------------
 bool cmd_publish(const std::string &file_path, const std::string &token, const std::string &hub_url)
 {
     if (!fs::exists(file_path))
     {
-        std::cerr << "[-] Error: File to publish not found: " << file_path << std::endl;
+        std::cerr << "[-] Error: Artifact file to publish not found: " << file_path << std::endl;
         return false;
     }
 
-    std::cout << "[*] Initiating publish for " << file_path << " to " << hub_url << "...\n";
+    std::string ext = fs::path(file_path).extension().string();
+    std::cout << "[*] Initiating publish for " << file_path << " (" << ext << ") to " << hub_url << "...\n";
     std::string upload_endpoint = hub_url + "/publish";
 
-    // Build curl multipart POST request
     std::string curl_cmd = "curl -sSL -X POST \"" + upload_endpoint + "\" " + "-H \"Authorization: Bearer " + token + "\" " + "-F \"file=@" + file_path + "\" 2>&1";
 
     std::cout << "    --> Executing upload stream to Hub Intake API...\n";
@@ -728,7 +704,7 @@ bool cmd_publish(const std::string &file_path, const std::string &token, const s
 
     if (ret == 0)
     {
-        std::cout << "\033[1;32m[+] Successfully published " << fs::path(file_path).filename().string()
+        std::cout << "\033[1;32m[+] Successfully published artifact " << fs::path(file_path).filename().string()
                   << " to " << hub_url << "!\033[0m\n";
         return true;
     }
@@ -739,18 +715,15 @@ bool cmd_publish(const std::string &file_path, const std::string &token, const s
     }
 }
 
-
-
-
 void print_help()
 {
     std::cout << R"(
-sentinel-spkg - Aryorithm Universal Artifact Packaging & Registry Toolchain
+sentinel-artifact - Aryorithm Universal Artifact Packaging & Registry Toolchain
 
 Usage:
-  sentinel-spkg <command> [arguments]
+  sentinel-artifact <command> [arguments]
 
-Package (.spkg) Authoring & Lifecycle:
+Artifact (.spkg) Authoring & Lifecycle:
   new <name> [rust|cpp|lua]               Scaffold a complete .spkg project
   keygen <prefix>                         Generate Ed25519 developer keypair
   pack <key> <tier> <m> <p> <src> <t> <o> Pack all 4 sections into sealed .spkg
@@ -766,8 +739,8 @@ SLAB Dataset Protocol Engine:
 PCAP Packaging & Capture Vault:
   pcap pack <key> <manifest> <in> <out>   Sign & seal raw PCAP into certified package
 
-Cloud Registry Publishing:
-  publish <file> --token <API_KEY>        Publish .spkg, .pcap, or .slab to hub.aryorithm.com
+Universal Cloud Registry Publishing:
+  publish <file> --token <API_KEY>        Publish .spkg, .onnx, .pcap, .slab, or .tar.gz to hub.aryorithm.com
 )" << std::endl;
 }
 
@@ -833,7 +806,7 @@ int main(int argc, char *argv[])
         return cmd_pcap_pack(argv[3], argv[4], argv[5], argv[6]) ? 0 : 1;
     }
 
-    // Universal Cloud Publish
+    // Universal Cloud Publish (.spkg, .onnx, .engine, .slab, .pcap, .tar.gz)
     if (cmd == "publish" && argc >= 3)
     {
         std::string target_file = argv[2];
@@ -850,6 +823,6 @@ int main(int argc, char *argv[])
         return cmd_publish(target_file, token, hub_url) ? 0 : 1;
     }
 
-    std::cerr << "[-] Invalid arguments. Run 'sentinel-spkg' for help." << std::endl;
+    std::cerr << "[-] Invalid arguments. Run 'sentinel-artifact' for help." << std::endl;
     return 1;
 }
