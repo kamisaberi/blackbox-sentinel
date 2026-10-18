@@ -445,17 +445,17 @@ install(TARGETS
 # -------------------------------------------------------------------
 # SENTINEL PACKAGE (.spkg) TOOLCHAIN
 # -------------------------------------------------------------------
-add_executable(sentinel_spkg
-    tools/sdk/sentinel_spkg.cpp
+add_executable(sentinel_artifact
+    tools/sdk/sentinel_artifact.cpp
 )
-target_link_libraries(sentinel_spkg PRIVATE
+target_link_libraries(sentinel_artifact PRIVATE
     OpenSSL::Crypto
 )
-set_target_properties(sentinel_spkg PROPERTIES
-    OUTPUT_NAME "sentinel-spkg"
+set_target_properties(sentinel_artifact PROPERTIES
+    OUTPUT_NAME "sentinel-artifact"
 )
 
-install(TARGETS sentinel_spkg DESTINATION /usr/local/bin)
+install(TARGETS sentinel_artifact DESTINATION /usr/local/bin)
 
 
 # -------------------------------------------------------------------
