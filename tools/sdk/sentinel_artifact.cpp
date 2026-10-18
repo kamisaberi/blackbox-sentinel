@@ -846,7 +846,41 @@ bool cmd_test_preflight(const std::string &spkg_path)
 // -----------------------------------------------------------------------------
 // 9. UNIVERSAL PUBLISHER (sentinel-artifact publish)
 // -----------------------------------------------------------------------------
-bool cmd_publish(const std::string &file_path, const std::string &token, const std::string &hub_url)
+
+
+static std::string load_saved_api_token()
+{
+    const char *home = std::getenv("HOME");
+    std::vector<fs::path> cred_paths;
+    if (home) cred_paths.push_back(fs::path(home) / ".sentinel" / "credentials.json");
+    cred_paths.push_back("/etc/sentinel/credentials.json");
+
+    for (const auto &p : cred_paths)
+    {
+        if (fs::exists(p))
+        {
+            std::ifstream f(p);
+            std::string line;
+            while (std::getline(f, line))
+            {
+                size_t pos = line.find("\"api_key\"");
+                if (pos != std::string::npos)
+                {
+                    size_t colon = line.find(':', pos);
+                    size_t start = line.find('"', colon + 1);
+                    size_t end = line.find('"', start + 1);
+                    if (start != std::string::npos && end != std::string::npos)
+                    {
+                        return line.substr(start + 1, end - start - 1);
+                    }
+                }
+            }
+        }
+    }
+    return "";
+}
+
+bool cmd_publish(const std::string &file_path, std::string token, const std::string &hub_url)
 {
     if (!fs::exists(file_path))
     {
@@ -854,9 +888,20 @@ bool cmd_publish(const std::string &file_path, const std::string &token, const s
         return false;
     }
 
-    std::string ext = fs::path(file_path).extension().string();
+    // Auto-load API token from ~/.sentinel/credentials.json if token is omitted
+    if (token.empty())
+    {
+        token = load_saved_api_token();
+        if (token.empty())
+        {
+            std::cerr << "[-] Error: No API token provided and no credentials found in ~/.sentinel/credentials.json.\n"
+                      << "    Please login first using 'sentinel-ctl login --jwt <JWT>' or pass '--token <KEY>'.\n";
+            return false;
+        }
+        std::cout << "[+] Auto-loaded API token from ~/.sentinel/credentials.json (" << token.substr(0, 12) << "...)\n";
+    }
 
-    // Construct clean upload endpoint
+    std::string ext = fs::path(file_path).extension().string();
     std::string upload_endpoint = hub_url;
     if (upload_endpoint.rfind("/publish") == std::string::npos)
     {
@@ -869,16 +914,13 @@ bool cmd_publish(const std::string &file_path, const std::string &token, const s
 
     std::cout << "[*] Initiating publish for " << file_path << " (" << ext << ") to " << upload_endpoint << "...\n";
 
-    // Write curl response to temporary buffer file to parse status
     std::string response_file = "/tmp/sentinel_pub_resp.txt";
     std::string curl_cmd = "curl -sSL -w \"\\n%{http_code}\" -X POST \"" + upload_endpoint + "\" " +
                            "-H \"Authorization: Bearer " + token + "\" " +
                            "-F \"file=@" + file_path + "\" > " + response_file + " 2>&1";
 
-    std::cout << "    --> Executing upload stream to Hub Intake API...\n";
     int ret = std::system(curl_cmd.c_str());
 
-    // Read response body and HTTP status code
     std::ifstream resp_in(response_file);
     std::string line, last_line, full_body;
     while (std::getline(resp_in, line))
@@ -893,13 +935,7 @@ bool cmd_publish(const std::string &file_path, const std::string &token, const s
     fs::remove(response_file);
 
     int http_code = 0;
-    try
-    {
-        http_code = std::stoi(last_line);
-    }
-    catch (...)
-    {
-    }
+    try { http_code = std::stoi(last_line); } catch (...) {}
 
     if (http_code == 200 || http_code == 201)
     {
@@ -907,10 +943,10 @@ bool cmd_publish(const std::string &file_path, const std::string &token, const s
                   << " to " << upload_endpoint << "!\033[0m\n";
         return true;
     }
-    else if (http_code == 404)
+    else if (http_code == 401)
     {
-        std::cerr << "\033[1;31m[-] Error 404: Endpoint " << upload_endpoint << " not found on Hub server.\033[0m\n"
-                  << "    Verify Next.js route app/api/v1/publish/route.ts is active.\n";
+        std::cerr << "\033[1;31m[-] Error 401 Unauthorized: Invalid or expired API token.\033[0m\n"
+                  << "    Run 'sentinel-ctl login --jwt <TOKEN>' to refresh credentials.\n";
         return false;
     }
     else
@@ -923,6 +959,8 @@ bool cmd_publish(const std::string &file_path, const std::string &token, const s
         return false;
     }
 }
+
+
 // -----------------------------------------------------------------------------
 // 10. COLORIZED HELP MENU WITH PRACTICAL EXAMPLES
 // -----------------------------------------------------------------------------
