@@ -855,11 +855,13 @@ bool cmd_publish(const std::string &file_path, const std::string &token, const s
     }
 
     std::string ext = fs::path(file_path).extension().string();
-    
+
     // Construct clean upload endpoint
     std::string upload_endpoint = hub_url;
-    if (upload_endpoint.rfind("/publish") == std::string::npos) {
-        if (!upload_endpoint.empty() && upload_endpoint.back() == '/') {
+    if (upload_endpoint.rfind("/publish") == std::string::npos)
+    {
+        if (!upload_endpoint.empty() && upload_endpoint.back() == '/')
+        {
             upload_endpoint.pop_back();
         }
         upload_endpoint += "/publish";
@@ -879,8 +881,10 @@ bool cmd_publish(const std::string &file_path, const std::string &token, const s
     // Read response body and HTTP status code
     std::ifstream resp_in(response_file);
     std::string line, last_line, full_body;
-    while (std::getline(resp_in, line)) {
-        if (!line.empty()) {
+    while (std::getline(resp_in, line))
+    {
+        if (!line.empty())
+        {
             last_line = line;
             full_body += line + "\n";
         }
@@ -889,7 +893,13 @@ bool cmd_publish(const std::string &file_path, const std::string &token, const s
     fs::remove(response_file);
 
     int http_code = 0;
-    try { http_code = std::stoi(last_line); } catch (...) {}
+    try
+    {
+        http_code = std::stoi(last_line);
+    }
+    catch (...)
+    {
+    }
 
     if (http_code == 200 || http_code == 201)
     {
@@ -906,7 +916,8 @@ bool cmd_publish(const std::string &file_path, const std::string &token, const s
     else
     {
         std::cerr << "\033[1;31m[-] Error (HTTP " << http_code << "): Upload failed.\033[0m\n";
-        if (full_body.find("<!DOCTYPE html>") == std::string::npos && !full_body.empty()) {
+        if (full_body.find("<!DOCTYPE html>") == std::string::npos && !full_body.empty())
+        {
             std::cerr << "    Server message: " << full_body.substr(0, 200) << "\n";
         }
         return false;
@@ -1049,7 +1060,7 @@ int main(int argc, char *argv[])
     {
         std::string target_file = argv[2];
         std::string token = "";
-        std::string hub_url = "https://hub.aryorithm.com/api/v1/hub";
+        std::string hub_url = "https://hub.aryorithm.com/api/v1"; // Fixed default path
 
         for (int i = 3; i < argc; ++i)
         {
@@ -1060,7 +1071,6 @@ int main(int argc, char *argv[])
         }
         return cmd_publish(target_file, token, hub_url) ? 0 : 1;
     }
-
     std::cerr << "[-] Invalid arguments. Run 'sentinel-artifact' for help." << std::endl;
     return 1;
 }
