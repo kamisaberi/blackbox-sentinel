@@ -941,8 +941,6 @@ static std::string normalize_publish_endpoint(std::string url)
     return url + "/api/v1/hub/publish";
 }
 
-
-
 // -----------------------------------------------------------------------------
 // 9. UNIVERSAL PUBLISHER (sentinel-artifact publish)
 // -----------------------------------------------------------------------------
@@ -979,7 +977,7 @@ bool cmd_publish(const std::string &file_path, std::string token, std::string hu
     std::string ext = fs::path(file_path).extension().string();
 
     // 1. Determine asset_type dynamically based on extension
-    std::string asset_type = "package";
+    std::string asset_type = "spkg";
     if (ext == ".onnx" || ext == ".engine" || ext == ".rknn")
     {
         asset_type = "model";
@@ -1064,7 +1062,13 @@ bool cmd_publish(const std::string &file_path, std::string token, std::string hu
     fs::remove(response_file);
 
     int http_code = 0;
-    try { http_code = std::stoi(last_line); } catch (...) {}
+    try
+    {
+        http_code = std::stoi(last_line);
+    }
+    catch (...)
+    {
+    }
 
     if (http_code == 200 || http_code == 201)
     {
