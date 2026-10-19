@@ -386,14 +386,13 @@ bool cmd_pack_dir(const std::string &dir_str, const std::string &key_override = 
     }
 
     // 2. Read and auto-inject author_public_key into manifest if missing or invalid
+// Auto-inject clean 64-char Hex author_public_key into manifest
     auto mf_bytes = read_binary_file(manifest_path);
     std::string manifest_str(reinterpret_cast<const char *>(mf_bytes.data()), mf_bytes.size());
 
     std::string clean_hex_key = extract_pubkey_hex(pub_key_path);
-
     if (!clean_hex_key.empty())
     {
-        // If author_public_key is missing, inject it as 64-char Hex string
         if (manifest_str.find("author_public_key") == std::string::npos)
         {
             size_t last_brace = manifest_str.rfind('}');
@@ -409,7 +408,7 @@ bool cmd_pack_dir(const std::string &dir_str, const std::string &key_override = 
             }
         }
     }
-
+    
     std::string proj_name = target_dir.filename().string();
     if (proj_name == ".")
         proj_name = fs::current_path().filename().string();
