@@ -360,7 +360,9 @@ bool cmd_pack_dir(const std::string &dir_str, const std::string &key_override = 
     }
 
     // 2. Read and auto-inject author_public_key into manifest if missing
-    std::string manifest_str = reinterpret_char_to_string(read_binary_file(manifest_path));
+    auto mf_bytes = read_binary_file(manifest_path);
+    std::string manifest_str(reinterpret_cast<const char *>(mf_bytes.data()), mf_bytes.size());
+
     if (manifest_str.find("author_public_key") == std::string::npos && fs::exists(pub_key_path))
     {
         auto pub_bytes = read_binary_file(pub_key_path);
