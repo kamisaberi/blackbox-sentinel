@@ -304,6 +304,32 @@ bool cmd_pack_raw(const std::string &priv_key_path,
     return true;
 }
 
+
+
+static std::string extract_pubkey_hex(const fs::path &pub_key_path)
+{
+    FILE *fp = fopen(pub_key_path.c_str(), "rb");
+    if (!fp) return "";
+    EVP_PKEY *pkey = PEM_read_PUBKEY(fp, nullptr, nullptr, nullptr);
+    fclose(fp);
+    if (!pkey) return "";
+
+    size_t len = 32;
+    uint8_t raw_key[32];
+    if (EVP_PKEY_get_raw_public_key(pkey, raw_key, &len) == 1)
+    {
+        EVP_PKEY_free(pkey);
+        std::ostringstream ss;
+        for (size_t i = 0; i < len; ++i)
+        {
+            ss << std::hex << std::setw(2) << std::setfill('0') << static_cast<int>(raw_key[i]);
+        }
+        return ss.str();
+    }
+    EVP_PKEY_free(pkey);
+    return "";
+}
+
 // -----------------------------------------------------------------------------
 // 4. SMART DIRECTORY AUTO-PACKER (sentinel-artifact pack [dir])
 // -----------------------------------------------------------------------------
