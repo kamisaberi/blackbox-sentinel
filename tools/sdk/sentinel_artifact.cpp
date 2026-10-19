@@ -1,3 +1,5 @@
+#include <unistd.h>
+
 #include <iostream>
 #include <fstream>
 #include <sstream>
@@ -275,6 +277,7 @@ bool cmd_new(const std::string &name, std::string lang)
         mf << "{\n"
            << "  \"id\": \"org.aryorithm.package." << name << "\",\n"
            << "  \"name\": \"" << name << "\",\n"
+           << "  \"slug\": \"" << name << "\",\n"
            << "  \"version\": \"1.0.0\",\n"
            << "  \"tier\": \"" << tier_str << "\",\n"
            << "  \"author\": \"Aryorithm Certified Developer\",\n"
@@ -517,32 +520,47 @@ bool cmd_pack_dir(const std::string &dir_str, const std::string &key_override = 
         pub_key_path = key_str.substr(0, priv_pos) + "_public.pem";
     }
 
-    // 2. Read and auto-inject 64-char Hex author_public_key into manifest if missing
+    // 2. Read and auto-inject 64-char Hex author_public_key and slug into manifest if missing
     auto mf_bytes = read_binary_file(manifest_path);
     std::string manifest_str(reinterpret_cast<const char *>(mf_bytes.data()), mf_bytes.size());
+    bool manifest_updated = false;
 
     std::string clean_hex_key = extract_pubkey_hex(pub_key_path);
-    if (!clean_hex_key.empty())
+    if (!clean_hex_key.empty() && manifest_str.find("author_public_key") == std::string::npos)
     {
-        if (manifest_str.find("author_public_key") == std::string::npos)
+        size_t last_brace = manifest_str.rfind('}');
+        if (last_brace != std::string::npos)
         {
-            size_t last_brace = manifest_str.rfind('}');
-            if (last_brace != std::string::npos)
-            {
-                std::string injected = ",\n  \"author_public_key\": \"" + clean_hex_key + "\"\n}";
-                manifest_str.replace(last_brace, 1, injected);
-
-                std::ofstream mf_out(manifest_path);
-                mf_out << manifest_str;
-                mf_out.close();
-                std::cout << "[+] Automatically enrolled 64-char Hex author_public_key into manifest.json\n";
-            }
+            std::string injected = ",\n  \"author_public_key\": \"" + clean_hex_key + "\"\n}";
+            manifest_str.replace(last_brace, 1, injected);
+            manifest_updated = true;
+            std::cout << "[+] Automatically enrolled 64-char Hex author_public_key into manifest.json\n";
         }
     }
 
     std::string proj_name = target_dir.filename().string();
     if (proj_name == ".")
         proj_name = fs::current_path().filename().string();
+
+    if (manifest_str.find("\"slug\"") == std::string::npos)
+    {
+        size_t last_brace = manifest_str.rfind('}');
+        if (last_brace != std::string::npos)
+        {
+            std::string injected = ",\n  \"slug\": \"" + proj_name + "\"\n}";
+            manifest_str.replace(last_brace, 1, injected);
+            manifest_updated = true;
+            std::cout << "[+] Automatically enrolled slug into manifest.json\n";
+        }
+    }
+
+    if (manifest_updated)
+    {
+        std::ofstream mf_out(manifest_path);
+        mf_out << manifest_str;
+        mf_out.close();
+        mf_bytes = read_binary_file(manifest_path);
+    }
 
     uint32_t tier = SPKG_TIER_WASM;
     if (manifest_str.find("\"tier\": \"native\"") != std::string::npos || manifest_str.find("\"tier\": \"cpp\"") != std::string::npos)
@@ -1102,7 +1120,8 @@ bool cmd_publish(const std::string &file_path, std::string token, std::string hu
         sig_hex = sign_file_bytes_hex(file_path, priv_key_path);
     }
 
-    std::string manifest_json = "{\"name\":\"" + fs::path(file_path).filename().string() + "\",\"asset_type\":\"" + asset_type + "\"}";
+    std::string slug_val = fs::path(file_path).stem().string();
+    std::string manifest_json = "{\"name\":\"" + slug_val + "\",\"slug\":\"" + slug_val + "\",\"asset_type\":\"" + asset_type + "\"}";
 
     auto container = read_binary_file(file_path);
     if (ext == ".spkg" && container.size() >= sizeof(SpkgHeader))
@@ -1125,6 +1144,16 @@ bool cmd_publish(const std::string &file_path, std::string token, std::string hu
             {
                 manifest_json = std::string(reinterpret_cast<const char *>(container.data() + sizeof(SpkgHeader)), hdr.manifest_len);
             }
+        }
+    }
+
+    // Auto-inject "slug" into manifest_json if missing
+    if (manifest_json.find("\"slug\"") == std::string::npos)
+    {
+        size_t first_brace = manifest_json.find('{');
+        if (first_brace != std::string::npos)
+        {
+            manifest_json.insert(first_brace + 1, "\n  \"slug\": \"" + slug_val + "\",");
         }
     }
 
