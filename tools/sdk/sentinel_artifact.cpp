@@ -844,15 +844,21 @@ bool cmd_test_preflight(const std::string &spkg_path)
 }
 
 // -----------------------------------------------------------------------------
-// 9. UNIVERSAL PUBLISHER (sentinel-artifact publish)
+// CREDENTIALS & URL NORMALIZER HELPERS
 // -----------------------------------------------------------------------------
-
-
-static std::string load_saved_api_token()
+struct SavedCredentials
 {
+    std::string api_key;
+    std::string hub_url;
+};
+
+static SavedCredentials load_saved_credentials()
+{
+    SavedCredentials creds{};
     const char *home = std::getenv("HOME");
     std::vector<fs::path> cred_paths;
-    if (home) cred_paths.push_back(fs::path(home) / ".sentinel" / "credentials.json");
+    if (home)
+        cred_paths.push_back(fs::path(home) / ".sentinel" / "credentials.json");
     cred_paths.push_back("/etc/sentinel/credentials.json");
 
     for (const auto &p : cred_paths)
@@ -863,24 +869,82 @@ static std::string load_saved_api_token()
             std::string line;
             while (std::getline(f, line))
             {
-                size_t pos = line.find("\"api_key\"");
-                if (pos != std::string::npos)
+                size_t pos_key = line.find("\"api_key\"");
+                if (pos_key != std::string::npos)
                 {
-                    size_t colon = line.find(':', pos);
+                    size_t colon = line.find(':', pos_key);
                     size_t start = line.find('"', colon + 1);
                     size_t end = line.find('"', start + 1);
                     if (start != std::string::npos && end != std::string::npos)
                     {
-                        return line.substr(start + 1, end - start - 1);
+                        creds.api_key = line.substr(start + 1, end - start - 1);
+                    }
+                }
+                size_t pos_url = line.find("\"hub_url\"");
+                if (pos_url != std::string::npos)
+                {
+                    size_t colon = line.find(':', pos_url);
+                    size_t start = line.find('"', colon + 1);
+                    size_t end = line.find('"', start + 1);
+                    if (start != std::string::npos && end != std::string::npos)
+                    {
+                        creds.hub_url = line.substr(start + 1, end - start - 1);
                     }
                 }
             }
         }
     }
-    return "";
+    return creds;
 }
 
-bool cmd_publish(const std::string &file_path, std::string token, const std::string &hub_url)
+static std::string normalize_publish_endpoint(std::string url)
+{
+    if (url.empty())
+    {
+        url = "https://backend.aryorithm.com";
+    }
+
+    // Ensure scheme is present (default to http for localhost/IPs, https otherwise)
+    if (url.find("://") == std::string::npos)
+    {
+        if (url.rfind("localhost", 0) == 0 || url.rfind("127.0.0.1", 0) == 0)
+        {
+            url = "http://" + url;
+        }
+        else
+        {
+            url = "https://" + url;
+        }
+    }
+
+    // Strip trailing slashes
+    while (!url.empty() && url.back() == '/')
+    {
+        url.pop_back();
+    }
+
+    // Handle path suffixes
+    if (url.rfind("/publish") != std::string::npos)
+    {
+        return url;
+    }
+    if (url.rfind("/api/v1/hub") != std::string::npos)
+    {
+        return url + "/publish";
+    }
+    if (url.rfind("/api/v1") != std::string::npos)
+    {
+        return url + "/hub/publish";
+    }
+
+    // Base host fallback (e.g., http://localhost:8000 or https://backend.aryorithm.com)
+    return url + "/api/v1/hub/publish";
+}
+
+// -----------------------------------------------------------------------------
+// 9. UNIVERSAL PUBLISHER (sentinel-artifact publish)
+// -----------------------------------------------------------------------------
+bool cmd_publish(const std::string &file_path, std::string token, std::string hub_url)
 {
     if (!fs::exists(file_path))
     {
@@ -888,29 +952,29 @@ bool cmd_publish(const std::string &file_path, std::string token, const std::str
         return false;
     }
 
-    // Auto-load API token from ~/.sentinel/credentials.json if token is omitted
+    SavedCredentials saved_creds = load_saved_credentials();
+
+    // Auto-load token from credentials if omitted
     if (token.empty())
     {
-        token = load_saved_api_token();
+        token = saved_creds.api_key;
         if (token.empty())
         {
             std::cerr << "[-] Error: No API token provided and no credentials found in ~/.sentinel/credentials.json.\n"
-                      << "    Please login first using 'sentinel-ctl login --jwt <JWT>' or pass '--token <KEY>'.\n";
+                      << "    Please login first using 'sentinel-ctl login --jwt <TOKEN>' or pass '--token <KEY>'.\n";
             return false;
         }
         std::cout << "[+] Auto-loaded API token from ~/.sentinel/credentials.json (" << token.substr(0, 12) << "...)\n";
     }
 
-    std::string ext = fs::path(file_path).extension().string();
-    std::string upload_endpoint = hub_url;
-    if (upload_endpoint.rfind("/publish") == std::string::npos)
+    // Auto-resolve base hub_url
+    if (hub_url.empty())
     {
-        if (!upload_endpoint.empty() && upload_endpoint.back() == '/')
-        {
-            upload_endpoint.pop_back();
-        }
-        upload_endpoint += "/publish";
+        hub_url = !saved_creds.hub_url.empty() ? saved_creds.hub_url : "https://backend.aryorithm.com";
     }
+
+    std::string upload_endpoint = normalize_publish_endpoint(hub_url);
+    std::string ext = fs::path(file_path).extension().string();
 
     std::cout << "[*] Initiating publish for " << file_path << " (" << ext << ") to " << upload_endpoint << "...\n";
 
@@ -919,6 +983,7 @@ bool cmd_publish(const std::string &file_path, std::string token, const std::str
                            "-H \"Authorization: Bearer " + token + "\" " +
                            "-F \"file=@" + file_path + "\" > " + response_file + " 2>&1";
 
+    std::cout << "    --> Executing upload stream to Hub Intake API...\n";
     int ret = std::system(curl_cmd.c_str());
 
     std::ifstream resp_in(response_file);
@@ -935,7 +1000,13 @@ bool cmd_publish(const std::string &file_path, std::string token, const std::str
     fs::remove(response_file);
 
     int http_code = 0;
-    try { http_code = std::stoi(last_line); } catch (...) {}
+    try
+    {
+        http_code = std::stoi(last_line);
+    }
+    catch (...)
+    {
+    }
 
     if (http_code == 200 || http_code == 201)
     {
@@ -949,6 +1020,11 @@ bool cmd_publish(const std::string &file_path, std::string token, const std::str
                   << "    Run 'sentinel-ctl login --jwt <TOKEN>' to refresh credentials.\n";
         return false;
     }
+    else if (http_code == 404)
+    {
+        std::cerr << "\033[1;31m[-] Error 404 Not Found: " << upload_endpoint << " does not exist on server.\033[0m\n";
+        return false;
+    }
     else
     {
         std::cerr << "\033[1;31m[-] Error (HTTP " << http_code << "): Upload failed.\033[0m\n";
@@ -959,7 +1035,6 @@ bool cmd_publish(const std::string &file_path, std::string token, const std::str
         return false;
     }
 }
-
 
 // -----------------------------------------------------------------------------
 // 10. COLORIZED HELP MENU WITH PRACTICAL EXAMPLES
@@ -1098,7 +1173,7 @@ int main(int argc, char *argv[])
     {
         std::string target_file = argv[2];
         std::string token = "";
-        std::string hub_url = "https://backend.aryorithm.com/api/v1/hub"; // Fixed default endpoint
+        std::string hub_url = ""; // Normalizer will resolve to default or saved credentials
 
         for (int i = 3; i < argc; ++i)
         {
@@ -1109,7 +1184,6 @@ int main(int argc, char *argv[])
         }
         return cmd_publish(target_file, token, hub_url) ? 0 : 1;
     }
-
     std::cerr << "[-] Invalid arguments. Run 'sentinel-artifact' for help." << std::endl;
     return 1;
 }
