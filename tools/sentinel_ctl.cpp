@@ -41,9 +41,44 @@ struct DependencyManifest
 };
 
 // -----------------------------------------------------------------------------
-// CACHE & REGISTRY CONFIGURATION
+// CACHE & REGISTRY CONFIGURATION WITH URL NORMALIZATION
 // -----------------------------------------------------------------------------
-static std::string g_hub_url = "https://backend.aryorithm.com/api/v1";
+static std::string g_hub_url = "https://backend.aryorithm.com";
+
+static std::string normalize_registry_url(std::string url)
+{
+    if (url.empty())
+    {
+        url = "https://backend.aryorithm.com";
+    }
+
+    // Auto-detect http scheme for localhost/IPs, https for remote domains
+    if (url.find("://") == std::string::npos)
+    {
+        if (url.rfind("localhost", 0) == 0 || url.rfind("127.0.0.1", 0) == 0)
+        {
+            url = "http://" + url;
+        }
+        else
+        {
+            url = "https://" + url;
+        }
+    }
+
+    // Strip trailing slashes
+    while (!url.empty() && url.back() == '/')
+    {
+        url.pop_back();
+    }
+
+    // Append /api/v1 if not present
+    if (url.rfind("/api/v1") == std::string::npos)
+    {
+        url += "/api/v1";
+    }
+
+    return url;
+}
 
 fs::path get_cache_root()
 {
@@ -165,7 +200,8 @@ bool resolve_cached_asset(const std::string &category,
 
     if (!resolved)
     {
-        std::string download_url = g_hub_url + "/" + category + "/" + filename + "/download";
+        std::string base_api = normalize_registry_url(g_hub_url);
+        std::string download_url = base_api + "/" + category + "/" + filename + "/download";
         std::cout << "      --> Downloading from Registry: " << download_url << "\n";
 
         std::string curl_cmd = "curl -sSL -f -o \"" + cached_file.string() + "\" \"" + download_url + "\" 2>/dev/null";
@@ -250,7 +286,7 @@ std::string package_id_to_stem(const std::string &pkg_id)
 // -----------------------------------------------------------------------------
 // CREDENTIALS & JWT LOGIN COMMAND
 // -----------------------------------------------------------------------------
-int cmd_login(const std::string &jwt_token, const std::string &hub_url)
+int cmd_login(const std::string &jwt_token, const std::string &raw_hub_url)
 {
     if (jwt_token.empty())
     {
@@ -258,7 +294,8 @@ int cmd_login(const std::string &jwt_token, const std::string &hub_url)
         return 1;
     }
 
-    std::string token_endpoint = hub_url + "/registry/tokens";
+    std::string base_api = normalize_registry_url(raw_hub_url);
+    std::string token_endpoint = base_api + "/registry/tokens";
     std::cout << "[*] Authenticating with Registry Token API at " << token_endpoint << "...\n";
 
     std::string response_file = "/tmp/sentinel_login_resp.json";
@@ -319,7 +356,7 @@ int cmd_login(const std::string &jwt_token, const std::string &hub_url)
         std::ofstream cred_out(cred_path);
         cred_out << "{\n"
                  << "  \"api_key\": \"" << api_key << "\",\n"
-                 << "  \"hub_url\": \"" << hub_url << "\"\n"
+                 << "  \"hub_url\": \"" << base_api << "\"\n"
                  << "}\n";
         cred_out.close();
 
@@ -349,13 +386,13 @@ int cmd_whoami()
     }
 
     std::ifstream f(cred_path);
-    std::string line, api_key = "";
+    std::string line, api_key = "", saved_url = "";
     while (std::getline(f, line))
     {
-        size_t pos = line.find("\"api_key\"");
-        if (pos != std::string::npos)
+        size_t pos_key = line.find("\"api_key\"");
+        if (pos_key != std::string::npos)
         {
-            size_t colon = line.find(':', pos);
+            size_t colon = line.find(':', pos_key);
             size_t start = line.find('"', colon + 1);
             size_t end = line.find('"', start + 1);
             if (start != std::string::npos && end != std::string::npos)
@@ -363,14 +400,27 @@ int cmd_whoami()
                 api_key = line.substr(start + 1, end - start - 1);
             }
         }
+        size_t pos_url = line.find("\"hub_url\"");
+        if (pos_url != std::string::npos)
+        {
+            size_t colon = line.find(':', pos_url);
+            size_t start = line.find('"', colon + 1);
+            size_t end = line.find('"', start + 1);
+            if (start != std::string::npos && end != std::string::npos)
+            {
+                saved_url = line.substr(start + 1, end - start - 1);
+            }
+        }
     }
+
+    std::string active_url = !saved_url.empty() ? saved_url : normalize_registry_url(g_hub_url);
 
     std::cout << "\033[1;36m================================================================================\033[0m\n";
     std::cout << "\033[1;37m                 AUTHENTICATED REGISTRY IDENTITY                                \033[0m\n";
     std::cout << "\033[1;36m================================================================================\033[0m\n"
               << "Credentials File : " << cred_path.string() << "\n"
               << "Active API Key   : \033[1;32m" << api_key.substr(0, 16) << "...\033[0m\n"
-              << "Registry Hub URL : " << g_hub_url << "\n"
+              << "Registry Hub URL : " << active_url << "\n"
               << "\033[1;36m================================================================================\033[0m\n";
     return 0;
 }
@@ -415,7 +465,7 @@ int cmd_status()
     std::cout << "\n  \033[1m[3] Central Asset Cache Engine:\033[0m\n";
     fs::path c_root = get_cache_root();
     std::cout << "      Cache Location  : " << c_root.string() << "\n"
-              << "      Registry URL    : " << g_hub_url << "\n";
+              << "      Registry URL    : " << normalize_registry_url(g_hub_url) << "\n";
 
     size_t count_native = 0, count_wasm = 0, count_lua = 0;
     if (fs::exists("/etc/sentinel/plugins.d"))
@@ -736,7 +786,7 @@ Air-Gapped & Sneakernet Cache:
   cache import <in.tar.gz>         Import an offline bundle into the local appliance cache
 
 Global Options:
-  --hub-url <url>                  Override registry endpoint (Default: https://backend.aryorithm.com/api/v1)
+  --hub-url <url>                  Override registry host (e.g. localhost:8000 or https://backend.aryorithm.com)
 )" << std::endl;
 }
 
