@@ -944,6 +944,9 @@ static std::string normalize_publish_endpoint(std::string url)
 // -----------------------------------------------------------------------------
 // 9. UNIVERSAL PUBLISHER (sentinel-artifact publish)
 // -----------------------------------------------------------------------------
+// -----------------------------------------------------------------------------
+// 9. UNIVERSAL PUBLISHER (sentinel-artifact publish)
+// -----------------------------------------------------------------------------
 bool cmd_publish(const std::string &file_path, std::string token, std::string hub_url)
 {
     if (!fs::exists(file_path))
@@ -976,15 +979,59 @@ bool cmd_publish(const std::string &file_path, std::string token, std::string hu
     std::string upload_endpoint = normalize_publish_endpoint(hub_url);
     std::string ext = fs::path(file_path).extension().string();
 
-    std::cout << "[*] Initiating publish for " << file_path << " (" << ext << ") to " << upload_endpoint << "...\n";
+    // 1. Determine asset_type dynamically based on extension
+    std::string asset_type = "spkg";
+    if (ext == ".onnx" || ext == ".engine" || ext == ".rknn")
+    {
+        asset_type = "model";
+    }
+    else if (ext == ".slab")
+    {
+        asset_type = "dataset";
+    }
+    else if (ext == ".pcap" || ext == ".spcap")
+    {
+        asset_type = "pcap";
+    }
+    else if (ext == ".gz" || ext == ".tgz" || ext == ".tar")
+    {
+        asset_type = "scenario";
+    }
+
+    // 2. Extract embedded manifest JSON string
+    std::string manifest_json = "{\"name\":\"" + fs::path(file_path).filename().string() + "\",\"asset_type\":\"" + asset_type + "\"}";
+
+    auto container = read_binary_file(file_path);
+    if (ext == ".spkg" && container.size() >= sizeof(SpkgHeader))
+    {
+        SpkgHeader hdr;
+        std::memcpy(&hdr, container.data(), sizeof(hdr));
+        if (hdr.magic == SPKG_MAGIC && hdr.manifest_len > 0 && container.size() >= sizeof(SpkgHeader) + hdr.manifest_len)
+        {
+            manifest_json = std::string(reinterpret_cast<const char *>(container.data() + sizeof(SpkgHeader)), hdr.manifest_len);
+        }
+    }
+
+    std::cout << "[*] Initiating publish for " << file_path << " (" << ext << ") to " << upload_endpoint << "...\n"
+              << "    ├── Asset Type : " << asset_type << "\n"
+              << "    └── Manifest   : " << manifest_json.substr(0, 60) << "...\n";
 
     std::string response_file = "/tmp/sentinel_pub_resp.txt";
+
+    // Escape single quotes for curl command execution
+    std::string escaped_manifest = manifest_json;
+    std::replace(escaped_manifest.begin(), escaped_manifest.end(), '\'', ' ');
+
+    // Multipart POST including file, asset_type, and manifest
     std::string curl_cmd = "curl -sSL -w \"\\n%{http_code}\" -X POST \"" + upload_endpoint + "\" " +
                            "-H \"Authorization: Bearer " + token + "\" " +
-                           "-F \"file=@" + file_path + "\" > " + response_file + " 2>&1";
+                           "-F \"file=@" + file_path + "\" " +
+                           "-F \"asset_type=" + asset_type + "\" " +
+                           "-F \"manifest=" + escaped_manifest + "\" > " + response_file + " 2>&1";
 
     std::cout << "    --> Executing upload stream to Hub Intake API...\n";
     int ret = std::system(curl_cmd.c_str());
+    (void)ret;
 
     std::ifstream resp_in(response_file);
     std::string line, last_line, full_body;
@@ -1020,9 +1067,10 @@ bool cmd_publish(const std::string &file_path, std::string token, std::string hu
                   << "    Run 'sentinel-ctl login --jwt <TOKEN>' to refresh credentials.\n";
         return false;
     }
-    else if (http_code == 404)
+    else if (http_code == 422)
     {
-        std::cerr << "\033[1;31m[-] Error 404 Not Found: " << upload_endpoint << " does not exist on server.\033[0m\n";
+        std::cerr << "\033[1;31m[-] Error 422 Unprocessable Entity: Server rejected form schema.\033[0m\n"
+                  << "    Server response: " << full_body.substr(0, 300) << "\n";
         return false;
     }
     else
@@ -1030,12 +1078,11 @@ bool cmd_publish(const std::string &file_path, std::string token, std::string hu
         std::cerr << "\033[1;31m[-] Error (HTTP " << http_code << "): Upload failed.\033[0m\n";
         if (full_body.find("<!DOCTYPE html>") == std::string::npos && !full_body.empty())
         {
-            std::cerr << "    Server message: " << full_body.substr(0, 200) << "\n";
+            std::cerr << "    Server message: " << full_body.substr(0, 300) << "\n";
         }
         return false;
     }
 }
-
 // -----------------------------------------------------------------------------
 // 10. COLORIZED HELP MENU WITH PRACTICAL EXAMPLES
 // -----------------------------------------------------------------------------
