@@ -30,7 +30,7 @@ struct SpkgHeader
     uint64_t magic{SPKG_MAGIC};
     uint32_t version{SPKG_VERSION};
     uint32_t tier{0};         // 0=Native C++, 1=Rust Wasm, 2=LuaJIT
-    uint8_t signature[64]{0}; // Ed25519 Digital Signature
+    uint8_t signature[64]{0}; // Ed25519 digital signature
     uint32_t manifest_len{0};
     uint64_t payload_len{0};
     uint64_t source_len{0};
@@ -38,13 +38,12 @@ struct SpkgHeader
     uint32_t reserved{0};
 } __attribute__((packed));
 
-// SLAB Binary Record Header (Universal Wire Protocol for ML Datasets)
 struct SlabRecordHeader
 {
-    uint32_t magic;        // Must equal 0x534C4142
-    uint32_t event_id;     // Monotonic event sequence identifier
-    uint32_t ground_truth; // 0 = Benign, 1 = Attack/Anomalous
-    uint32_t tensor_dim;   // Number of float32 features following header
+    uint32_t magic;        // 0x534C4142
+    uint32_t event_id;     // Monotonic sequence ID
+    uint32_t ground_truth; // 0 = Benign, 1 = Attack
+    uint32_t tensor_dim;   // Number of Float32 features
 } __attribute__((packed));
 
 static std::vector<uint8_t> sha256_buffer(const uint8_t *data, size_t len)
@@ -80,6 +79,166 @@ static std::vector<uint8_t> read_binary_file(const fs::path &p)
     std::vector<uint8_t> b(sz);
     f.read(reinterpret_cast<char *>(b.data()), sz);
     return b;
+}
+
+static std::string extract_pubkey_hex(const fs::path &pub_key_path)
+{
+    FILE *fp = fopen(pub_key_path.c_str(), "rb");
+    if (!fp)
+        return "";
+    EVP_PKEY *pkey = PEM_read_PUBKEY(fp, nullptr, nullptr, nullptr);
+    fclose(fp);
+    if (!pkey)
+        return "";
+
+    size_t len = 32;
+    uint8_t raw_key[32];
+    if (EVP_PKEY_get_raw_public_key(pkey, raw_key, &len) == 1)
+    {
+        EVP_PKEY_free(pkey);
+        std::ostringstream ss;
+        for (size_t i = 0; i < len; ++i)
+        {
+            ss << std::hex << std::setw(2) << std::setfill('0') << static_cast<int>(raw_key[i]);
+        }
+        return ss.str();
+    }
+    EVP_PKEY_free(pkey);
+    return "";
+}
+
+static std::string sign_file_bytes_hex(const fs::path &file_path, const fs::path &priv_key_path)
+{
+    auto file_bytes = read_binary_file(file_path);
+    if (file_bytes.empty() || !fs::exists(priv_key_path))
+        return "";
+
+    FILE *fp = fopen(priv_key_path.c_str(), "rb");
+    if (!fp)
+        return "";
+
+    EVP_PKEY *pkey = PEM_read_PrivateKey(fp, nullptr, nullptr, nullptr);
+    fclose(fp);
+    if (!pkey)
+        return "";
+
+    EVP_MD_CTX *md_ctx = EVP_MD_CTX_new();
+    if (EVP_DigestSignInit(md_ctx, nullptr, nullptr, nullptr, pkey) != 1)
+    {
+        EVP_MD_CTX_free(md_ctx);
+        EVP_PKEY_free(pkey);
+        return "";
+    }
+
+    uint8_t sig[64];
+    size_t sig_len = sizeof(sig);
+    if (EVP_DigestSign(md_ctx, sig, &sig_len, file_bytes.data(), file_bytes.size()) != 1)
+    {
+        EVP_MD_CTX_free(md_ctx);
+        EVP_PKEY_free(pkey);
+        return "";
+    }
+
+    EVP_MD_CTX_free(md_ctx);
+    EVP_PKEY_free(pkey);
+
+    std::ostringstream ss;
+    for (size_t i = 0; i < sig_len; ++i)
+    {
+        ss << std::hex << std::setw(2) << std::setfill('0') << static_cast<int>(sig[i]);
+    }
+    return ss.str();
+}
+
+struct SavedCredentials
+{
+    std::string api_key;
+    std::string hub_url;
+};
+
+static SavedCredentials load_saved_credentials()
+{
+    SavedCredentials creds{};
+    const char *home = std::getenv("HOME");
+    std::vector<fs::path> cred_paths;
+    if (home)
+        cred_paths.push_back(fs::path(home) / ".sentinel" / "credentials.json");
+    cred_paths.push_back("/etc/sentinel/credentials.json");
+
+    for (const auto &p : cred_paths)
+    {
+        if (fs::exists(p))
+        {
+            std::ifstream f(p);
+            std::string line;
+            while (std::getline(f, line))
+            {
+                size_t pos_key = line.find("\"api_key\"");
+                if (pos_key != std::string::npos)
+                {
+                    size_t colon = line.find(':', pos_key);
+                    size_t start = line.find('"', colon + 1);
+                    size_t end = line.find('"', start + 1);
+                    if (start != std::string::npos && end != std::string::npos)
+                    {
+                        creds.api_key = line.substr(start + 1, end - start - 1);
+                    }
+                }
+                size_t pos_url = line.find("\"hub_url\"");
+                if (pos_url != std::string::npos)
+                {
+                    size_t colon = line.find(':', pos_url);
+                    size_t start = line.find('"', colon + 1);
+                    size_t end = line.find('"', start + 1);
+                    if (start != std::string::npos && end != std::string::npos)
+                    {
+                        creds.hub_url = line.substr(start + 1, end - start - 1);
+                    }
+                }
+            }
+        }
+    }
+    return creds;
+}
+
+static std::string normalize_publish_endpoint(std::string url)
+{
+    if (url.empty())
+    {
+        url = "https://backend.aryorithm.com";
+    }
+
+    if (url.find("://") == std::string::npos)
+    {
+        if (url.rfind("localhost", 0) == 0 || url.rfind("127.0.0.1", 0) == 0)
+        {
+            url = "http://" + url;
+        }
+        else
+        {
+            url = "https://" + url;
+        }
+    }
+
+    while (!url.empty() && url.back() == '/')
+    {
+        url.pop_back();
+    }
+
+    if (url.rfind("/publish") != std::string::npos)
+    {
+        return url;
+    }
+    if (url.rfind("/api/v1/hub") != std::string::npos)
+    {
+        return url + "/publish";
+    }
+    if (url.rfind("/api/v1") != std::string::npos)
+    {
+        return url + "/hub/publish";
+    }
+
+    return url + "/api/v1/hub/publish";
 }
 
 // -----------------------------------------------------------------------------
@@ -304,32 +463,6 @@ bool cmd_pack_raw(const std::string &priv_key_path,
     return true;
 }
 
-static std::string extract_pubkey_hex(const fs::path &pub_key_path)
-{
-    FILE *fp = fopen(pub_key_path.c_str(), "rb");
-    if (!fp)
-        return "";
-    EVP_PKEY *pkey = PEM_read_PUBKEY(fp, nullptr, nullptr, nullptr);
-    fclose(fp);
-    if (!pkey)
-        return "";
-
-    size_t len = 32;
-    uint8_t raw_key[32];
-    if (EVP_PKEY_get_raw_public_key(pkey, raw_key, &len) == 1)
-    {
-        EVP_PKEY_free(pkey);
-        std::ostringstream ss;
-        for (size_t i = 0; i < len; ++i)
-        {
-            ss << std::hex << std::setw(2) << std::setfill('0') << static_cast<int>(raw_key[i]);
-        }
-        return ss.str();
-    }
-    EVP_PKEY_free(pkey);
-    return "";
-}
-
 // -----------------------------------------------------------------------------
 // 4. SMART DIRECTORY AUTO-PACKER (sentinel-artifact pack [dir])
 // -----------------------------------------------------------------------------
@@ -377,7 +510,6 @@ bool cmd_pack_dir(const std::string &dir_str, const std::string &key_override = 
         key_path = target_dir / "keys" / "ed25519_private.pem";
     }
 
-    // Locate matching public key
     std::string key_str = key_path.string();
     size_t priv_pos = key_str.find("_private.pem");
     if (priv_pos != std::string::npos)
@@ -385,8 +517,7 @@ bool cmd_pack_dir(const std::string &dir_str, const std::string &key_override = 
         pub_key_path = key_str.substr(0, priv_pos) + "_public.pem";
     }
 
-    // 2. Read and auto-inject author_public_key into manifest if missing or invalid
-// Auto-inject clean 64-char Hex author_public_key into manifest
+    // 2. Read and auto-inject 64-char Hex author_public_key into manifest if missing
     auto mf_bytes = read_binary_file(manifest_path);
     std::string manifest_str(reinterpret_cast<const char *>(mf_bytes.data()), mf_bytes.size());
 
@@ -408,7 +539,7 @@ bool cmd_pack_dir(const std::string &dir_str, const std::string &key_override = 
             }
         }
     }
-    
+
     std::string proj_name = target_dir.filename().string();
     if (proj_name == ".")
         proj_name = fs::current_path().filename().string();
@@ -899,104 +1030,6 @@ bool cmd_test_preflight(const std::string &spkg_path)
 }
 
 // -----------------------------------------------------------------------------
-// CREDENTIALS & URL NORMALIZER HELPERS
-// -----------------------------------------------------------------------------
-struct SavedCredentials
-{
-    std::string api_key;
-    std::string hub_url;
-};
-
-static SavedCredentials load_saved_credentials()
-{
-    SavedCredentials creds{};
-    const char *home = std::getenv("HOME");
-    std::vector<fs::path> cred_paths;
-    if (home)
-        cred_paths.push_back(fs::path(home) / ".sentinel" / "credentials.json");
-    cred_paths.push_back("/etc/sentinel/credentials.json");
-
-    for (const auto &p : cred_paths)
-    {
-        if (fs::exists(p))
-        {
-            std::ifstream f(p);
-            std::string line;
-            while (std::getline(f, line))
-            {
-                size_t pos_key = line.find("\"api_key\"");
-                if (pos_key != std::string::npos)
-                {
-                    size_t colon = line.find(':', pos_key);
-                    size_t start = line.find('"', colon + 1);
-                    size_t end = line.find('"', start + 1);
-                    if (start != std::string::npos && end != std::string::npos)
-                    {
-                        creds.api_key = line.substr(start + 1, end - start - 1);
-                    }
-                }
-                size_t pos_url = line.find("\"hub_url\"");
-                if (pos_url != std::string::npos)
-                {
-                    size_t colon = line.find(':', pos_url);
-                    size_t start = line.find('"', colon + 1);
-                    size_t end = line.find('"', start + 1);
-                    if (start != std::string::npos && end != std::string::npos)
-                    {
-                        creds.hub_url = line.substr(start + 1, end - start - 1);
-                    }
-                }
-            }
-        }
-    }
-    return creds;
-}
-
-static std::string normalize_publish_endpoint(std::string url)
-{
-    if (url.empty())
-    {
-        url = "https://backend.aryorithm.com";
-    }
-
-    // Ensure scheme is present (default to http for localhost/IPs, https otherwise)
-    if (url.find("://") == std::string::npos)
-    {
-        if (url.rfind("localhost", 0) == 0 || url.rfind("127.0.0.1", 0) == 0)
-        {
-            url = "http://" + url;
-        }
-        else
-        {
-            url = "https://" + url;
-        }
-    }
-
-    // Strip trailing slashes
-    while (!url.empty() && url.back() == '/')
-    {
-        url.pop_back();
-    }
-
-    // Handle path suffixes
-    if (url.rfind("/publish") != std::string::npos)
-    {
-        return url;
-    }
-    if (url.rfind("/api/v1/hub") != std::string::npos)
-    {
-        return url + "/publish";
-    }
-    if (url.rfind("/api/v1") != std::string::npos)
-    {
-        return url + "/hub/publish";
-    }
-
-    // Base host fallback (e.g., http://localhost:8000 or https://backend.aryorithm.com)
-    return url + "/api/v1/hub/publish";
-}
-
-// -----------------------------------------------------------------------------
 // 9. UNIVERSAL PUBLISHER (sentinel-artifact publish)
 // -----------------------------------------------------------------------------
 bool cmd_publish(const std::string &file_path, std::string token, std::string hub_url)
@@ -1009,7 +1042,6 @@ bool cmd_publish(const std::string &file_path, std::string token, std::string hu
 
     SavedCredentials saved_creds = load_saved_credentials();
 
-    // Auto-load token from credentials if omitted
     if (token.empty())
     {
         token = saved_creds.api_key;
@@ -1022,7 +1054,6 @@ bool cmd_publish(const std::string &file_path, std::string token, std::string hu
         std::cout << "[+] Auto-loaded API token from ~/.sentinel/credentials.json (" << token.substr(0, 12) << "...)\n";
     }
 
-    // Auto-resolve base hub_url
     if (hub_url.empty())
     {
         hub_url = !saved_creds.hub_url.empty() ? saved_creds.hub_url : "https://backend.aryorithm.com";
@@ -1031,7 +1062,6 @@ bool cmd_publish(const std::string &file_path, std::string token, std::string hu
     std::string upload_endpoint = normalize_publish_endpoint(hub_url);
     std::string ext = fs::path(file_path).extension().string();
 
-    // 1. Determine asset_type dynamically based on extension
     std::string asset_type = "package";
     if (ext == ".onnx" || ext == ".engine" || ext == ".rknn")
     {
@@ -1050,8 +1080,28 @@ bool cmd_publish(const std::string &file_path, std::string token, std::string hu
         asset_type = "scenario";
     }
 
-    // 2. Extract embedded manifest JSON and signature Hex string
-    std::string sig_hex = "unsigned";
+    // Look for private key to sign the file bytes
+    fs::path priv_key_path;
+    std::vector<fs::path> key_candidates = {
+        fs::path(file_path).parent_path() / "keys" / "ed25519_private.pem",
+        fs::path(file_path).parent_path() / "ed25519_private.pem",
+        "keys/ed25519_private.pem",
+        "ed25519_private.pem"};
+    for (const auto &k : key_candidates)
+    {
+        if (fs::exists(k))
+        {
+            priv_key_path = k;
+            break;
+        }
+    }
+
+    std::string sig_hex = "";
+    if (!priv_key_path.empty())
+    {
+        sig_hex = sign_file_bytes_hex(file_path, priv_key_path);
+    }
+
     std::string manifest_json = "{\"name\":\"" + fs::path(file_path).filename().string() + "\",\"asset_type\":\"" + asset_type + "\"}";
 
     auto container = read_binary_file(file_path);
@@ -1061,13 +1111,15 @@ bool cmd_publish(const std::string &file_path, std::string token, std::string hu
         std::memcpy(&hdr, container.data(), sizeof(hdr));
         if (hdr.magic == SPKG_MAGIC)
         {
-            // Convert 64-byte Ed25519 signature to hex string
-            std::ostringstream sig_ss;
-            for (int i = 0; i < 64; ++i)
+            if (sig_hex.empty())
             {
-                sig_ss << std::hex << std::setw(2) << std::setfill('0') << static_cast<int>(hdr.signature[i]);
+                std::ostringstream sig_ss;
+                for (int i = 0; i < 64; ++i)
+                {
+                    sig_ss << std::hex << std::setw(2) << std::setfill('0') << static_cast<int>(hdr.signature[i]);
+                }
+                sig_hex = sig_ss.str();
             }
-            sig_hex = sig_ss.str();
 
             if (hdr.manifest_len > 0 && container.size() >= sizeof(SpkgHeader) + hdr.manifest_len)
             {
@@ -1076,7 +1128,11 @@ bool cmd_publish(const std::string &file_path, std::string token, std::string hu
         }
     }
 
-    // 3. Write manifest JSON safely to temp file to prevent curl shell splitting
+    if (sig_hex.empty())
+    {
+        sig_hex = "unsigned";
+    }
+
     std::string manifest_tmp = "/tmp/sentinel_manifest_temp.json";
     std::ofstream mf_out(manifest_tmp);
     mf_out << manifest_json;
@@ -1089,7 +1145,6 @@ bool cmd_publish(const std::string &file_path, std::string token, std::string hu
 
     std::string response_file = "/tmp/sentinel_pub_resp.txt";
 
-    // Safely construct curl command passing manifest from temp file
     std::string curl_cmd = "curl -sSL -w \"\\n%{http_code}\" -X POST \"" + upload_endpoint + "\" " +
                            "-H \"Authorization: Bearer " + token + "\" " +
                            "-F \"file=@" + file_path + "\" " +
@@ -1154,9 +1209,6 @@ bool cmd_publish(const std::string &file_path, std::string token, std::string hu
     }
 }
 
-// -----------------------------------------------------------------------------
-// 10. COLORIZED HELP MENU WITH PRACTICAL EXAMPLES
-// -----------------------------------------------------------------------------
 void print_help()
 {
     std::cout << R"(
@@ -1165,9 +1217,7 @@ sentinel-artifact - Aryorithm Universal Artifact Packaging & Registry Toolchain
 Usage:
   sentinel-artifact <command> [arguments]
 
-================================================================================
-1. ARTIFACT (.spkg) AUTHORING & LIFECYCLE
-================================================================================
+Artifact (.spkg) Authoring & Lifecycle:
   new <name> [rust|cpp|lua]               Scaffold a complete .spkg project
   keygen <prefix>                         Generate Ed25519 developer keypair
   pack [dir]                              Smart auto-pack & sign project directory into .spkg
@@ -1177,44 +1227,16 @@ Usage:
   extract-source <file.spkg> <out_src>    Extract human-readable source for audit
   test <file.spkg>                        Run in-sandbox pre-flight test vector
 
-================================================================================
-2. SLAB DATASET PROTOCOL ENGINE (0x534C4142)
-================================================================================
+SLAB Dataset Protocol Engine (0x534C4142):
   slab convert <in.csv> <out.slab> <dim>  Convert CSV to zero-copy binary SLAB format
   slab verify <file.slab>                 Verify binary SLAB dataset integrity
 
-================================================================================
-3. PCAP CAPTURE VAULT & SCENARIO PACKAGING
-================================================================================
+PCAP Capture Vault & Scenario Packaging:
   pcap pack <key> <manifest> <in> <out>   Sign & seal raw PCAP into .spcap container
 
-================================================================================
-4. UNIVERSAL CLOUD REGISTRY PUBLISHING
-================================================================================
+Universal Cloud Registry Publishing:
   publish <file> --token <API_KEY>        Publish .spkg, .onnx, .slab, .pcap, or .tar.gz
-                                          to https://hub.aryorithm.com
-
---------------------------------------------------------------------------------
-PRACTICAL EXAMPLES:
-
-  # Example 1: Scaffold, compile, auto-pack, and test a Rust Wasm3 plugin
-    $ sentinel-artifact new plant_safety_filter rust
-    $ cd plant_safety_filter
-    $ cargo build --release --target wasm32-unknown-unknown
-    $ sentinel-artifact pack .
-    $ sentinel-artifact test plant_safety_filter.spkg
-
-  # Example 2: Inspect and verify an artifact package
-    $ sentinel-artifact inspect plant_safety_filter.spkg
-    $ sentinel-artifact verify keys/ed25519_public.pem plant_safety_filter.spkg
-
-  # Example 3: Convert a research CSV dataset to SLAB zero-copy binary format
-    $ sentinel-artifact slab convert cicids2017.csv cicids2017.slab 32
-    $ sentinel-artifact slab verify cicids2017.slab
-
-  # Example 4: Publish any artifact to hub.aryorithm.com
-    $ sentinel-artifact publish plant_safety_filter.spkg --token ARYO_DEV_KEY_2026
-    $ sentinel-artifact publish network_threat_int8.onnx --token ARYO_DEV_KEY_2026
+                                          to https://backend.aryorithm.com
 )" << std::endl;
 }
 
@@ -1265,7 +1287,6 @@ int main(int argc, char *argv[])
         return cmd_test_preflight(argv[2]) ? 0 : 1;
     }
 
-    // SLAB Subcommands
     if (cmd == "slab" && argc >= 3)
     {
         std::string sub = argv[2];
@@ -1280,18 +1301,16 @@ int main(int argc, char *argv[])
         }
     }
 
-    // PCAP Packaging
     if (cmd == "pcap" && argc >= 3 && std::string(argv[2]) == "pack" && argc >= 7)
     {
         return cmd_pcap_pack(argv[3], argv[4], argv[5], argv[6]) ? 0 : 1;
     }
 
-    // Universal Cloud Publish (.spkg, .onnx, .engine, .slab, .pcap, .tar.gz)
     if (cmd == "publish" && argc >= 3)
     {
         std::string target_file = argv[2];
         std::string token = "";
-        std::string hub_url = ""; // Normalizer will resolve to default or saved credentials
+        std::string hub_url = "";
 
         for (int i = 3; i < argc; ++i)
         {
@@ -1302,6 +1321,7 @@ int main(int argc, char *argv[])
         }
         return cmd_publish(target_file, token, hub_url) ? 0 : 1;
     }
+
     std::cerr << "[-] Invalid arguments. Run 'sentinel-artifact' for help." << std::endl;
     return 1;
 }
