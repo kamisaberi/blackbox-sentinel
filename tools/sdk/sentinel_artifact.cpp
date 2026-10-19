@@ -304,15 +304,15 @@ bool cmd_pack_raw(const std::string &priv_key_path,
     return true;
 }
 
-
-
 static std::string extract_pubkey_hex(const fs::path &pub_key_path)
 {
     FILE *fp = fopen(pub_key_path.c_str(), "rb");
-    if (!fp) return "";
+    if (!fp)
+        return "";
     EVP_PKEY *pkey = PEM_read_PUBKEY(fp, nullptr, nullptr, nullptr);
     fclose(fp);
-    if (!pkey) return "";
+    if (!pkey)
+        return "";
 
     size_t len = 32;
     uint8_t raw_key[32];
@@ -385,34 +385,28 @@ bool cmd_pack_dir(const std::string &dir_str, const std::string &key_override = 
         pub_key_path = key_str.substr(0, priv_pos) + "_public.pem";
     }
 
-    // 2. Read and auto-inject author_public_key into manifest if missing
+    // 2. Read and auto-inject author_public_key into manifest if missing or invalid
     auto mf_bytes = read_binary_file(manifest_path);
     std::string manifest_str(reinterpret_cast<const char *>(mf_bytes.data()), mf_bytes.size());
 
-    if (manifest_str.find("author_public_key") == std::string::npos && fs::exists(pub_key_path))
+    std::string clean_hex_key = extract_pubkey_hex(pub_key_path);
+
+    if (!clean_hex_key.empty())
     {
-        auto pub_bytes = read_binary_file(pub_key_path);
-        std::string pub_pem = std::string(reinterpret_cast<const char *>(pub_bytes.data()), pub_bytes.size());
-
-        // Strip newlines for clean JSON embedding
-        std::string clean_pem = "";
-        for (char c : pub_pem)
+        // If author_public_key is missing, inject it as 64-char Hex string
+        if (manifest_str.find("author_public_key") == std::string::npos)
         {
-            if (c != '\r' && c != '\n')
-                clean_pem += c;
-        }
+            size_t last_brace = manifest_str.rfind('}');
+            if (last_brace != std::string::npos)
+            {
+                std::string injected = ",\n  \"author_public_key\": \"" + clean_hex_key + "\"\n}";
+                manifest_str.replace(last_brace, 1, injected);
 
-        // Inject author_public_key before final closing brace }
-        size_t last_brace = manifest_str.rfind('}');
-        if (last_brace != std::string::npos)
-        {
-            std::string injected = ",\n  \"author_public_key\": \"" + clean_pem + "\"\n}";
-            manifest_str.replace(last_brace, 1, injected);
-
-            std::ofstream mf_out(manifest_path);
-            mf_out << manifest_str;
-            mf_out.close();
-            std::cout << "[+] Automatically enrolled author_public_key into manifest.json\n";
+                std::ofstream mf_out(manifest_path);
+                mf_out << manifest_str;
+                mf_out.close();
+                std::cout << "[+] Automatically enrolled 64-char Hex author_public_key into manifest.json\n";
+            }
         }
     }
 
