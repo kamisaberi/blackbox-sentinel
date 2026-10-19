@@ -941,9 +941,8 @@ static std::string normalize_publish_endpoint(std::string url)
     return url + "/api/v1/hub/publish";
 }
 
-// -----------------------------------------------------------------------------
-// 9. UNIVERSAL PUBLISHER (sentinel-artifact publish)
-// -----------------------------------------------------------------------------
+
+
 // -----------------------------------------------------------------------------
 // 9. UNIVERSAL PUBLISHER (sentinel-artifact publish)
 // -----------------------------------------------------------------------------
@@ -998,7 +997,8 @@ bool cmd_publish(const std::string &file_path, std::string token, std::string hu
         asset_type = "scenario";
     }
 
-    // 2. Extract embedded manifest JSON string
+    // 2. Extract embedded manifest JSON and signature Hex string
+    std::string sig_hex = "unsigned";
     std::string manifest_json = "{\"name\":\"" + fs::path(file_path).filename().string() + "\",\"asset_type\":\"" + asset_type + "\"}";
 
     auto container = read_binary_file(file_path);
@@ -1006,32 +1006,49 @@ bool cmd_publish(const std::string &file_path, std::string token, std::string hu
     {
         SpkgHeader hdr;
         std::memcpy(&hdr, container.data(), sizeof(hdr));
-        if (hdr.magic == SPKG_MAGIC && hdr.manifest_len > 0 && container.size() >= sizeof(SpkgHeader) + hdr.manifest_len)
+        if (hdr.magic == SPKG_MAGIC)
         {
-            manifest_json = std::string(reinterpret_cast<const char *>(container.data() + sizeof(SpkgHeader)), hdr.manifest_len);
+            // Convert 64-byte Ed25519 signature to hex string
+            std::ostringstream sig_ss;
+            for (int i = 0; i < 64; ++i)
+            {
+                sig_ss << std::hex << std::setw(2) << std::setfill('0') << static_cast<int>(hdr.signature[i]);
+            }
+            sig_hex = sig_ss.str();
+
+            if (hdr.manifest_len > 0 && container.size() >= sizeof(SpkgHeader) + hdr.manifest_len)
+            {
+                manifest_json = std::string(reinterpret_cast<const char *>(container.data() + sizeof(SpkgHeader)), hdr.manifest_len);
+            }
         }
     }
 
+    // 3. Write manifest JSON safely to temp file to prevent curl shell splitting
+    std::string manifest_tmp = "/tmp/sentinel_manifest_temp.json";
+    std::ofstream mf_out(manifest_tmp);
+    mf_out << manifest_json;
+    mf_out.close();
+
     std::cout << "[*] Initiating publish for " << file_path << " (" << ext << ") to " << upload_endpoint << "...\n"
               << "    ├── Asset Type : " << asset_type << "\n"
+              << "    ├── Signature  : " << sig_hex.substr(0, 16) << "...\n"
               << "    └── Manifest   : " << manifest_json.substr(0, 60) << "...\n";
 
     std::string response_file = "/tmp/sentinel_pub_resp.txt";
 
-    // Escape single quotes for curl command execution
-    std::string escaped_manifest = manifest_json;
-    std::replace(escaped_manifest.begin(), escaped_manifest.end(), '\'', ' ');
-
-    // Multipart POST including file, asset_type, and manifest
+    // Safely construct curl command passing manifest from temp file
     std::string curl_cmd = "curl -sSL -w \"\\n%{http_code}\" -X POST \"" + upload_endpoint + "\" " +
                            "-H \"Authorization: Bearer " + token + "\" " +
                            "-F \"file=@" + file_path + "\" " +
                            "-F \"asset_type=" + asset_type + "\" " +
-                           "-F \"manifest=" + escaped_manifest + "\" > " + response_file + " 2>&1";
+                           "-F \"signature=" + sig_hex + "\" " +
+                           "-F \"manifest=<" + manifest_tmp + "\" > " + response_file + " 2>&1";
 
     std::cout << "    --> Executing upload stream to Hub Intake API...\n";
     int ret = std::system(curl_cmd.c_str());
     (void)ret;
+
+    fs::remove(manifest_tmp);
 
     std::ifstream resp_in(response_file);
     std::string line, last_line, full_body;
@@ -1047,13 +1064,7 @@ bool cmd_publish(const std::string &file_path, std::string token, std::string hu
     fs::remove(response_file);
 
     int http_code = 0;
-    try
-    {
-        http_code = std::stoi(last_line);
-    }
-    catch (...)
-    {
-    }
+    try { http_code = std::stoi(last_line); } catch (...) {}
 
     if (http_code == 200 || http_code == 201)
     {
@@ -1083,6 +1094,7 @@ bool cmd_publish(const std::string &file_path, std::string token, std::string hu
         return false;
     }
 }
+
 // -----------------------------------------------------------------------------
 // 10. COLORIZED HELP MENU WITH PRACTICAL EXAMPLES
 // -----------------------------------------------------------------------------
