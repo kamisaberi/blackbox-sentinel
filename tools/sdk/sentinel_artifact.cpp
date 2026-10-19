@@ -977,7 +977,7 @@ bool cmd_publish(const std::string &file_path, std::string token, std::string hu
     std::string ext = fs::path(file_path).extension().string();
 
     // 1. Determine asset_type dynamically based on extension
-    std::string asset_type = "spkg";
+    std::string asset_type = "package";
     if (ext == ".onnx" || ext == ".engine" || ext == ".rknn")
     {
         asset_type = "model";
