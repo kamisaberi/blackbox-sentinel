@@ -323,13 +323,76 @@ bool cmd_pack_dir(const std::string &dir_str, const std::string &key_override = 
         return false;
     }
 
-    // Read manifest.json to extract name & tier
-    std::string manifest_str = reinterpret_cast<char *>(read_binary_file(manifest_path).data());
+    // 1. Locate Signing Key (Auto-generate if missing)
+    fs::path key_path = key_override;
+    fs::path pub_key_path;
+    if (key_path.empty())
+    {
+        std::vector<fs::path> key_candidates = {
+            target_dir / "keys" / "ed25519_private.pem",
+            target_dir / "ed25519_private.pem",
+            "keys/ed25519_private.pem",
+            "ed25519_private.pem"};
+        for (const auto &k : key_candidates)
+        {
+            if (fs::exists(k))
+            {
+                key_path = k;
+                break;
+            }
+        }
+    }
+
+    if (key_path.empty() || !fs::exists(key_path))
+    {
+        std::cout << "[*] No private key found. Auto-generating Ed25519 keypair in " << (target_dir / "keys").string() << "...\n";
+        fs::create_directories(target_dir / "keys");
+        cmd_keygen((target_dir / "keys" / "ed25519").string());
+        key_path = target_dir / "keys" / "ed25519_private.pem";
+    }
+
+    // Locate matching public key
+    std::string key_str = key_path.string();
+    size_t priv_pos = key_str.find("_private.pem");
+    if (priv_pos != std::string::npos)
+    {
+        pub_key_path = key_str.substr(0, priv_pos) + "_public.pem";
+    }
+
+    // 2. Read and auto-inject author_public_key into manifest if missing
+    std::string manifest_str = reinterpret_char_to_string(read_binary_file(manifest_path));
+    if (manifest_str.find("author_public_key") == std::string::npos && fs::exists(pub_key_path))
+    {
+        auto pub_bytes = read_binary_file(pub_key_path);
+        std::string pub_pem = std::string(reinterpret_cast<const char *>(pub_bytes.data()), pub_bytes.size());
+
+        // Strip newlines for clean JSON embedding
+        std::string clean_pem = "";
+        for (char c : pub_pem)
+        {
+            if (c != '\r' && c != '\n')
+                clean_pem += c;
+        }
+
+        // Inject author_public_key before final closing brace }
+        size_t last_brace = manifest_str.rfind('}');
+        if (last_brace != std::string::npos)
+        {
+            std::string injected = ",\n  \"author_public_key\": \"" + clean_pem + "\"\n}";
+            manifest_str.replace(last_brace, 1, injected);
+
+            std::ofstream mf_out(manifest_path);
+            mf_out << manifest_str;
+            mf_out.close();
+            std::cout << "[+] Automatically enrolled author_public_key into manifest.json\n";
+        }
+    }
+
     std::string proj_name = target_dir.filename().string();
     if (proj_name == ".")
         proj_name = fs::current_path().filename().string();
 
-    uint32_t tier = SPKG_TIER_WASM; // Default to Wasm
+    uint32_t tier = SPKG_TIER_WASM;
     if (manifest_str.find("\"tier\": \"native\"") != std::string::npos || manifest_str.find("\"tier\": \"cpp\"") != std::string::npos)
     {
         tier = SPKG_TIER_NATIVE;
@@ -339,7 +402,7 @@ bool cmd_pack_dir(const std::string &dir_str, const std::string &key_override = 
         tier = SPKG_TIER_LUA;
     }
 
-    // 1. Locate Payload Binary
+    // 3. Locate Payload Binary
     fs::path payload_path;
     if (tier == SPKG_TIER_WASM)
     {
@@ -357,7 +420,6 @@ bool cmd_pack_dir(const std::string &dir_str, const std::string &key_override = 
         }
         if (payload_path.empty())
         {
-            // Search for any .wasm file inside target directory
             for (const auto &entry : fs::recursive_directory_iterator(target_dir))
             {
                 if (entry.path().extension() == ".wasm")
@@ -401,12 +463,11 @@ bool cmd_pack_dir(const std::string &dir_str, const std::string &key_override = 
 
     if (payload_path.empty() || !fs::exists(payload_path))
     {
-        std::cerr << "[-] Error: Compiled payload binary not found in " << target_dir.string() << "\n"
-                  << "    Please compile your project first (e.g., 'cargo build --release --target wasm32-unknown-unknown' or 'cmake --build build')." << std::endl;
+        std::cerr << "[-] Error: Compiled payload binary not found in " << target_dir.string() << "\n";
         return false;
     }
 
-    // 2. Locate Source Code File
+    // 4. Locate Source Code File
     fs::path source_path;
     if (fs::exists(target_dir / "src" / "lib.rs"))
         source_path = target_dir / "src" / "lib.rs";
@@ -415,7 +476,7 @@ bool cmd_pack_dir(const std::string &dir_str, const std::string &key_override = 
     else if (fs::exists(target_dir / (proj_name + ".lua")))
         source_path = target_dir / (proj_name + ".lua");
 
-    // 3. Locate Pre-Flight Test Vector
+    // 5. Locate Pre-Flight Test Vector
     fs::path test_pkt_path = target_dir / "tests" / "preflight_frame.bin";
     if (!fs::exists(test_pkt_path))
     {
@@ -423,33 +484,6 @@ bool cmd_pack_dir(const std::string &dir_str, const std::string &key_override = 
         std::ofstream tf(test_pkt_path, std::ios::binary);
         uint8_t sample_frame[] = {0xDE, 0xAD, 0xBE, 0xEF, 0x01, 0x02, 0x03, 0x04};
         tf.write(reinterpret_cast<const char *>(sample_frame), sizeof(sample_frame));
-    }
-
-    // 4. Locate Signing Key (Auto-generate if missing)
-    fs::path key_path = key_override;
-    if (key_path.empty())
-    {
-        std::vector<fs::path> key_candidates = {
-            target_dir / "keys" / "ed25519_private.pem",
-            target_dir / "ed25519_private.pem",
-            "keys/ed25519_private.pem",
-            "ed25519_private.pem"};
-        for (const auto &k : key_candidates)
-        {
-            if (fs::exists(k))
-            {
-                key_path = k;
-                break;
-            }
-        }
-    }
-
-    if (key_path.empty() || !fs::exists(key_path))
-    {
-        std::cout << "[*] No private key found. Auto-generating Ed25519 keypair in " << (target_dir / "keys").string() << "...\n";
-        fs::create_directories(target_dir / "keys");
-        cmd_keygen((target_dir / "keys" / "ed25519").string());
-        key_path = target_dir / "keys" / "ed25519_private.pem";
     }
 
     fs::path out_spkg_path = target_dir / (proj_name + ".spkg");
