@@ -16,6 +16,9 @@
 #include <netinet/in.h>
 #include <arpa/inet.h>
 
+#include "sentinel/hardware/tpm_enrollment.hpp"
+
+
 namespace fs = std::filesystem;
 
 #define SPKG_MAGIC 0x474B50534F595241ULL // "ARYOSPKG"
@@ -860,6 +863,46 @@ int cmd_model_pull(const std::string &model_slug)
     std::cout << "\033[1;32m[+] Staged AI model to active runtime: " << dest.string() << "\033[0m\n";
     return 0;
 }
+
+
+
+// Add command handlers:
+int cmd_hardware_status()
+{
+    sentinel::hardware::TpmEnrollmentManager mgr;
+    auto profile = mgr.detect_hardware_profile();
+    auto token = mgr.generate_hardware_token();
+    bool verified = mgr.verify_hardware_token();
+
+    std::cout << "\033[1;36m================================================================================\033[0m\n";
+    std::cout << "\033[1;37m            PHYSICAL HARDWARE PROVISIONING & TPM 2.0 STATUS                     \033[0m\n";
+    std::cout << "\033[1;36m================================================================================\033[0m\n"
+              << "Hardware Profile : \033[1;33m" << profile.profile_id << "\033[0m (" << profile.arch << ")\n"
+              << "TPM Device Path  : " << (profile.tpm_device_path.empty() ? "None (Fallback DMI UUID)" : profile.tpm_device_path) << "\n"
+              << "TPM 2.0 Attested : " << (token.tpm_attested ? "\033[1;32mYES (Physical Silicon)\033[0m" : "\033[1;33mNO (Virtualization)\033[0m") << "\n"
+              << "DMI System UUID  : " << token.dmi_system_uuid << "\n"
+              << "Hardware Token   : \033[1;32m" << token.hardware_token_hash << "\033[0m\n"
+              << "Binding Status   : " << (verified ? "\033[1;32m[VERIFIED] Token Binds to Silicon\033[0m" : "\033[1;33m[UNENROLLED] Run 'sentinel-ctl hardware enroll'\033[0m") << "\n"
+              << "\033[1;36m================================================================================\033[0m\n";
+    return 0;
+}
+
+int cmd_hardware_enroll()
+{
+    sentinel::hardware::TpmEnrollmentManager mgr;
+    auto token = mgr.generate_hardware_token();
+    bool saved = mgr.save_hardware_token(token);
+
+    if (saved) {
+        std::cout << "\033[1;32m[+] Successfully enrolled hardware identity token into /etc/sentinel/hardware_identity.token\033[0m\n"
+                  << "    Token Hash: " << token.hardware_token_hash << "\n";
+        return 0;
+    }
+    std::cerr << "[-] Error: Failed to save hardware token to /etc/sentinel/\n";
+    return 1;
+}
+
+
 
 int main(int argc, char *argv[])
 {
