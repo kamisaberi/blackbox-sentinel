@@ -1066,6 +1066,12 @@ int main(int argc, char *argv[])
         return 0;
     }
 
+    if (cmd == "hardware" && argc >= 3)
+    {
+        std::string sub = argv[2];
+        if (sub == "status") return cmd_hardware_status();
+        if (sub == "enroll") return cmd_hardware_enroll();
+    }
     print_help();
     return 0;
 }
