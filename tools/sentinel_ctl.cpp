@@ -18,7 +18,6 @@
 
 #include "sentinel/hardware/tpm_enrollment.hpp"
 
-
 namespace fs = std::filesystem;
 
 #define SPKG_MAGIC 0x474B50534F595241ULL // "ARYOSPKG"
@@ -864,8 +863,6 @@ int cmd_model_pull(const std::string &model_slug)
     return 0;
 }
 
-
-
 // Add command handlers:
 int cmd_hardware_status()
 {
@@ -893,7 +890,8 @@ int cmd_hardware_enroll()
     auto token = mgr.generate_hardware_token();
     bool saved = mgr.save_hardware_token(token);
 
-    if (saved) {
+    if (saved)
+    {
         std::cout << "\033[1;32m[+] Successfully enrolled hardware identity token into /etc/sentinel/hardware_identity.token\033[0m\n"
                   << "    Token Hash: " << token.hardware_token_hash << "\n";
         return 0;
@@ -901,8 +899,6 @@ int cmd_hardware_enroll()
     std::cerr << "[-] Error: Failed to save hardware token to /etc/sentinel/\n";
     return 1;
 }
-
-
 
 int main(int argc, char *argv[])
 {
@@ -1069,8 +1065,10 @@ int main(int argc, char *argv[])
     if (cmd == "hardware" && argc >= 3)
     {
         std::string sub = argv[2];
-        if (sub == "status") return cmd_hardware_status();
-        if (sub == "enroll") return cmd_hardware_enroll();
+        if (sub == "status")
+            return cmd_hardware_status();
+        if (sub == "enroll")
+            return cmd_hardware_enroll();
     }
     print_help();
     return 0;
