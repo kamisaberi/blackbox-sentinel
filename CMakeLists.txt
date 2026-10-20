@@ -465,6 +465,8 @@ install(CODE "execute_process(COMMAND ${CMAKE_COMMAND} -E create_symlink sentine
 # -------------------------------------------------------------------
 add_executable(sentinel_ctl
     tools/sentinel_ctl.cpp
+    src/hardware/tpm_enrollment.cpp # <--- ADD THIS LINE
+
 )
 target_link_libraries(sentinel_ctl PRIVATE
     Threads::Threads
