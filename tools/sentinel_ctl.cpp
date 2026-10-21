@@ -756,7 +756,6 @@ int cmd_cache_import(const std::string &in_tar)
     return 1;
 }
 
-
 // -----------------------------------------------------------------------------
 // IDEA B: 5G/6G SLICING CONTROLLER (sentinel-ctl 5g ...)
 // -----------------------------------------------------------------------------
@@ -814,7 +813,6 @@ int cmd_5g_status()
     std::cout << "\033[1;36m========================================================================================================\033[0m\n";
     return 0;
 }
-
 
 void print_help()
 {
@@ -1181,6 +1179,18 @@ int main(int argc, char *argv[])
             return cmd_license_inspect(argv[3]);
     }
 
+    if (cmd == "5g" && argc >= 3)
+    {
+        std::string sub = argv[2];
+        if (sub == "enable")
+        {
+            std::string iface = (argc >= 4) ? argv[3] : "ens33";
+            fs::path cfg = (argc >= 5) ? argv[4] : "configs/5g_slices.yaml";
+            return cmd_5g_enable(iface, cfg);
+        }
+        if (sub == "status")
+            return cmd_5g_status();
+    }
     print_help();
     return 0;
 }
