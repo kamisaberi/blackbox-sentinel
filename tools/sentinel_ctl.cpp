@@ -900,6 +900,41 @@ int cmd_hardware_enroll()
     return 1;
 }
 
+int cmd_license_apply(const fs::path &lic_path)
+{
+    if (!fs::exists(lic_path))
+    {
+        std::cerr << "[-] Error: License file not found: " << lic_path << std::endl;
+        return 1;
+    }
+    fs::create_directories("/etc/sentinel");
+    fs::copy_file(lic_path, "/etc/sentinel/license.lic", fs::copy_options::overwrite_existing);
+    std::cout << "\033[1;32m[+] Successfully applied commercial license to /etc/sentinel/license.lic\033[0m\n";
+    return 0;
+}
+
+int cmd_license_inspect(const fs::path &lic_path)
+{
+    if (!fs::exists(lic_path))
+    {
+        std::cerr << "[-] Error: License file not found: " << lic_path << std::endl;
+        return 1;
+    }
+    auto data = read_binary_file(lic_path);
+    std::string lic_str(reinterpret_cast<const char *>(data.data()), data.size());
+
+    std::cout << "\033[1;36m================================================================================\033[0m\n";
+    std::cout << "\033[1;37m                 SENTINEL COMMERCIAL LICENSE INSPECTION                          \033[0m\n";
+    std::cout << "\033[1;36m================================================================================\033[0m\n"
+              << "License File : " << lic_path.string() << "\n"
+              << "File Size    : " << data.size() << " bytes\n"
+              << "--------------------------------------------------------------------------------\n"
+              << "\033[1;37mENTITLEMENT DATA:\033[0m\n"
+              << lic_str << "\n"
+              << "\033[1;36m================================================================================\033[0m\n";
+    return 0;
+}
+
 int main(int argc, char *argv[])
 {
     if (argc < 2)
@@ -1070,6 +1105,17 @@ int main(int argc, char *argv[])
         if (sub == "enroll")
             return cmd_hardware_enroll();
     }
+
+    // Inside main() of sentinel_ctl.cpp:
+    if (cmd == "license" && argc >= 3)
+    {
+        std::string sub = argv[2];
+        if (sub == "apply" && argc >= 4)
+            return cmd_license_apply(argv[3]);
+        if (sub == "inspect" && argc >= 4)
+            return cmd_license_inspect(argv[3]);
+    }
+
     print_help();
     return 0;
 }
