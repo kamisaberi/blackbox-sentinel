@@ -21,6 +21,7 @@
 
 
 #include "sentinel/hardware/tpm_enrollment.hpp"
+#include "sentinel/subsystems/trism_firewall.hpp"
 
 namespace fs = std::filesystem;
 
