@@ -1,0 +1,33 @@
+# ==============================================================================
+# ARYORITHM BLACKBOX SENTINEL: ORBITAL & SATELLITE LINK MISSION SPECIFICATION
+# ==============================================================================
+mission: "LEO_CONSTELLATION_MISSION_01"
+ground_station_id: "GS_AMSTERDAM_01"
+carrier_band: "Ka-Band"
+ingress_udp_port: 50100
+
+apid_registry:
+  # 1. Mission Time Distribution
+  - apid: 0x000
+    name: "TIME_SYNCHRONIZATION"
+    direction: "downlink"
+    replay_tolerance: 64
+
+  # 2. AOCS Thruster & Reaction Wheels (Air-Gapped: Rejects Unauthorized TC)
+  - apid: 0x010
+    name: "AOCS_THRUSTER_ACTUATION"
+    direction: "uplink"
+    tc_restricted: true
+    require_pqc_signature: true
+
+  # 3. Electrical Power System
+  - apid: 0x020
+    name: "ELECTRICAL_POWER_EPS"
+    direction: "downlink"
+    replay_tolerance: 128
+
+  # 4. Earth Observation Sensor Payload
+  - apid: 0x050
+    name: "OPTICAL_RADAR_PAYLOAD"
+    direction: "downlink"
+    replay_tolerance: 256
