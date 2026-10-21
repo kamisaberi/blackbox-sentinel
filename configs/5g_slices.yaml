@@ -1,0 +1,27 @@
+# ==============================================================================
+# ARYORITHM BLACKBOX SENTINEL: 3GPP 5G/6G NETWORK SLICING SPECIFICATION
+# ==============================================================================
+version: "1.0"
+n3_interface: "ens33"
+gtpu_port: 2152
+
+slices:
+  # 1. Critical Operational Technology (URLLC - SST 2)
+  - name: "URLLC_CRITICAL_ROBOTICS"
+    sst: 2
+    sd: 1
+    teids: [0x00000100, 0x00000101]
+    allowed_ports: [502, 102, 2404]
+    isolation: "strict"
+    allowed_inner_ip: "0.0.0.0"
+    description: "Ultra-Reliable Low-Latency OT PLCs and Robot Controllers"
+
+  # 2. General Plant eMBB (SST 1) - Cameras & Operations Tablets
+  - name: "EMBB_ENTERPRISE_MEDIA"
+    sst: 1
+    sd: 1
+    teids: [0x00000200, 0x00000201]
+    allowed_ports: [80, 443, 8554] # Permitted only for Web/RTSP, drops Modbus 502!
+    isolation: "strict"
+    allowed_inner_ip: "0.0.0.0"
+    description: "Field Worker Inspection Tablets and HMI Video Feeds"
