@@ -1478,6 +1478,10 @@ Artifact (.spkg) Authoring & Lifecycle:
   extract-source <file.spkg> <out_src>    Extract human-readable source for audit
   test <file.spkg>                        Run in-sandbox pre-flight test vector
 
+Autonomous Honeynet & Vaccine Synthesis:
+  synthesize-vaccine <exploit.json|dir> [out_dir]
+                                          Synthesize, preflight-test & seal .spkg reflex rule
+
 SLAB Dataset Protocol Engine (0x534C4142):
   slab convert <in.csv> <out.slab> <dim>  Convert CSV to zero-copy binary SLAB format
   slab verify <file.slab>                 Verify binary SLAB dataset integrity
@@ -1490,7 +1494,6 @@ Universal Cloud Registry Publishing:
                                           to https://backend.aryorithm.com
 )" << std::endl;
 }
-
 int main(int argc, char *argv[])
 {
     if (argc < 2)
