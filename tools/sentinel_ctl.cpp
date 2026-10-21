@@ -844,6 +844,12 @@ Package & Asset Management:
   5g status                        Inspect active 5G slice TEIDs and violation drops
   5g drop-teid <teid_hex>          Revoke TEID authorization and enforce kernel drop
 
+Live-SBOM Runtime Memory Drift & Integrity Engine:
+  sbom generate                    Compute SHA-256 hashes of critical daemons into /etc/sentinel/live_sbom.json
+  sbom enforce                     Load certified SBOM into kernel & activate sub-µs SIGKILL W^X enforcement
+  sbom status                      Audit running process memory integrity and drift violations
+  sbom test-drift                  Run live sandbox test verifying kernel SIGKILL on unauthorized PROT_EXEC
+
 Air-Gapped & Sneakernet Cache:
   cache list                       List all cached assets and their sizes
   cache clean                      Purge the local asset cache
