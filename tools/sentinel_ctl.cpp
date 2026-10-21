@@ -781,6 +781,11 @@ Package & Asset Management:
   slab stream <file.slab> [port]   Stream zero-copy binary records at 65,000+ EPS
   model pull <model_slug>          Pull verified ONNX model weights directly
 
+5G/6G Wireless Network Slicing & UPF Guard:
+  5g enable [iface] [config.yaml]  Provision 3GPP slices into in-kernel eBPF filter
+  5g status                        Inspect active 5G slice TEIDs and violation drops
+  5g drop-teid <teid_hex>          Revoke TEID authorization and enforce kernel drop
+
 Air-Gapped & Sneakernet Cache:
   cache list                       List all cached assets and their sizes
   cache clean                      Purge the local asset cache
