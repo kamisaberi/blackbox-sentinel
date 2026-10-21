@@ -861,6 +861,13 @@ Air-Gapped & Sneakernet Cache:
   cache export <out.tar.gz>        Export cache to a bundle for offline USB Sneakernet transfer
   cache import <in.tar.gz>         Import an offline bundle into the local appliance cache
 
+GenAI / LLM Prompt Injection Firewall (AI TRiSM):
+  trism status                     Display AI TRiSM token stream firewall metrics & latency SLA
+  trism inspect --prompt "<text>"  Inspect prompt text for jailbreaks and indirect injections
+  trism test-jailbreak             Run red-team benchmark suite across 4 prompt injection classes
+  trism policy                     Display active industrial tool-call governance policy
+
+
 Global Options:
   --hub-url <url>                  Override registry host (e.g. localhost:8000 or https://backend.aryorithm.com)
 )" << std::endl;
