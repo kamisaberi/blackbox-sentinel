@@ -7,6 +7,16 @@
 #include <iomanip>
 #include <sstream>
 #include <chrono>
+#include <iostream>
+#include <vector>
+#include <string>
+#include <cstring>
+#include <cstdint>
+#include <unordered_map>
+#include <iomanip>
+#include <sstream>
+#include <chrono>
+#include <arpa/inet.h>
 
 // -----------------------------------------------------------------------------
 // CCSDS 133.0-B-2 SPACE PACKET PROTOCOL (SPP) STRUCTURES
