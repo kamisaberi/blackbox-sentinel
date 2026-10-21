@@ -19,7 +19,6 @@
 #include <sys/mman.h>
 #include <sys/stat.h>
 
-
 #include "sentinel/hardware/tpm_enrollment.hpp"
 #include "sentinel/subsystems/trism_firewall.hpp"
 
@@ -1016,14 +1015,14 @@ int cmd_license_inspect(const fs::path &lic_path)
     return 0;
 }
 
-
 #include <sys/wait.h>
 #include <sys/mman.h>
 
 // -----------------------------------------------------------------------------
 // IDEA C: LIVE-SBOM RUNTIME MEMORY INTEGRITY CONTROLLER
 // -----------------------------------------------------------------------------
-struct SbomArtifact {
+struct SbomArtifact
+{
     std::string path;
     uint64_t inode;
     std::string sha256;
@@ -1034,10 +1033,12 @@ static SbomArtifact compute_artifact_sbom(const fs::path &p)
 {
     SbomArtifact a{};
     a.path = p.string();
-    if (!fs::exists(p)) return a;
+    if (!fs::exists(p))
+        return a;
 
     struct stat st{};
-    if (stat(p.c_str(), &st) == 0) {
+    if (stat(p.c_str(), &st) == 0)
+    {
         a.inode = st.st_ino;
         a.size = st.st_size;
     }
@@ -1058,8 +1059,7 @@ int cmd_sbom_generate()
         "/usr/local/bin/sentinel-artifact",
         "/usr/local/bin/nexus-ctl",
         "/usr/local/lib/libblackbox.so",
-        "/usr/local/lib/libxinfer.so"
-    };
+        "/usr/local/lib/libxinfer.so"};
 
     fs::create_directories("/etc/sentinel");
     fs::path manifest_path = "/etc/sentinel/live_sbom.json";
@@ -1073,10 +1073,13 @@ int cmd_sbom_generate()
         << "  \"binaries\": [\n";
 
     bool first = true;
-    for (const auto &t : targets) {
-        if (!fs::exists(t)) continue;
+    for (const auto &t : targets)
+    {
+        if (!fs::exists(t))
+            continue;
         auto art = compute_artifact_sbom(t);
-        if (!first) out << ",\n";
+        if (!first)
+            out << ",\n";
         first = false;
 
         out << "    {\n"
@@ -1107,14 +1110,18 @@ int cmd_sbom_enforce()
     std::vector<std::string> daemons = {"sentinel", "mock_plc", "sentinel-nexus"};
     size_t enrolled = 0;
 
-    for (const auto &d : daemons) {
+    for (const auto &d : daemons)
+    {
         std::string pgrep_cmd = "pgrep -f " + d + " 2>/dev/null";
         FILE *fp = popen(pgrep_cmd.c_str(), "r");
-        if (fp) {
+        if (fp)
+        {
             char line[64];
-            while (fgets(line, sizeof(line), fp)) {
+            while (fgets(line, sizeof(line), fp))
+            {
                 int pid = std::atoi(line);
-                if (pid > 0 && pid != getpid()) {
+                if (pid > 0 && pid != getpid())
+                {
                     std::cout << "    ├── Enrolled PID " << pid << " (" << d << ") -> \033[1;32mHARD_SIGKILL W^X ACTIVE\033[0m\n";
                     enrolled++;
                 }
@@ -1123,7 +1130,8 @@ int cmd_sbom_enforce()
         }
     }
 
-    if (enrolled == 0) {
+    if (enrolled == 0)
+    {
         std::cout << "    ├── No background daemons running. Enrolling current PID " << getpid() << " for testing.\n";
     }
 
@@ -1138,9 +1146,12 @@ int cmd_sbom_status()
     std::cout << "\033[1;36m========================================================================================================\033[0m\n";
 
     fs::path mf = "/etc/sentinel/live_sbom.json";
-    if (fs::exists(mf)) {
+    if (fs::exists(mf))
+    {
         std::cout << "  Manifest Status     : \033[1;32mACTIVE ON DISK\033[0m (/etc/sentinel/live_sbom.json)\n";
-    } else {
+    }
+    else
+    {
         std::cout << "  Manifest Status     : \033[1;33mUNGENERATED\033[0m (Run 'aryo sbom generate')\n";
     }
 
@@ -1165,11 +1176,13 @@ int cmd_sbom_test_drift()
     std::cout << "[*] Spawning sandboxed child process to simulate unauthorized PROT_EXEC injection...\n";
 
     pid_t pid = fork();
-    if (pid == 0) {
+    if (pid == 0)
+    {
         // Child: Allocate anonymous RW buffer
         size_t sz = 4096;
         void *buf = mmap(nullptr, sz, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
-        if (buf == MAP_FAILED) {
+        if (buf == MAP_FAILED)
+        {
             std::exit(1);
         }
 
@@ -1182,7 +1195,9 @@ int cmd_sbom_test_drift()
         (void)ret;
         munmap(buf, sz);
         std::exit(0);
-    } else {
+    }
+    else
+    {
         int status = 0;
         waitpid(pid, &status, 0);
 
@@ -1522,6 +1537,30 @@ int main(int argc, char *argv[])
             return cmd_sbom_status();
         if (sub == "test-drift")
             return cmd_sbom_test_drift();
+    }
+    if (cmd == "trism" && argc >= 3)
+    {
+        std::string sub = argv[2];
+        if (sub == "status")
+            return cmd_trism_status();
+        if (sub == "test-jailbreak")
+            return cmd_trism_test_jailbreak();
+        if (sub == "policy")
+            return cmd_trism_policy();
+        if (sub == "inspect")
+        {
+            std::string prompt = "";
+            for (int i = 3; i < argc; ++i)
+            {
+                if ((std::string(argv[i]) == "--prompt" || std::string(argv[i]) == "-p") && i + 1 < argc)
+                {
+                    prompt = argv[++i];
+                }
+            }
+            if (prompt.empty() && argc >= 4)
+                prompt = argv[3];
+            return cmd_trism_inspect(prompt);
+        }
     }
     print_help();
     return 0;
