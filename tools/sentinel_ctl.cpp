@@ -1376,6 +1376,18 @@ int main(int argc, char *argv[])
         if (sub == "status")
             return cmd_5g_status();
     }
+    if (cmd == "sbom" && argc >= 3)
+    {
+        std::string sub = argv[2];
+        if (sub == "generate")
+            return cmd_sbom_generate();
+        if (sub == "enforce")
+            return cmd_sbom_enforce();
+        if (sub == "status")
+            return cmd_sbom_status();
+        if (sub == "test-drift")
+            return cmd_sbom_test_drift();
+    }
     print_help();
     return 0;
 }
