@@ -47,7 +47,6 @@ find_library(XINFER_LIB xinfer REQUIRED PATHS /usr/local/lib /usr/lib)
 
 # Protobuf / gRPC generation for client stubs
 file(GLOB PROTO_SRCS "${CMAKE_CURRENT_SOURCE_DIR}/proto/*.proto")
-# (Use the same generation block as sentinel-nexus)
 
 set(PROTO_DIR "${CMAKE_CURRENT_SOURCE_DIR}/proto")
 set(PROTO_SRCS
@@ -96,8 +95,7 @@ include_directories(
     ${GENERATED_PROTO_DIR}
     ${OPENSSL_INCLUDE_DIR}
     ${LUAJIT_INCLUDE_DIRS}
-    ${CMAKE_CURRENT_SOURCE_DIR}/third_party/wasm3/source # <--- ADD THIS LINE
-
+    ${CMAKE_CURRENT_SOURCE_DIR}/third_party/wasm3/source
 )
 # -------------------------------------------------------------------
 # DEFINE IMPORTED GLOBAL TARGETS (FIXES THE CMAKE ERROR FOR ALL MODULES)
@@ -154,8 +152,6 @@ option(SENTINEL_ENABLE_26_DDP "Enable [26] Distributed Deception Honeypots" ON)
 
 set(SENTINEL_MODULE_LIBRARIES "")
 
-
-
 macro(register_sentinel_module MODULE_OPT MODULE_DIR MODULE_TARGET)
     if(${MODULE_OPT})
         add_subdirectory(${MODULE_DIR})
@@ -191,11 +187,6 @@ register_sentinel_module(SENTINEL_ENABLE_24_ZTNA src/modules/24_ztna sentinel_mo
 register_sentinel_module(SENTINEL_ENABLE_25_FDP src/modules/25_fdp sentinel_module_fdp)
 register_sentinel_module(SENTINEL_ENABLE_26_DDP src/modules/26_ddp sentinel_module_ddp)
 
-
-
-
-
-
 # Create Imported CMake Target Alias for blackbox::blackbox
 if(NOT TARGET blackbox::blackbox)
     add_library(blackbox::blackbox SHARED IMPORTED)
@@ -210,12 +201,12 @@ set(SENTINEL_SOURCES
     src/main.cpp
     src/core/ZtpTokenAgent.cpp
     src/sbom/SbomScanner.cpp
-    src/hardware/tpm_enrollment.cpp # <--- ADDED TPM HARDWARE ENROLLMENT
+    src/hardware/tpm_enrollment.cpp
     src/modules/18_cps_sec/ActuatorWearTracker.cpp
     src/modules/26_ddp/VipInterfaceManager.cpp
     src/modules/22_dfir/PcapBufferCarver.cpp
     src/nexus/SimulationModeController.cpp
-    src/core/LicenseManager.cpp # <--- ADD THIS LINE
+    src/core/LicenseManager.cpp
     src/core/orchestrator.cpp
     src/core/config_manager.cpp
     src/plugin_manager.cpp
@@ -227,19 +218,21 @@ set(SENTINEL_SOURCES
     src/exporter/report_generator.cpp
     src/nexus/NexusUplink.cpp
     src/nexus/KernelDropInjector.cpp
-    # --- EXTENSIBILITY SUBSYSTEM ENGINE SOURCES ---
     src/sdk/NativePluginLoader.cpp
     src/sdk/LuaHotReloadEngine.cpp
-    src/sdk/WasmSandbox.cpp # <--- ADD THIS LINE
-
+    src/sdk/WasmSandbox.cpp
     src/sdk/PluginSupervisor.cpp
-    src/nexus/DynamicRuleReceiver.cpp # <--- ADD THIS LINE
-    src/ai/ModelRouter.cpp # <--- ADD THIS LINE
-    src/ai/ThreatCorrelator.cpp # <--- ADDED THREAT CORRELATOR SOURCE
-
+    src/nexus/DynamicRuleReceiver.cpp
+    src/ai/ModelRouter.cpp
+    src/ai/ThreatCorrelator.cpp
     ${PROTO_GEN_SRCS}
     ${GRPC_GEN_SRCS}
 )
+
+# Optional inclusion of AI TRiSM subsystem if present
+if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/src/subsystems/trism_firewall.cpp")
+    list(APPEND SENTINEL_SOURCES src/subsystems/trism_firewall.cpp)
+endif()
 
 # Build Commercial Appliance Executable
 add_executable(sentinel ${SENTINEL_SOURCES})
@@ -261,11 +254,9 @@ target_link_libraries(sentinel PRIVATE
     gRPC::grpc++
     gRPC::grpc++_reflection
     ${LUAJIT_LIBRARIES}
-    ${CMAKE_CURRENT_SOURCE_DIR}/third_party/wasm3/build/source/libm3.a # <--- ADD THIS LINE
-
+    ${CMAKE_CURRENT_SOURCE_DIR}/third_party/wasm3/build/source/libm3.a
 )
 
-# RPATH so executable finds shared libraries in /usr/local/lib
 set_target_properties(sentinel PROPERTIES
     BUILD_WITH_INSTALL_RPATH TRUE
     INSTALL_RPATH "/usr/local/lib"
@@ -276,7 +267,6 @@ macro(add_sentinel_plugin PLUGIN_TARGET SOURCE_FILE)
     add_library(${PLUGIN_TARGET} SHARED ${SOURCE_FILE})
     target_link_libraries(${PLUGIN_TARGET} PRIVATE blackbox::blackbox)
 endmacro()
-
 
 # ----------------------------------------------------
 # BUILD ALL 30 COMMERCIAL PLUGINS (.so files)
@@ -348,7 +338,6 @@ install(TARGETS
     DESTINATION /usr/local/bin
 )
 
-
 # ---------------------------------------------------
 # MODULE TEST EXECUTABLES
 # ---------------------------------------------------
@@ -385,14 +374,9 @@ target_link_libraries(test_module_cps_scada PRIVATE
     Threads::Threads
 )
 
-
-
-
 # -------------------------------------------------------------------
 # EXTENSIBILITY SUBSYSTEM TOOLS & TEST TARGETS
 # -------------------------------------------------------------------
-
-# 1. End-to-End Extensibility Test Suite (Native + LuaJIT + Wasm3)
 add_executable(test_extensibility
     examples/05_test_extensibility_engine.cpp
     src/sdk/NativePluginLoader.cpp
@@ -411,7 +395,6 @@ target_link_libraries(test_extensibility PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/third_party/wasm3/build/source/libm3.a
 )
 
-# 2. Cryptographic Packaging & Signing CLI (sentinel-plugin-pack)
 add_executable(sentinel_plugin_pack
     tools/sdk/sentinel_plugin_pack.cpp
 )
@@ -422,7 +405,6 @@ set_target_properties(sentinel_plugin_pack PROPERTIES
     OUTPUT_NAME "sentinel-plugin-pack"
 )
 
-# 3. Nexus Dynamic Rule Broadcaster CLI (nexus-rule-broadcaster)
 add_executable(nexus_rule_broadcaster
     tools/nexus_rule_broadcaster.cpp
     src/nexus/DynamicRuleReceiver.cpp
@@ -435,13 +417,11 @@ set_target_properties(nexus_rule_broadcaster PROPERTIES
     OUTPUT_NAME "nexus-rule-broadcaster"
 )
 
-# Optional: Install CLI tools into /usr/local/bin
 install(TARGETS
     sentinel_plugin_pack
     nexus_rule_broadcaster
     DESTINATION /usr/local/bin
 )
-
 
 # -------------------------------------------------------------------
 # UNIVERSAL ARTIFACT TOOLCHAIN (sentinel-artifact / sentinel-spkg)
@@ -456,25 +436,38 @@ set_target_properties(sentinel_artifact PROPERTIES
     OUTPUT_NAME "sentinel-artifact"
 )
 
-# Install sentinel-artifact and create sentinel-spkg backward-compatibility symlink
 install(TARGETS sentinel_artifact DESTINATION /usr/local/bin)
 install(CODE "execute_process(COMMAND ${CMAKE_COMMAND} -E create_symlink sentinel-artifact /usr/local/bin/sentinel-spkg)")
 
 # -------------------------------------------------------------------
 # SENTINEL-CTL DEPENDENCY & APPLIANCE MANAGER
 # -------------------------------------------------------------------
-add_executable(sentinel_ctl
+set(SENTINEL_CTL_SOURCES
     tools/sentinel_ctl.cpp
-    src/hardware/tpm_enrollment.cpp # <--- ADD THIS LINE
-
+    src/hardware/tpm_enrollment.cpp
 )
+
+if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/src/subsystems/trism_firewall.cpp")
+    list(APPEND SENTINEL_CTL_SOURCES src/subsystems/trism_firewall.cpp)
+endif()
+
+add_executable(sentinel_ctl ${SENTINEL_CTL_SOURCES})
 target_link_libraries(sentinel_ctl PRIVATE
     Threads::Threads
+    OpenSSL::SSL
     OpenSSL::Crypto
-
 )
 set_target_properties(sentinel_ctl PROPERTIES
     OUTPUT_NAME "sentinel-ctl"
 )
 
 install(TARGETS sentinel_ctl DESTINATION /usr/local/bin)
+
+# -------------------------------------------------------------------
+# CCSDS & STANAG SPACE TELEMETRY DISSECTOR TARGET (Idea E)
+# -------------------------------------------------------------------
+if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/plugins/ccsds_guard.cpp")
+    add_executable(ccsds_guard plugins/ccsds_guard.cpp)
+    set_target_properties(ccsds_guard PROPERTIES OUTPUT_NAME "ccsds-guard")
+    install(TARGETS ccsds_guard DESTINATION /usr/local/bin)
+endif()
