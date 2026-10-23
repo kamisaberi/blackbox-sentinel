@@ -1504,6 +1504,12 @@ int main(int argc, char *argv[])
 
     std::string cmd = argv[1];
 
+    if (cmd == "--help" || cmd == "-h" || cmd == "help")
+    {
+        print_help();
+        return 0;
+    }
+
     if (cmd == "new" && argc >= 3)
     {
         std::string lang = (argc >= 4) ? argv[3] : "rust";
