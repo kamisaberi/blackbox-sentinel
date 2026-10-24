@@ -1364,10 +1364,12 @@ int cmd_scenario_pull(const std::string &slug)
     if (pure_slug.rfind("scenario_", 0) == 0)
         pure_slug = pure_slug.substr(9);
 
-    fs::path target_matrix_dir = "/home/kami/sentinel-matrix/scenarios" / pure_slug;
+    fs::path target_matrix_dir = fs::path("/home/kami/sentinel-matrix/scenarios") / pure_slug;
+
     if (!fs::exists("/home/kami/sentinel-matrix/scenarios"))
     {
-        target_matrix_dir = "/etc/sentinel/scenarios" / pure_slug;
+        target_matrix_dir = fs::path("/etc/sentinel/scenarios") / pure_slug;
+
     }
 
     fs::create_directories(target_matrix_dir);
