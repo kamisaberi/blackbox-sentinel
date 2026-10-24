@@ -1338,7 +1338,6 @@ int cmd_trism_policy()
     return 1;
 }
 
-
 // -----------------------------------------------------------------------------
 // SCENARIO BUNDLE PULL & STAGING (sentinel-ctl scenario pull <slug>)
 // -----------------------------------------------------------------------------
@@ -1370,7 +1369,6 @@ int cmd_scenario_pull(const std::string &slug)
     if (!fs::exists("/home/kami/sentinel-matrix/scenarios"))
     {
         target_matrix_dir = fs::path("/etc/sentinel/scenarios") / pure_slug;
-
     }
 
     fs::create_directories(target_matrix_dir);
@@ -1442,7 +1440,6 @@ int cmd_scenario_list()
     std::cout << "\033[1;36m========================================================================================================\033[0m\n";
     return 0;
 }
-
 
 // -----------------------------------------------------------------------------
 // SCENARIO BUNDLE PACKAGING (sentinel-ctl scenario pack <dir> [out.tar.gz])
@@ -1778,6 +1775,11 @@ int main(int argc, char *argv[])
     if (cmd == "scenario" && argc >= 3)
     {
         std::string sub = argv[2];
+        if (sub == "pack" && argc >= 4)
+        {
+            std::string out_tar = (argc >= 5) ? argv[4] : "";
+            return cmd_scenario_pack(argv[3], out_tar);
+        }
         if (sub == "pull" && argc >= 4)
             return cmd_scenario_pull(argv[3]);
         if (sub == "list")
