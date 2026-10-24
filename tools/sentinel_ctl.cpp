@@ -1337,6 +1337,109 @@ int cmd_trism_policy()
     return 1;
 }
 
+
+// -----------------------------------------------------------------------------
+// SCENARIO BUNDLE PULL & STAGING (sentinel-ctl scenario pull <slug>)
+// -----------------------------------------------------------------------------
+int cmd_scenario_pull(const std::string &slug)
+{
+    std::string filename = slug;
+    if (filename.size() < 7 || filename.substr(filename.size() - 7) != ".tar.gz")
+    {
+        if (filename.size() >= 4 && filename.substr(filename.size() - 4) == ".tgz")
+            filename = filename.substr(0, filename.size() - 4) + ".tar.gz";
+        else
+            filename += ".tar.gz";
+    }
+
+    fs::path cached_path;
+    if (!resolve_cached_asset("scenarios", filename, cached_path))
+    {
+        std::cerr << "[-] Error: Failed to resolve scenario '" << slug << "' from cache or Hub registry.\n";
+        return 1;
+    }
+
+    // Determine target extraction directory inside sentinel-matrix
+    std::string pure_slug = fs::path(filename).stem().string();
+    if (pure_slug.rfind("scenario_", 0) == 0)
+        pure_slug = pure_slug.substr(9);
+
+    fs::path target_matrix_dir = "/home/kami/sentinel-matrix/scenarios" / pure_slug;
+    if (!fs::exists("/home/kami/sentinel-matrix/scenarios"))
+    {
+        target_matrix_dir = "/etc/sentinel/scenarios" / pure_slug;
+    }
+
+    fs::create_directories(target_matrix_dir);
+
+    std::cout << "[*] Unpacking scenario bundle: " << cached_path.filename().string() << "...\n"
+              << "    --> Destination: " << target_matrix_dir.string() << "\n";
+
+    std::string untar_cmd = "tar -xzf \"" + cached_path.string() + "\" -C \"" + target_matrix_dir.string() + "\"";
+    int ret = std::system(untar_cmd.c_str());
+
+    if (ret == 0)
+    {
+        std::cout << "\033[1;32m[+] Successfully staged digital twin scenario!\033[0m\n"
+                  << "    Location : " << target_matrix_dir.string() << "\n";
+
+        // Check if scenario.yaml exists inside
+        fs::path scen_yaml = target_matrix_dir / "scenario.yaml";
+        if (fs::exists(scen_yaml))
+        {
+            std::cout << "    Launch   : \033[1;37maryo matrix scenario load " << scen_yaml.string() << "\033[0m\n";
+        }
+        else
+        {
+            std::cout << "    Launch   : \033[1;37maryo matrix scenario load " << target_matrix_dir.string() << "\033[0m\n";
+        }
+        return 0;
+    }
+
+    std::cerr << "[-] Error: Failed to unpack archive into " << target_matrix_dir.string() << std::endl;
+    return 1;
+}
+
+int cmd_scenario_list()
+{
+    std::cout << "\033[1;36m========================================================================================================\033[0m\n";
+    std::cout << "\033[1;37m                 ARYORITHM DIGITAL TWIN SCENARIOS: LOCAL REPOSITORY                      \033[0m\n";
+    std::cout << "\033[1;36m========================================================================================================\033[0m\n";
+
+    fs::path cache_scen_dir = get_cache_root() / "scenarios";
+    std::cout << "Cached Archives (" << cache_scen_dir.string() << "):\n";
+    if (fs::exists(cache_scen_dir))
+    {
+        for (const auto &entry : fs::directory_iterator(cache_scen_dir))
+        {
+            if (entry.is_regular_file())
+            {
+                std::cout << "  • " << std::left << std::setw(36) << entry.path().filename().string()
+                          << " (" << fs::file_size(entry) << " bytes)\n";
+            }
+        }
+    }
+    else
+    {
+        std::cout << "  (No cached scenario archives found)\n";
+    }
+
+    fs::path matrix_scen_dir = "/home/kami/sentinel-matrix/scenarios";
+    std::cout << "\nStaged Scenarios for Sentinel-Matrix (" << matrix_scen_dir.string() << "):\n";
+    if (fs::exists(matrix_scen_dir))
+    {
+        for (const auto &entry : fs::directory_iterator(matrix_scen_dir))
+        {
+            if (entry.is_directory() || entry.path().extension() == ".yaml")
+            {
+                std::cout << "  \033[1;32m[READY]\033[0m " << entry.path().filename().string() << "\n";
+            }
+        }
+    }
+    std::cout << "\033[1;36m========================================================================================================\033[0m\n";
+    return 0;
+}
+
 int main(int argc, char *argv[])
 {
     if (argc < 2)
