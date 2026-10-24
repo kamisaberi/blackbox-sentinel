@@ -844,9 +844,10 @@ Package & Asset Management:
   model pull <model_slug>          Pull verified ONNX model weights directly
 
 Scenario & Digital Twin Management:
+  scenario pack <dir> [out.tar.gz] Pack scenario directory into verified bundle for Hub
   scenario pull <slug>             Pull certified scenario bundle from Hub and stage to sentinel-matrix/scenarios/
   scenario list                    List all locally cached and staged digital twin scenarios
-
+  
 5G/6G Wireless Network Slicing & UPF Guard:
   5g enable [iface] [config.yaml]  Provision 3GPP slices into in-kernel eBPF filter
   5g status                        Inspect active 5G slice TEIDs and violation drops
