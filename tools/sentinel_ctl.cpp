@@ -1669,6 +1669,14 @@ int main(int argc, char *argv[])
             return cmd_trism_inspect(prompt);
         }
     }
+    if (cmd == "scenario" && argc >= 3)
+    {
+        std::string sub = argv[2];
+        if (sub == "pull" && argc >= 4)
+            return cmd_scenario_pull(argv[3]);
+        if (sub == "list")
+            return cmd_scenario_list();
+    }
     print_help();
     return 0;
 }
