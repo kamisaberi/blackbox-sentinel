@@ -889,18 +889,32 @@ bool cmd_slab_convert(const std::string &in_csv_path, const std::string &out_sla
     std::string author_pub_hex = "";
     const char *home_env = std::getenv("HOME");
     fs::path home_path = home_env ? fs::path(home_env) : fs::path("");
+
     std::vector<fs::path> pub_candidates = {
         fs::path(out_slab_path).parent_path() / "keys" / "developer_public.pem",
-        fs::path(out_slab_path).parent_path() / "developer_public.pem"
+        fs::path(out_slab_path).parent_path() / "developer_public.pem",
+        fs::path(out_slab_path).parent_path() / "keys" / "ed25519_public.pem",
+        fs::path(out_slab_path).parent_path() / "ed25519_public.pem"
     };
-    if (!home_path.empty()) {
+
+    if (!home_path.empty())
+    {
         pub_candidates.push_back(home_path / ".sentinel" / "keys" / "developer_public.pem");
         pub_candidates.push_back(home_path / ".sentinel" / "keys" / "ed25519_public.pem");
+        pub_candidates.push_back(home_path / ".sentinel" / "developer_public.pem");
+        pub_candidates.push_back(home_path / ".sentinel" / "ed25519_public.pem");
     }
-    for (const auto &p : pub_candidates) {
-        if (fs::exists(p)) {
+
+    pub_candidates.push_back("/etc/sentinel/keys/developer_public.pem");
+    pub_candidates.push_back("/etc/sentinel/keys/ed25519_public.pem");
+
+    for (const auto &p : pub_candidates)
+    {
+        if (fs::exists(p))
+        {
             author_pub_hex = extract_pubkey_hex(p);
-            break;
+            if (!author_pub_hex.empty())
+                break;
         }
     }
 
@@ -915,16 +929,20 @@ bool cmd_slab_convert(const std::string &in_csv_path, const std::string &out_sla
        << "  \"total_records\": " << converted_rows << ",\n"
        << "  \"category\": \"SCADA_ICS\",\n"
        << "  \"target_protocol\": \"MODBUS_TCP\",\n";
-    if (!author_pub_hex.empty()) {
+
+    if (!author_pub_hex.empty())
+    {
         mf << "  \"author_public_key\": \"" << author_pub_hex << "\",\n";
     }
+
     mf << "  \"compliance\": [\"IEC-62443-4-2\", \"NIS2\"]\n"
        << "}\n";
     mf.close();
 
-    std::cout << "[+] Automatically generated companion dataset manifest: " << manifest_out.string() << "\n";
+    std::cout << "[+] Generated dataset manifest: " << manifest_out.string() << "\n";
     return true;
 }
+
 bool cmd_slab_verify(const std::string &slab_path)
 {
     std::ifstream file(slab_path, std::ios::binary);
@@ -957,6 +975,7 @@ bool cmd_slab_verify(const std::string &slab_path)
               << "    └── Total Size    : " << fs::file_size(slab_path) << " bytes\n";
     return true;
 }
+
 
 // -----------------------------------------------------------------------------
 // 7. PCAP PACKAGING ENGINE (pcap pack)
