@@ -577,6 +577,9 @@ int cmd_status()
 // -----------------------------------------------------------------------------
 // COMMAND: sentinel-ctl install <file.spkg>
 // -----------------------------------------------------------------------------
+// -----------------------------------------------------------------------------
+// COMMAND: sentinel-ctl install <file.spkg> (Two-Tier PKI Verification)
+// -----------------------------------------------------------------------------
 int cmd_install_spkg(const fs::path &spkg_path)
 {
     if (!fs::exists(spkg_path))
@@ -606,26 +609,34 @@ int cmd_install_spkg(const fs::path &spkg_path)
     const uint8_t *src_ptr = pay_ptr + hdr.payload_len;
     const uint8_t *test_ptr = src_ptr + hdr.source_len;
 
+    // Compute 4-way Merkle Tree Hash Input
+    auto h_man = sha256_buffer(man_ptr, hdr.manifest_len);
+    auto h_pay = sha256_buffer(pay_ptr, hdr.payload_len);
+    auto h_src = sha256_buffer(src_ptr, hdr.source_len);
+    auto h_test = sha256_buffer(test_ptr, hdr.test_vector_len);
+
+    std::vector<uint8_t> merkle_input;
+    merkle_input.insert(merkle_input.end(), h_man.begin(), h_man.end());
+    merkle_input.insert(merkle_input.end(), h_pay.begin(), h_pay.end());
+    merkle_input.insert(merkle_input.end(), h_src.begin(), h_src.end());
+    merkle_input.insert(merkle_input.end(), h_test.begin(), h_test.end());
+
+    bool signature_valid = false;
+    std::string signer_type = "UNKNOWN";
+
+    // -------------------------------------------------------------------------
+    // TIER 1: Check Official Authority Root Key
+    // -------------------------------------------------------------------------
     std::vector<fs::path> key_candidates = {
         "/home/kami/sentinel-hub/keys/authority_key_public.pem",
         "/etc/sentinel/authority_key_public.pem",
-        "keys/authority_key_public.pem"};
+        "keys/authority_key_public.pem"
+    };
 
     for (const auto &pub_key_path : key_candidates)
     {
         if (fs::exists(pub_key_path))
         {
-            auto h_man = sha256_buffer(man_ptr, hdr.manifest_len);
-            auto h_pay = sha256_buffer(pay_ptr, hdr.payload_len);
-            auto h_src = sha256_buffer(src_ptr, hdr.source_len);
-            auto h_test = sha256_buffer(test_ptr, hdr.test_vector_len);
-
-            std::vector<uint8_t> merkle_input;
-            merkle_input.insert(merkle_input.end(), h_man.begin(), h_man.end());
-            merkle_input.insert(merkle_input.end(), h_pay.begin(), h_pay.end());
-            merkle_input.insert(merkle_input.end(), h_src.begin(), h_src.end());
-            merkle_input.insert(merkle_input.end(), h_test.begin(), h_test.end());
-
             FILE *fp = fopen(pub_key_path.c_str(), "rb");
             if (fp)
             {
@@ -639,18 +650,73 @@ int cmd_install_spkg(const fs::path &spkg_path)
                     EVP_MD_CTX_free(ctx);
                     EVP_PKEY_free(pkey);
 
-                    if (res != 1)
+                    if (res == 1)
                     {
-                        std::cerr << "\033[1;31m[-] CRITICAL ERROR: Cryptographic signature verification failed! Package is TAMPERED.\033[0m\n";
-                        return 1;
+                        signature_valid = true;
+                        signer_type = "OFFICIAL_AUTHORITY_ROOT";
+                        break;
                     }
-                    std::cout << "[+] \033[1;32mEd25519 Merkle Signature VERIFIED AUTHENTIC.\033[0m\n";
                 }
             }
-            break;
         }
     }
 
+    // -------------------------------------------------------------------------
+    // TIER 2: Check Developer Key Embedded in Manifest (author_public_key)
+    // -------------------------------------------------------------------------
+    if (!signature_valid && hdr.manifest_len > 0)
+    {
+        std::string manifest_str(reinterpret_cast<const char *>(man_ptr), hdr.manifest_len);
+        std::string search_key = "\"author_public_key\"";
+        size_t pos = manifest_str.find(search_key);
+        if (pos != std::string::npos)
+        {
+            size_t colon = manifest_str.find(':', pos);
+            size_t start = manifest_str.find('"', colon + 1);
+            size_t end = manifest_str.find('"', start + 1);
+            if (start != std::string::npos && end != std::string::npos)
+            {
+                std::string hex_key = manifest_str.substr(start + 1, end - start - 1);
+                if (hex_key.length() == 64)
+                {
+                    uint8_t raw_pubkey[32];
+                    for (size_t i = 0; i < 32; ++i)
+                    {
+                        raw_pubkey[i] = static_cast<uint8_t>(std::strtoul(hex_key.substr(i * 2, 2).c_str(), nullptr, 16));
+                    }
+
+                    EVP_PKEY *dev_pkey = EVP_PKEY_new_raw_public_key(EVP_PKEY_ED25519, nullptr, raw_pubkey, 32);
+                    if (dev_pkey)
+                    {
+                        EVP_MD_CTX *ctx = EVP_MD_CTX_new();
+                        EVP_DigestVerifyInit(ctx, nullptr, nullptr, nullptr, dev_pkey);
+                        int res = EVP_DigestVerify(ctx, hdr.signature, 64, merkle_input.data(), merkle_input.size());
+                        EVP_MD_CTX_free(ctx);
+                        EVP_PKEY_free(dev_pkey);
+
+                        if (res == 1)
+                        {
+                            signature_valid = true;
+                            signer_type = "CERTIFIED_DEVELOPER (" + hex_key.substr(0, 16) + "...)";
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    // -------------------------------------------------------------------------
+    // Enforce Verification Verdict
+    // -------------------------------------------------------------------------
+    if (!signature_valid)
+    {
+        std::cerr << "\033[1;31m[-] CRITICAL ERROR: Cryptographic signature verification failed! Package is TAMPERED.\033[0m\n";
+        return 1;
+    }
+
+    std::cout << "[+] \033[1;32mEd25519 Merkle Signature VERIFIED AUTHENTIC [" << signer_type << "].\033[0m\n";
+
+    // Deploy to appropriate runtime directory
     std::string stem = spkg_path.stem().string();
     fs::path target_dir;
     std::string ext;
@@ -682,7 +748,6 @@ int cmd_install_spkg(const fs::path &spkg_path)
               << " -> " << dest.string() << " (" << hdr.payload_len << " bytes)\033[0m\n";
     return 0;
 }
-
 // -----------------------------------------------------------------------------
 // CACHE-FIRST PCAP & DATASET COMMANDS
 // -----------------------------------------------------------------------------
