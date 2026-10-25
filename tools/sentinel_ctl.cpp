@@ -2407,15 +2407,30 @@ int main(int argc, char *argv[])
             return cmd_generic_list("datasets", "/etc/sentinel/datasets", ".slab");
     }
 
-    if (cmd == "pcap" && argc >= 3)
+if (cmd == "pcap" && argc >= 3)
     {
         std::string sub = argv[2];
+        if (sub == "pack" && argc >= 4)
+        {
+            std::string cat = "";
+            std::string proto = "";
+            std::string attack = "";
+            for (int i = 4; i < argc; ++i)
+            {
+                if (std::string(argv[i]) == "--category" && i + 1 < argc)
+                    cat = argv[++i];
+                else if (std::string(argv[i]) == "--protocol" && i + 1 < argc)
+                    proto = argv[++i];
+                else if (std::string(argv[i]) == "--attack" && i + 1 < argc)
+                    attack = argv[++i];
+            }
+            return cmd_pcap_pack(argv[3], cat, proto, attack);
+        }
         if (sub == "pull" && argc >= 4)
             return cmd_pcap_pull(argv[3]);
         if (sub == "list")
             return cmd_generic_list("pcaps", "/etc/sentinel/pcaps", ".pcap");
     }
-
     // Cache Search
     if (cmd == "cache" && argc >= 3 && std::string(argv[2]) == "search")
     {
