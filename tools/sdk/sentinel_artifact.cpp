@@ -924,7 +924,7 @@ bool cmd_slab_convert(const std::string &in_csv_path, const std::string &out_sla
        << "  \"slug\": \"" << slug_val << "\",\n"
        << "  \"title\": \"" << slug_val << "\",\n"
        << "  \"asset_type\": \"dataset\",\n"
-       << "  \"format\": \"SLAB\",\n"
+       << "  \"format\": \"SLAB_BINARY\",\n"
        << "  \"dimension\": " << expected_dim << ",\n"
        << "  \"total_records\": " << converted_rows << ",\n"
        << "  \"category\": \"SCADA_ICS\",\n"
