@@ -991,45 +991,51 @@ bool cmd_test_preflight(const std::string &spkg_path)
 
     bool dropped = false;
 
-    if (len >= 15 && test_ptr[0] == 0x68)
+    // 1. Check DEADBEEF signature first (default scaffolded threat vector)
+    if (len >= 4 && test_ptr[0] == 0xDE && test_ptr[1] == 0xAD && test_ptr[2] == 0xBE && test_ptr[3] == 0xEF)
+    {
+        dropped = true;
+    }
+    // 2. IEC 60870-5-104 ASDU Command Check
+    else if (len >= 15 && test_ptr[0] == 0x68)
     {
         uint8_t asdu_type = test_ptr[6];
         if (asdu_type == 0x2D || asdu_type == 0x2E)
             dropped = true;
     }
+    // 3. S7Comm CPU STOP Command (0x29)
     else if (len >= 18 && test_ptr[0] == 0x03 && test_ptr[7] == 0x32)
     {
         uint8_t func_code = test_ptr[17];
         if (func_code == 0x29)
             dropped = true;
     }
+    // 4. Modbus Unauthorized Write Coil (0x05 / 0x0F)
     else if (len >= 8 && test_ptr[0] != 0x68 && test_ptr[0] != 0x03 && test_ptr[2] == 0x00 && test_ptr[3] == 0x00)
     {
         uint8_t fc = test_ptr[7];
         if (fc == 0x05 || fc == 0x0F)
             dropped = true;
     }
+    // 5. DNP3 Unauthorized Direct Operate (0x05 / 0x06)
     else if (len >= 13 && test_ptr[0] == 0x05 && test_ptr[1] == 0x64)
     {
         uint8_t fc = test_ptr[12];
         if (fc == 0x05 || fc == 0x06 || fc == 0x0E)
             dropped = true;
     }
+    // 6. BACnet / Ethernet IP
     else if (len >= 9 && test_ptr[3] == 0x03 && test_ptr[len - 1] == 0x08)
     {
         dropped = true;
     }
-    else if (len >= 8)
-    {
-        std::string s(reinterpret_cast<const char *>(test_ptr), len);
-        if (s.find("${jndi:") != std::string::npos)
-            dropped = true;
-    }
-    else if (len >= 12 && (test_ptr[0] == 0xFD || test_ptr[0] == 0xFE))
+    // 7. Log4j JNDI Exploit String
+    else if (len >= 8 && std::string(reinterpret_cast<const char *>(test_ptr), len).find("${jndi:") != std::string::npos)
     {
         dropped = true;
     }
-    else if (len >= 4 && test_ptr[0] == 0xDE && test_ptr[1] == 0xAD && test_ptr[2] == 0xBE && test_ptr[3] == 0xEF)
+    // 8. Triton SIS TriStation Firmware Override
+    else if (len >= 12 && (test_ptr[0] == 0xFD || test_ptr[0] == 0xFE))
     {
         dropped = true;
     }
@@ -1046,7 +1052,6 @@ bool cmd_test_preflight(const std::string &spkg_path)
         return false;
     }
 }
-
 // -----------------------------------------------------------------------------
 // 9. UNIVERSAL PUBLISHER (sentinel-artifact publish)
 // -----------------------------------------------------------------------------
