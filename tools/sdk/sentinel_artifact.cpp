@@ -1121,6 +1121,14 @@ bool cmd_publish(const std::string &file_path, std::string token, std::string hu
     }
 
     std::string slug_val = fs::path(file_path).stem().string();
+    if (slug_val.size() > 4 && slug_val.rfind(".tar") == slug_val.size() - 4)
+    {
+        slug_val = slug_val.substr(0, slug_val.size() - 4);
+    }
+    if (slug_val.rfind("scenario_", 0) == 0)
+    {
+        slug_val = slug_val.substr(9);
+    }
     std::string manifest_json = "{\"name\":\"" + slug_val + "\",\"slug\":\"" + slug_val + "\",\"asset_type\":\"" + asset_type + "\"}";
 
     auto container = read_binary_file(file_path);
