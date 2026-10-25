@@ -1804,8 +1804,12 @@ int main(int argc, char *argv[])
         return cmd_login(jwt, hub_url);
     }
 
-    if (cmd == "install" && argc >= 3)
-        return cmd_install_spkg(argv[2]);
+    // Support both: 'sentinel-ctl install <file>' AND 'sentinel-ctl appliance install <file>'
+    if ((cmd == "install" && argc >= 3) || (cmd == "appliance" && argc >= 4 && std::string(argv[2]) == "install"))
+    {
+        std::string spkg_path = (cmd == "appliance") ? argv[3] : argv[2];
+        return cmd_install_spkg(spkg_path);
+    }
     if (cmd == "pcap" && argc >= 4 && std::string(argv[2]) == "pull")
         return cmd_pcap_pull(argv[3]);
     if (cmd == "dataset" && argc >= 4 && std::string(argv[2]) == "pull")
