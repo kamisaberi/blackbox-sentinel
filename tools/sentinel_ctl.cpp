@@ -252,7 +252,16 @@ bool resolve_cached_asset(const std::string &category,
     if (!resolved)
     {
         std::string base_api = normalize_registry_url(g_hub_url);
-        std::string download_url = base_api + "/" + category + "/" + filename + "/download";
+
+        // Map category to backend canonical route: /api/v1/hub/assets/{type}/{slug}/download
+        std::string asset_type = (category.back() == 's') ? category.substr(0, category.size() - 1) : category;
+        std::string pure_slug = fs::path(filename).stem().string();
+        if (pure_slug.size() > 4 && pure_slug.rfind(".tar") == pure_slug.size() - 4)
+            pure_slug = pure_slug.substr(0, pure_slug.size() - 4);
+
+        std::string download_url = base_api + "/hub/assets/" + asset_type + "/" + pure_slug + "/download";
+
+        // std::string download_url = base_api + "/" + category + "/" + filename + "/download";
         std::cout << "      --> Downloading from Registry: " << download_url << "\n";
 
         std::string curl_cmd = "curl -sSL -f -o \"" + cached_file.string() + "\" \"" + download_url + "\" 2>/dev/null";
