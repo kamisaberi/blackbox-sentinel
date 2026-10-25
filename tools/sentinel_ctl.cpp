@@ -2018,6 +2018,69 @@ int cmd_model_pack(const std::string &model_path_str,
     return 0;
 }
 
+// -----------------------------------------------------------------------------
+// PCAP PACKAGING & MANIFEST GENERATOR (sentinel-ctl pcap pack <file.pcap>)
+// -----------------------------------------------------------------------------
+int cmd_pcap_pack(const std::string &pcap_path_str,
+                  const std::string &category_override = "",
+                  const std::string &protocol_override = "",
+                  const std::string &attack_override = "")
+{
+    fs::path pcap_path(pcap_path_str);
+    if (!fs::exists(pcap_path))
+    {
+        std::cerr << "[-] Error: PCAP file not found: " << pcap_path.string() << std::endl;
+        return 1;
+    }
+
+    std::string slug = pcap_path.stem().string();
+    std::string category = category_override.empty() ? "SCADA_ICS" : category_override;
+    std::string protocol = protocol_override.empty() ? "MODBUS_TCP" : protocol_override;
+    std::string attack_type = attack_override.empty() ? "RECON" : attack_override;
+    std::string author_pub_hex = get_enrolled_author_pubkey_hex();
+
+    fs::path manifest_out = pcap_path.parent_path() / "manifest.json";
+    fs::path manifest_named_out = fs::path(pcap_path.string() + ".manifest.json");
+
+    std::cout << "\033[1;36m================================================================================\033[0m\n";
+    std::cout << "\033[1;37m        PACKING PCAP CAPTURE & GENERATING HUB COMPANION MANIFEST                \033[0m\n";
+    std::cout << "\033[1;36m================================================================================\033[0m\n";
+    std::cout << "PCAP File    : " << pcap_path.string() << " (" << fs::file_size(pcap_path) << " bytes)\n"
+              << "Category     : " << category << "\n"
+              << "Protocol     : " << protocol << "\n"
+              << "Attack Type  : " << attack_type << "\n"
+              << "Author Key   : " << (author_pub_hex.empty() ? "None (Unenrolled)" : author_pub_hex.substr(0, 16) + "...") << "\n";
+
+    auto write_manifest = [&](const fs::path &target_mf) {
+        std::ofstream mf(target_mf);
+        mf << "{\n"
+           << "  \"name\": \"" << slug << "\",\n"
+           << "  \"slug\": \"" << slug << "\",\n"
+           << "  \"title\": \"" << slug << "\",\n"
+           << "  \"asset_type\": \"pcap\",\n"
+           << "  \"category\": \"" << category << "\",\n"
+           << "  \"target_protocol\": \"" << protocol << "\",\n"
+           << "  \"attack_type\": \"" << attack_type << "\",\n"
+           << "  \"source_origin\": \"TESTBED\",\n";
+        if (!author_pub_hex.empty())
+        {
+            mf << "  \"author_public_key\": \"" << author_pub_hex << "\",\n";
+        }
+        mf << "  \"compliance\": [\"IEC-62443-4-2\", \"NIS2\"]\n"
+           << "}\n";
+        mf.close();
+    };
+
+    write_manifest(manifest_out);
+    write_manifest(manifest_named_out);
+
+    std::cout << "--------------------------------------------------------------------------------\n";
+    std::cout << "\033[1;32m[+] Successfully generated PCAP companion manifest!\033[0m\n"
+              << "    ├── Primary Manifest: " << manifest_out.string() << "\n"
+              << "    └── Ready to publish: \033[1;37maryo publish " << pcap_path.string() << "\033[0m\n";
+    std::cout << "\033[1;36m================================================================================\033[0m\n";
+    return 0;
+}
 int main(int argc, char *argv[])
 {
     if (argc < 2)
