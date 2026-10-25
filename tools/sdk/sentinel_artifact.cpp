@@ -894,8 +894,7 @@ bool cmd_slab_convert(const std::string &in_csv_path, const std::string &out_sla
         fs::path(out_slab_path).parent_path() / "keys" / "developer_public.pem",
         fs::path(out_slab_path).parent_path() / "developer_public.pem",
         fs::path(out_slab_path).parent_path() / "keys" / "ed25519_public.pem",
-        fs::path(out_slab_path).parent_path() / "ed25519_public.pem"
-    };
+        fs::path(out_slab_path).parent_path() / "ed25519_public.pem"};
 
     if (!home_path.empty())
     {
@@ -975,7 +974,6 @@ bool cmd_slab_verify(const std::string &slab_path)
               << "    └── Total Size    : " << fs::file_size(slab_path) << " bytes\n";
     return true;
 }
-
 
 // -----------------------------------------------------------------------------
 // 7. PCAP PACKAGING ENGINE (pcap pack)
@@ -1182,8 +1180,7 @@ bool cmd_publish(const std::string &file_path, std::string token, std::string hu
         fs::path(file_path).parent_path() / "developer_private.pem",
         "keys/ed25519_private.pem",
         "ed25519_private.pem",
-        "keys/developer_private.pem"
-    };
+        "keys/developer_private.pem"};
 
     if (!home_path.empty())
     {
@@ -1292,7 +1289,8 @@ bool cmd_publish(const std::string &file_path, std::string token, std::string hu
         }
         else if (asset_type == "scenario")
         {
-            ss << "  \"sector\": \"CRITICAL_INFRASTRUCTURE\",\n"
+            ss << "  \"target_sector\": \"CRITICAL_INFRASTRUCTURE\",\n"
+               << "  \"sector\": \"CRITICAL_INFRASTRUCTURE\",\n"
                << "  \"complexity\": \"INTERMEDIATE\",\n"
                << "  \"category\": \"SCADA_ICS\",\n";
         }
@@ -1431,7 +1429,7 @@ bool cmd_publish(const std::string &file_path, std::string token, std::string hu
         }
         return false;
     }
-}// -----------------------------------------------------------------------------
+} // -----------------------------------------------------------------------------
 // 10. IDEA D: AUTONOMOUS VACCINE SYNTHESIZER (sentinel-artifact synthesize-vaccine)
 // -----------------------------------------------------------------------------
 static std::vector<uint8_t> hex_to_bytes(const std::string &hex)
