@@ -966,6 +966,10 @@ Unified Asset Lifecycles (pack, pull, inspect, list):
   scenario pack <dir> [out.tar.gz] Pack scenario directory into verified bundle for Hub
   scenario pull <slug>             Pull certified scenario bundle and stage to sentinel-matrix
   scenario list                    List locally cached and staged digital twin scenarios
+  model pack <model.onnx> [--precision INT8|FP32] [--domain <d>] 
+                                   Pack ONNX model & generate compliant companion manifest
+  model pull <model_slug>          Pull verified ONNX model weights into models/
+  model list                       List locally cached and staged AI models
 
 Cache Management:
   cache list                       List all cached assets and sizes
