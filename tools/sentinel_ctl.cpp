@@ -961,6 +961,8 @@ Unified Asset Lifecycles (pack, pull, inspect, list):
   model list                       List locally cached and staged AI models
   dataset pull <slug>              Pull zero-copy .slab telemetry dataset into cache
   dataset list                     List locally cached .slab datasets
+  pcap pack <file.pcap> [--category <cat>] [--protocol <p>] [--attack <type>]
+                                   Pack PCAP capture & auto-generate Hub companion manifest
   pcap pull <slug>                 Pull certified malware PCAP into /etc/sentinel/pcaps/
   pcap list                        List locally cached and staged PCAP captures
   scenario pack <dir> [out.tar.gz] Pack scenario directory into verified bundle for Hub
