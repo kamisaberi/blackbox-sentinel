@@ -1120,6 +1120,9 @@ bool cmd_test_preflight(const std::string &spkg_path)
 // -----------------------------------------------------------------------------
 // 9. UNIVERSAL PUBLISHER (sentinel-artifact publish) - REFINED
 // -----------------------------------------------------------------------------
+// -----------------------------------------------------------------------------
+// 9. UNIVERSAL PUBLISHER (sentinel-artifact publish)
+// -----------------------------------------------------------------------------
 bool cmd_publish(const std::string &file_path, std::string token, std::string hub_url)
 {
     if (!fs::exists(file_path))
@@ -1168,7 +1171,7 @@ bool cmd_publish(const std::string &file_path, std::string token, std::string hu
         asset_type = "scenario";
     }
 
-    // 1. Comprehensive Search for Signing Key (Local, Parent, and Central ~/.sentinel/keys/)
+    // 1. Search for Signing Key (Local, Parent, and ~/.sentinel/keys/)
     const char *home_env = std::getenv("HOME");
     fs::path home_path = home_env ? fs::path(home_env) : fs::path("");
 
@@ -1176,9 +1179,11 @@ bool cmd_publish(const std::string &file_path, std::string token, std::string hu
         fs::path(file_path).parent_path() / "keys" / "ed25519_private.pem",
         fs::path(file_path).parent_path() / "ed25519_private.pem",
         fs::path(file_path).parent_path() / "keys" / "developer_private.pem",
+        fs::path(file_path).parent_path() / "developer_private.pem",
         "keys/ed25519_private.pem",
         "ed25519_private.pem",
-        "keys/developer_private.pem"};
+        "keys/developer_private.pem"
+    };
 
     if (!home_path.empty())
     {
@@ -1191,14 +1196,20 @@ bool cmd_publish(const std::string &file_path, std::string token, std::string hu
     key_candidates.push_back("/etc/sentinel/keys/developer_private.pem");
     key_candidates.push_back("/etc/sentinel/keys/ed25519_private.pem");
     key_candidates.push_back("/etc/sentinel/developer_private.pem");
-    key_candidates.push_back("/etc/sentinel/ed25519_private.pem");
 
     fs::path priv_key_path;
+    fs::path pub_key_path;
     for (const auto &k : key_candidates)
     {
         if (fs::exists(k) && !fs::is_directory(k))
         {
             priv_key_path = k;
+            std::string k_str = k.string();
+            size_t priv_pos = k_str.find("_private.pem");
+            if (priv_pos != std::string::npos)
+            {
+                pub_key_path = k_str.substr(0, priv_pos) + "_public.pem";
+            }
             break;
         }
     }
@@ -1214,7 +1225,13 @@ bool cmd_publish(const std::string &file_path, std::string token, std::string hu
         std::cout << "[!] Notice: No local private key found. Checking container header for signature...\n";
     }
 
-    // 2. Normalize Slug (Clean .tar.gz and scenario_ prefixes)
+    std::string clean_author_key = "";
+    if (fs::exists(pub_key_path))
+    {
+        clean_author_key = extract_pubkey_hex(pub_key_path);
+    }
+
+    // 2. Normalize Slug
     std::string slug_val = fs::path(file_path).stem().string();
     if (slug_val.size() > 4 && slug_val.rfind(".tar") == slug_val.size() - 4)
     {
@@ -1225,9 +1242,71 @@ bool cmd_publish(const std::string &file_path, std::string token, std::string hu
         slug_val = slug_val.substr(9);
     }
 
-    std::string manifest_json = "{\"name\":\"" + slug_val + "\",\"slug\":\"" + slug_val + "\",\"asset_type\":\"" + asset_type + "\"}";
+    // 3. Assemble Manifest (Companion on disk wins, else synthesizes schema-aware defaults)
+    std::string manifest_json;
 
-    // 3. Ingest Embedded Manifest for .spkg Containers
+    fs::path companion_mf = fs::path(file_path).parent_path() / "manifest.json";
+    fs::path companion_named_mf = file_path + ".manifest.json";
+
+    if (fs::exists(companion_named_mf))
+    {
+        auto mf_b = read_binary_file(companion_named_mf);
+        manifest_json = std::string(reinterpret_cast<const char *>(mf_b.data()), mf_b.size());
+        std::cout << "[+] Ingested companion manifest: " << companion_named_mf.string() << "\n";
+    }
+    else if (fs::exists(companion_mf))
+    {
+        auto mf_b = read_binary_file(companion_mf);
+        manifest_json = std::string(reinterpret_cast<const char *>(mf_b.data()), mf_b.size());
+        std::cout << "[+] Ingested companion manifest: " << companion_mf.string() << "\n";
+    }
+    else
+    {
+        std::ostringstream ss;
+        ss << "{\n"
+           << "  \"name\": \"" << slug_val << "\",\n"
+           << "  \"slug\": \"" << slug_val << "\",\n"
+           << "  \"title\": \"" << slug_val << "\",\n"
+           << "  \"asset_type\": \"" << asset_type << "\",\n";
+
+        if (asset_type == "dataset")
+        {
+            ss << "  \"format\": \"SLAB\",\n"
+               << "  \"dimension\": 32,\n"
+               << "  \"category\": \"SCADA_ICS\",\n"
+               << "  \"target_protocol\": \"MODBUS_TCP\",\n";
+        }
+        else if (asset_type == "model")
+        {
+            ss << "  \"format\": \"ONNX\",\n"
+               << "  \"precision\": \"INT8\",\n"
+               << "  \"domain\": \"SCADA_ICS\",\n"
+               << "  \"target_protocol\": \"MODBUS_TCP\",\n";
+        }
+        else if (asset_type == "pcap")
+        {
+            ss << "  \"category\": \"SCADA_ICS\",\n"
+               << "  \"target_protocol\": \"MODBUS_TCP\",\n"
+               << "  \"attack_type\": \"RECON\",\n"
+               << "  \"source_origin\": \"TESTBED\",\n";
+        }
+        else if (asset_type == "scenario")
+        {
+            ss << "  \"sector\": \"CRITICAL_INFRASTRUCTURE\",\n"
+               << "  \"complexity\": \"INTERMEDIATE\",\n"
+               << "  \"category\": \"SCADA_ICS\",\n";
+        }
+
+        if (!clean_author_key.empty())
+        {
+            ss << "  \"author_public_key\": \"" << clean_author_key << "\",\n";
+        }
+        ss << "  \"compliance\": [\"IEC-62443-4-2\", \"NIS2\"]\n"
+           << "}";
+        manifest_json = ss.str();
+    }
+
+    // For .spkg containers, inherit internal manifest if available
     auto container = read_binary_file(file_path);
     if (ext == ".spkg" && container.size() >= sizeof(SpkgHeader))
     {
@@ -1237,7 +1316,6 @@ bool cmd_publish(const std::string &file_path, std::string token, std::string hu
         {
             if (sig_hex.empty())
             {
-                // Fallback to internal header signature if no external file signing key was found
                 std::ostringstream sig_ss;
                 for (int i = 0; i < 64; ++i)
                 {
@@ -1253,13 +1331,24 @@ bool cmd_publish(const std::string &file_path, std::string token, std::string hu
         }
     }
 
-    // Auto-inject "slug" into manifest_json if missing
+    // Ensure slug is present
     if (manifest_json.find("\"slug\"") == std::string::npos)
     {
         size_t first_brace = manifest_json.find('{');
         if (first_brace != std::string::npos)
         {
             manifest_json.insert(first_brace + 1, "\n  \"slug\": \"" + slug_val + "\",");
+        }
+    }
+
+    // Inject author_public_key if missing from manifest
+    if (!clean_author_key.empty() && manifest_json.find("\"author_public_key\"") == std::string::npos)
+    {
+        size_t last_brace = manifest_json.rfind('}');
+        if (last_brace != std::string::npos)
+        {
+            std::string injection = ",\n  \"author_public_key\": \"" + clean_author_key + "\"\n}";
+            manifest_json.replace(last_brace, 1, injection);
         }
     }
 
@@ -1342,8 +1431,7 @@ bool cmd_publish(const std::string &file_path, std::string token, std::string hu
         }
         return false;
     }
-}
-// -----------------------------------------------------------------------------
+}// -----------------------------------------------------------------------------
 // 10. IDEA D: AUTONOMOUS VACCINE SYNTHESIZER (sentinel-artifact synthesize-vaccine)
 // -----------------------------------------------------------------------------
 static std::vector<uint8_t> hex_to_bytes(const std::string &hex)
