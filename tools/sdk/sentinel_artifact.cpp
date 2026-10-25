@@ -1053,7 +1053,7 @@ bool cmd_test_preflight(const std::string &spkg_path)
     }
 }
 // -----------------------------------------------------------------------------
-// 9. UNIVERSAL PUBLISHER (sentinel-artifact publish)
+// 9. UNIVERSAL PUBLISHER (sentinel-artifact publish) - REFINED
 // -----------------------------------------------------------------------------
 bool cmd_publish(const std::string &file_path, std::string token, std::string hub_url)
 {
@@ -1103,16 +1103,35 @@ bool cmd_publish(const std::string &file_path, std::string token, std::string hu
         asset_type = "scenario";
     }
 
-    // Look for private key to sign the file bytes
-    fs::path priv_key_path;
+    // 1. Comprehensive Search for Signing Key (Local, Parent, and Central ~/.sentinel/keys/)
+    const char *home_env = std::getenv("HOME");
+    fs::path home_path = home_env ? fs::path(home_env) : fs::path("");
+
     std::vector<fs::path> key_candidates = {
         fs::path(file_path).parent_path() / "keys" / "ed25519_private.pem",
         fs::path(file_path).parent_path() / "ed25519_private.pem",
+        fs::path(file_path).parent_path() / "keys" / "developer_private.pem",
         "keys/ed25519_private.pem",
-        "ed25519_private.pem"};
+        "ed25519_private.pem",
+        "keys/developer_private.pem"};
+
+    if (!home_path.empty())
+    {
+        key_candidates.push_back(home_path / ".sentinel" / "keys" / "developer_private.pem");
+        key_candidates.push_back(home_path / ".sentinel" / "keys" / "ed25519_private.pem");
+        key_candidates.push_back(home_path / ".sentinel" / "developer_private.pem");
+        key_candidates.push_back(home_path / ".sentinel" / "ed25519_private.pem");
+    }
+
+    key_candidates.push_back("/etc/sentinel/keys/developer_private.pem");
+    key_candidates.push_back("/etc/sentinel/keys/ed25519_private.pem");
+    key_candidates.push_back("/etc/sentinel/developer_private.pem");
+    key_candidates.push_back("/etc/sentinel/ed25519_private.pem");
+
+    fs::path priv_key_path;
     for (const auto &k : key_candidates)
     {
-        if (fs::exists(k))
+        if (fs::exists(k) && !fs::is_directory(k))
         {
             priv_key_path = k;
             break;
@@ -1122,9 +1141,15 @@ bool cmd_publish(const std::string &file_path, std::string token, std::string hu
     std::string sig_hex = "";
     if (!priv_key_path.empty())
     {
+        std::cout << "[+] Signing artifact bytes with key: " << priv_key_path.string() << "\n";
         sig_hex = sign_file_bytes_hex(file_path, priv_key_path);
     }
+    else
+    {
+        std::cout << "[!] Notice: No local private key found. Checking container header for signature...\n";
+    }
 
+    // 2. Normalize Slug (Clean .tar.gz and scenario_ prefixes)
     std::string slug_val = fs::path(file_path).stem().string();
     if (slug_val.size() > 4 && slug_val.rfind(".tar") == slug_val.size() - 4)
     {
@@ -1134,8 +1159,10 @@ bool cmd_publish(const std::string &file_path, std::string token, std::string hu
     {
         slug_val = slug_val.substr(9);
     }
+
     std::string manifest_json = "{\"name\":\"" + slug_val + "\",\"slug\":\"" + slug_val + "\",\"asset_type\":\"" + asset_type + "\"}";
 
+    // 3. Ingest Embedded Manifest for .spkg Containers
     auto container = read_binary_file(file_path);
     if (ext == ".spkg" && container.size() >= sizeof(SpkgHeader))
     {
@@ -1145,6 +1172,7 @@ bool cmd_publish(const std::string &file_path, std::string token, std::string hu
         {
             if (sig_hex.empty())
             {
+                // Fallback to internal header signature if no external file signing key was found
                 std::ostringstream sig_ss;
                 for (int i = 0; i < 64; ++i)
                 {
@@ -1250,7 +1278,6 @@ bool cmd_publish(const std::string &file_path, std::string token, std::string hu
         return false;
     }
 }
-
 // -----------------------------------------------------------------------------
 // 10. IDEA D: AUTONOMOUS VACCINE SYNTHESIZER (sentinel-artifact synthesize-vaccine)
 // -----------------------------------------------------------------------------
