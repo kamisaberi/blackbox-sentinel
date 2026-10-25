@@ -785,7 +785,7 @@ bool cmd_extract_source(const std::string &spkg_path, const std::string &out_sou
 }
 
 // -----------------------------------------------------------------------------
-// 6. SLAB PROTOCOL DATASET ENGINE (CONVERT & VERIFY)
+// 6. SLAB PROTOCOL DATASET ENGINE (CONVERT, MANIFEST & VERIFY)
 // -----------------------------------------------------------------------------
 bool cmd_slab_convert(const std::string &in_csv_path, const std::string &out_slab_path, uint32_t expected_dim)
 {
@@ -874,11 +874,57 @@ bool cmd_slab_convert(const std::string &in_csv_path, const std::string &out_sla
         converted_rows++;
     }
 
+    slab.close();
+
     std::cout << "\033[1;32m[SUCCESS] Converted " << converted_rows << " records into SLAB binary dataset: "
               << out_slab_path << "\033[0m (" << fs::file_size(out_slab_path) << " bytes)\n";
+
+    // -------------------------------------------------------------------------
+    // AUTO-GENERATE COMPANION MANIFEST WITH EXACT METADATA (Dim, Format, Records)
+    // -------------------------------------------------------------------------
+    std::string slug_val = fs::path(out_slab_path).stem().string();
+    fs::path manifest_out = fs::path(out_slab_path).parent_path() / "manifest.json";
+
+    // Locate author public key
+    std::string author_pub_hex = "";
+    const char *home_env = std::getenv("HOME");
+    fs::path home_path = home_env ? fs::path(home_env) : fs::path("");
+    std::vector<fs::path> pub_candidates = {
+        fs::path(out_slab_path).parent_path() / "keys" / "developer_public.pem",
+        fs::path(out_slab_path).parent_path() / "developer_public.pem"
+    };
+    if (!home_path.empty()) {
+        pub_candidates.push_back(home_path / ".sentinel" / "keys" / "developer_public.pem");
+        pub_candidates.push_back(home_path / ".sentinel" / "keys" / "ed25519_public.pem");
+    }
+    for (const auto &p : pub_candidates) {
+        if (fs::exists(p)) {
+            author_pub_hex = extract_pubkey_hex(p);
+            break;
+        }
+    }
+
+    std::ofstream mf(manifest_out);
+    mf << "{\n"
+       << "  \"name\": \"" << slug_val << "\",\n"
+       << "  \"slug\": \"" << slug_val << "\",\n"
+       << "  \"title\": \"" << slug_val << "\",\n"
+       << "  \"asset_type\": \"dataset\",\n"
+       << "  \"format\": \"SLAB\",\n"
+       << "  \"dimension\": " << expected_dim << ",\n"
+       << "  \"total_records\": " << converted_rows << ",\n"
+       << "  \"category\": \"SCADA_ICS\",\n"
+       << "  \"target_protocol\": \"MODBUS_TCP\",\n";
+    if (!author_pub_hex.empty()) {
+        mf << "  \"author_public_key\": \"" << author_pub_hex << "\",\n";
+    }
+    mf << "  \"compliance\": [\"IEC-62443-4-2\", \"NIS2\"]\n"
+       << "}\n";
+    mf.close();
+
+    std::cout << "[+] Automatically generated companion dataset manifest: " << manifest_out.string() << "\n";
     return true;
 }
-
 bool cmd_slab_verify(const std::string &slab_path)
 {
     std::ifstream file(slab_path, std::ios::binary);
