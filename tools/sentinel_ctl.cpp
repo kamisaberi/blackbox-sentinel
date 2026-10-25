@@ -1957,6 +1957,92 @@ int main(int argc, char *argv[])
         if (sub == "list")
             return cmd_scenario_list();
     }
+
+
+// -------------------------------------------------------------------------
+    // HUB ONLINE DISCOVERY COMMANDS
+    // -------------------------------------------------------------------------
+    if (cmd == "hub" && argc >= 3)
+    {
+        std::string sub = argv[2];
+        if (sub == "search" || sub == "list")
+        {
+            std::string q = (argc >= 4 && argv[3][0] != '-') ? argv[3] : "";
+            std::string t = "";
+            for (int i = 3; i < argc; ++i)
+            {
+                if (std::string(argv[i]) == "--type" && i + 1 < argc)
+                    t = argv[++i];
+            }
+            return cmd_hub_search(q, t);
+        }
+        if (sub == "info" && argc >= 5)
+        {
+            return cmd_hub_info(argv[3], argv[4]);
+        }
+    }
+
+    // -------------------------------------------------------------------------
+    // SYMMETRICAL ASSET DOMAINS (package, model, dataset, pcap, scenario)
+    // -------------------------------------------------------------------------
+    if (cmd == "package" && argc >= 3)
+    {
+        std::string sub = argv[2];
+        if (sub == "pull" && argc >= 4)
+        {
+            std::string pkg_name = argv[3];
+            if (pkg_name.size() < 5 || pkg_name.substr(pkg_name.size() - 5) != ".spkg")
+                pkg_name += ".spkg";
+            fs::path staged;
+            if (resolve_cached_asset("packages", pkg_name, staged))
+                return cmd_install_spkg(staged);
+            return 1;
+        }
+        if (sub == "list")
+            return cmd_generic_list("packages", "/etc/sentinel/plugins.d", ".so");
+    }
+
+    if (cmd == "model" && argc >= 3)
+    {
+        std::string sub = argv[2];
+        if (sub == "pull" && argc >= 4)
+            return cmd_model_pull(argv[3]);
+        if (sub == "list")
+            return cmd_generic_list("models", "models", ".onnx");
+    }
+
+    if (cmd == "dataset" && argc >= 3)
+    {
+        std::string sub = argv[2];
+        if (sub == "pull" && argc >= 4)
+            return cmd_dataset_pull(argv[3]);
+        if (sub == "list")
+            return cmd_generic_list("datasets", "/etc/sentinel/datasets", ".slab");
+    }
+
+    if (cmd == "pcap" && argc >= 3)
+    {
+        std::string sub = argv[2];
+        if (sub == "pull" && argc >= 4)
+            return cmd_pcap_pull(argv[3]);
+        if (sub == "list")
+            return cmd_generic_list("pcaps", "/etc/sentinel/pcaps", ".pcap");
+    }
+
+    // Cache Search
+    if (cmd == "cache" && argc >= 3 && std::string(argv[2]) == "search")
+    {
+        std::string q = (argc >= 4 && argv[3][0] != '-') ? argv[3] : "";
+        std::string t = "";
+        for (int i = 3; i < argc; ++i)
+        {
+            if (std::string(argv[i]) == "--type" && i + 1 < argc)
+                t = argv[++i];
+        }
+        return cmd_cache_search(q, t);
+    }
+
+
     print_help();
     return 0;
 }
