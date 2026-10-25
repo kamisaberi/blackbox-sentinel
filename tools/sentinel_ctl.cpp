@@ -1949,7 +1949,8 @@ int cmd_pcap_pack(const std::string &pcap_path_str,
               << "Attack Type  : " << attack_type << "\n"
               << "Author Key   : " << (author_pub_hex.empty() ? "None (Unenrolled)" : author_pub_hex.substr(0, 16) + "...") << "\n";
 
-    auto write_manifest = [&](const fs::path &target_mf) {
+    auto write_manifest = [&](const fs::path &target_mf)
+    {
         std::ofstream mf(target_mf);
         mf << "{\n"
            << "  \"name\": \"" << slug << "\",\n"
@@ -2028,6 +2029,7 @@ int cmd_scenario_pack(const std::string &dir_str, const std::string &out_overrid
        << "  \"title\": \"" << slug << "\",\n"
        << "  \"version\": \"1.0.0\",\n"
        << "  \"asset_type\": \"scenario\",\n"
+       << "  \"target_sector\": \"CRITICAL_INFRASTRUCTURE\",\n"
        << "  \"sector\": \"CRITICAL_INFRASTRUCTURE\",\n"
        << "  \"complexity\": \"INTERMEDIATE\",\n"
        << "  \"category\": \"SCADA_ICS\",\n"
@@ -2419,7 +2421,7 @@ int main(int argc, char *argv[])
             return cmd_generic_list("datasets", "/etc/sentinel/datasets", ".slab");
     }
 
-if (cmd == "pcap" && argc >= 3)
+    if (cmd == "pcap" && argc >= 3)
     {
         std::string sub = argv[2];
         if (sub == "pack" && argc >= 4)
