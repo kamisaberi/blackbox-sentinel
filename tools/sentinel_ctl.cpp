@@ -533,17 +533,20 @@ int cmd_status()
     if (fs::exists("/etc/sentinel/plugins.d", ec) && !ec)
     {
         for (const auto &e : fs::directory_iterator("/etc/sentinel/plugins.d", ec))
-            if (e.path().extension() == ".so") count_native++;
+            if (e.path().extension() == ".so")
+                count_native++;
     }
     if (fs::exists("/etc/sentinel/wasm.d", ec) && !ec)
     {
         for (const auto &e : fs::directory_iterator("/etc/sentinel/wasm.d", ec))
-            if (e.path().extension() == ".wasm") count_wasm++;
+            if (e.path().extension() == ".wasm")
+                count_wasm++;
     }
     if (fs::exists("/etc/sentinel/rules.d", ec) && !ec)
     {
         for (const auto &e : fs::directory_iterator("/etc/sentinel/rules.d", ec))
-            if (e.path().extension() == ".lua") count_lua++;
+            if (e.path().extension() == ".lua")
+                count_lua++;
     }
 
     std::cout << "\n  \033[1m[4] Active Edge Extensions Runtime:\033[0m\n"
@@ -628,8 +631,7 @@ int cmd_install_spkg(const fs::path &spkg_path)
     std::vector<fs::path> key_candidates = {
         "/home/kami/sentinel-hub/keys/authority_key_public.pem",
         "/etc/sentinel/authority_key_public.pem",
-        "keys/authority_key_public.pem"
-    };
+        "keys/authority_key_public.pem"};
 
     for (const auto &pub_key_path : key_candidates)
     {
@@ -1856,7 +1858,8 @@ int cmd_package_list()
                 c_cnt++;
             }
         }
-        if (c_cnt == 0) std::cout << "  (No cached .spkg packages)\n";
+        if (c_cnt == 0)
+            std::cout << "  (No cached .spkg packages)\n";
     }
     else
     {
@@ -2183,7 +2186,7 @@ int main(int argc, char *argv[])
             return 1;
         }
         if (sub == "list")
-            return cmd_generic_list("packages", "/etc/sentinel/plugins.d", ".so");
+            return cmd_package_list();
     }
 
     if (cmd == "model" && argc >= 3)
