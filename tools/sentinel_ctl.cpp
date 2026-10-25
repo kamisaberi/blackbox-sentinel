@@ -821,62 +821,49 @@ int cmd_5g_status()
 void print_help()
 {
     std::cout << R"(
-sentinel-ctl - Blackbox Sentinel Appliance & Cache-First Dependency Manager
+sentinel-ctl - Blackbox Sentinel Appliance & Unified Registry Asset Manager
 
 Usage:
-  sentinel-ctl <command> [options]
+  sentinel-ctl <domain> <action> [arguments]
 
 Authentication & Registry Identity:
-  login --jwt <JWT_TOKEN>          Exchange JWT for live API key & save to ~/.sentinel/credentials.json
-  whoami                           Display current authenticated registry user / API key status
+  login --jwt <JWT_TOKEN>          Exchange JWT for live API key & save credentials
+  whoami                           Display current authenticated registry identity
 
-Routing & Lifecycle:
-  sync <routes.yaml>               Audit dependencies & resolve missing packages/models via cache
-  check <routes.yaml>              Check if all dependencies are satisfied locally
-  launch <routes.yaml>             Synchronize and launch Sentinel daemon in one step
-  status                           Inspect appliance licensing, hardware root & eBPF health
+Global Hub Discovery (Live Cloud Catalog):
+  hub search [query] [--type <t>]  Search live catalog (package, model, dataset, pcap, scenario)
+  hub list [--type <type>]         List all published assets on hub.aryorithm.com
+  hub info <type> <slug>           Preview cloud manifest, SLA & signature without downloading
 
-Package & Asset Management:
-  install <file.spkg>              Verify signature & deploy .spkg to active runtime
-  pcap pull <slug>                 Pull certified malware PCAP into cache & stage to /etc/sentinel/pcaps/
-  dataset pull <slug>              Pull zero-copy .slab dataset into cache & stage to /etc/sentinel/datasets/
-  slab stream <file.slab> [port]   Stream zero-copy binary records at 65,000+ EPS
-  model pull <model_slug>          Pull verified ONNX model weights directly
-
-Scenario & Digital Twin Management:
+Unified Asset Lifecycles (pack, pull, inspect, list):
+  package pull <slug>              Pull verified .spkg and deploy to active runtime
+  package list                     List active and cached extension packages (.spkg)
+  model pull <model_slug>          Pull verified ONNX model weights into models/
+  model list                       List locally cached and staged AI models
+  dataset pull <slug>              Pull zero-copy .slab telemetry dataset into cache
+  dataset list                     List locally cached .slab datasets
+  pcap pull <slug>                 Pull certified malware PCAP into /etc/sentinel/pcaps/
+  pcap list                        List locally cached and staged PCAP captures
   scenario pack <dir> [out.tar.gz] Pack scenario directory into verified bundle for Hub
-  scenario pull <slug>             Pull certified scenario bundle from Hub and stage to sentinel-matrix/scenarios/
-  scenario list                    List all locally cached and staged digital twin scenarios
-  
-5G/6G Wireless Network Slicing & UPF Guard:
-  5g enable [iface] [config.yaml]  Provision 3GPP slices into in-kernel eBPF filter
-  5g status                        Inspect active 5G slice TEIDs and violation drops
-  5g drop-teid <teid_hex>          Revoke TEID authorization and enforce kernel drop
+  scenario pull <slug>             Pull certified scenario bundle and stage to sentinel-matrix
+  scenario list                    List locally cached and staged digital twin scenarios
 
-Live-SBOM Runtime Memory Drift & Integrity Engine:
-  sbom generate                    Compute SHA-256 hashes of critical daemons into /etc/sentinel/live_sbom.json
-  sbom enforce                     Load certified SBOM into kernel & activate sub-µs SIGKILL W^X enforcement
-  sbom status                      Audit running process memory integrity and drift violations
-  sbom test-drift                  Run live sandbox test verifying kernel SIGKILL on unauthorized PROT_EXEC
-
-Air-Gapped & Sneakernet Cache:
-  cache list                       List all cached assets and their sizes
+Cache Management:
+  cache list                       List all cached assets and sizes
+  cache search <query> [--type <t>] Search local cache by keyword and asset type
   cache clean                      Purge the local asset cache
-  cache export <out.tar.gz>        Export cache to a bundle for offline USB Sneakernet transfer
-  cache import <in.tar.gz>         Import an offline bundle into the local appliance cache
+  cache export <out.tar.gz>        Export cache to offline USB bundle
+  cache import <in.tar.gz>         Import offline bundle into local cache
 
-GenAI / LLM Prompt Injection Firewall (AI TRiSM):
-  trism status                     Display AI TRiSM token stream firewall metrics & latency SLA
-  trism inspect --prompt "<text>"  Inspect prompt text for jailbreaks and indirect injections
-  trism test-jailbreak             Run red-team benchmark suite across 4 prompt injection classes
-  trism policy                     Display active industrial tool-call governance policy
-
-
-Global Options:
-  --hub-url <url>                  Override registry host (e.g. localhost:8000 or https://backend.aryorithm.com)
+Appliance & Security Engines:
+  status                           Inspect appliance licensing, hardware root & eBPF health
+  sync <routes.yaml>               Audit dependencies & resolve missing assets from cache
+  launch <routes.yaml>             Synchronize and launch Sentinel daemon in one step
+  5g enable|status                 3GPP 5G/6G N3 GTP-U wireless network slicing guard
+  sbom generate|enforce|status     Live-SBOM in-kernel W^X memory drift defense
+  trism status|inspect|policy      AI TRiSM prompt injection firewall & tool governor
 )" << std::endl;
 }
-
 // -----------------------------------------------------------------------------
 // COMMAND: sentinel-ctl slab stream <file.slab> [--port 9999]
 // -----------------------------------------------------------------------------
