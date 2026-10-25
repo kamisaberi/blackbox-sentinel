@@ -1900,6 +1900,121 @@ int cmd_package_list()
     std::cout << "\033[1;36m========================================================================================================\033[0m\n";
     return 0;
 }
+// -----------------------------------------------------------------------------
+// MODEL PACKAGING & MANIFEST GENERATOR (sentinel-ctl model pack <model.onnx>)
+// -----------------------------------------------------------------------------
+static std::string get_enrolled_author_pubkey_hex()
+{
+    const char *home = std::getenv("HOME");
+    std::vector<fs::path> candidates;
+    if (home)
+    {
+        candidates.push_back(fs::path(home) / ".sentinel" / "keys" / "developer_public.pem");
+        candidates.push_back(fs::path(home) / ".sentinel" / "keys" / "ed25519_public.pem");
+    }
+    candidates.push_back("/etc/sentinel/keys/developer_public.pem");
+
+    for (const auto &p : candidates)
+    {
+        if (fs::exists(p))
+        {
+            FILE *fp = fopen(p.c_str(), "rb");
+            if (fp)
+            {
+                EVP_PKEY *pkey = PEM_read_PUBKEY(fp, nullptr, nullptr, nullptr);
+                fclose(fp);
+                if (pkey)
+                {
+                    size_t len = 32;
+                    uint8_t raw_key[32];
+                    if (EVP_PKEY_get_raw_public_key(pkey, raw_key, &len) == 1)
+                    {
+                        EVP_PKEY_free(pkey);
+                        std::ostringstream ss;
+                        for (size_t i = 0; i < len; ++i)
+                        {
+                            ss << std::hex << std::setw(2) << std::setfill('0') << static_cast<int>(raw_key[i]);
+                        }
+                        return ss.str();
+                    }
+                    EVP_PKEY_free(pkey);
+                }
+            }
+        }
+    }
+    return "";
+}
+
+int cmd_model_pack(const std::string &model_path_str,
+                   const std::string &precision_override = "",
+                   const std::string &domain_override = "")
+{
+    fs::path model_path(model_path_str);
+    if (!fs::exists(model_path))
+    {
+        std::cerr << "[-] Error: ONNX model file not found: " << model_path.string() << std::endl;
+        return 1;
+    }
+
+    std::string slug = model_path.stem().string();
+    std::string precision = "FP32";
+
+    // Auto-detect precision from filename or flag
+    if (!precision_override.empty())
+    {
+        precision = precision_override;
+    }
+    else if (slug.find("int8") != std::string::npos || slug.find("INT8") != std::string::npos)
+    {
+        precision = "INT8";
+    }
+
+    std::string domain = domain_override.empty() ? "SCADA_ICS" : domain_override;
+    std::string author_pub_hex = get_enrolled_author_pubkey_hex();
+
+    fs::path manifest_out = model_path.parent_path() / "manifest.json";
+    fs::path manifest_named_out = fs::path(model_path.string() + ".manifest.json");
+
+    std::cout << "\033[1;36m================================================================================\033[0m\n";
+    std::cout << "\033[1;37m        PACKING ONNX MODEL & GENERATING HUB COMPANION MANIFEST                  \033[0m\n";
+    std::cout << "\033[1;36m================================================================================\033[0m\n";
+    std::cout << "Model Path   : " << model_path.string() << " (" << fs::file_size(model_path) << " bytes)\n"
+              << "Format       : ONNX\n"
+              << "Precision    : " << precision << "\n"
+              << "Domain       : " << domain << "\n"
+              << "Author Key   : " << (author_pub_hex.empty() ? "None (Unenrolled)" : author_pub_hex.substr(0, 16) + "...") << "\n";
+
+    auto write_manifest = [&](const fs::path &target_mf)
+    {
+        std::ofstream mf(target_mf);
+        mf << "{\n"
+           << "  \"name\": \"" << slug << "\",\n"
+           << "  \"slug\": \"" << slug << "\",\n"
+           << "  \"title\": \"" << slug << "\",\n"
+           << "  \"asset_type\": \"model\",\n"
+           << "  \"format\": \"ONNX\",\n"
+           << "  \"precision\": \"" << precision << "\",\n"
+           << "  \"domain\": \"" << domain << "\",\n"
+           << "  \"target_protocol\": \"MODBUS_TCP\",\n";
+        if (!author_pub_hex.empty())
+        {
+            mf << "  \"author_public_key\": \"" << author_pub_hex << "\",\n";
+        }
+        mf << "  \"compliance\": [\"IEC-62443-4-2\", \"NIS2\"]\n"
+           << "}\n";
+        mf.close();
+    };
+
+    write_manifest(manifest_out);
+    write_manifest(manifest_named_out);
+
+    std::cout << "--------------------------------------------------------------------------------\n";
+    std::cout << "\033[1;32m[+] Successfully generated model companion manifest!\033[0m\n"
+              << "    ├── Primary Manifest: " << manifest_out.string() << "\n"
+              << "    └── Ready to publish: \033[1;37maryo publish " << model_path.string() << "\033[0m\n";
+    std::cout << "\033[1;36m================================================================================\033[0m\n";
+    return 0;
+}
 
 int main(int argc, char *argv[])
 {
