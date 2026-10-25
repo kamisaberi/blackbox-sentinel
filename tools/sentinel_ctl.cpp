@@ -1530,7 +1530,6 @@ int cmd_scenario_pack(const std::string &dir_str, const std::string &out_overrid
     return 1;
 }
 
-
 // -----------------------------------------------------------------------------
 // LIVE CLOUD HUB DISCOVERY (sentinel-ctl hub search / list / info)
 // -----------------------------------------------------------------------------
@@ -1581,15 +1580,17 @@ int cmd_hub_search(const std::string &query = "", const std::string &type_filter
     std::string response = execute_http_get(endpoint, creds.api_key);
 
     // Fallback/Simulated catalog rendering if offline or response is empty
-    struct CatalogItem { std::string id, type, proto, sla, audit, sector; };
+    struct CatalogItem
+    {
+        std::string id, type, proto, sla, audit, sector;
+    };
     std::vector<CatalogItem> items = {
         {"org.aryorithm.package.modbus_guard", "package", "MODBUS", "< 120 ns", "Ed25519 Sealed", "Power & Substations"},
         {"org.aryorithm.package.s7comm_guard", "package", "S7COMM", "< 1.5 us", "Memory Safe", "Manufacturing & PLCs"},
         {"network_threat_detector", "model", "TCP/IP", "< 20 us", "INT8 Verified", "Critical Infrastructure"},
         {"telemetry_drift_baseline", "dataset", "SLAB", "0-Copy", "Signed 0x534C4142", "Water & Energy Grids"},
         {"industroyer2_substation", "pcap", "IEC-104", "Wire-Speed", "CISA Verified", "High-Voltage Grids"},
-        {"scenario_water_treatment_plant", "scenario", "MODBUS", "< 250 ns", "Multi-Zone Mesh", "Water & Wastewater"}
-    };
+        {"scenario_water_treatment_plant", "scenario", "MODBUS", "< 250 ns", "Multi-Zone Mesh", "Water & Wastewater"}};
 
     size_t count = 0;
     for (const auto &item : items)
@@ -1958,8 +1959,7 @@ int main(int argc, char *argv[])
             return cmd_scenario_list();
     }
 
-
-// -------------------------------------------------------------------------
+    // -------------------------------------------------------------------------
     // HUB ONLINE DISCOVERY COMMANDS
     // -------------------------------------------------------------------------
     if (cmd == "hub" && argc >= 3)
@@ -2041,7 +2041,6 @@ int main(int argc, char *argv[])
         }
         return cmd_cache_search(q, t);
     }
-
 
     print_help();
     return 0;
