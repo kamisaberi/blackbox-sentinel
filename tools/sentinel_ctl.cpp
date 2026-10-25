@@ -494,8 +494,10 @@ int cmd_status()
     std::cout << "\033[1;37m                 BLACKBOX SENTINEL APPLIANCE STATUS & HEALTH                    \033[0m\n";
     std::cout << "\033[1;36m================================================================================\033[0m\n";
 
+    std::error_code ec;
+
     std::cout << "  \033[1m[1] Cryptographic Identity & Licensing:\033[0m\n";
-    if (fs::exists("/etc/sentinel/license.lic"))
+    if (fs::exists("/etc/sentinel/license.lic", ec) && !ec)
     {
         std::cout << "      Status          : \033[1;32mACTIVE LICENSE LOADED\033[0m (/etc/sentinel/license.lic)\n";
     }
@@ -503,7 +505,7 @@ int cmd_status()
     {
         std::cout << "      Status          : \033[1;33mCOMMUNITY EVALUATION\033[0m (Unlicensed mode)\n";
     }
-    if (fs::exists("/dev/tpmrm0") || fs::exists("/dev/tpm0"))
+    if ((fs::exists("/dev/tpmrm0", ec) || fs::exists("/dev/tpm0", ec)) && !ec)
     {
         std::cout << "      Hardware Root   : \033[1;32mPHYSICAL TPM 2.0 ATTESTED\033[0m\n";
     }
@@ -513,13 +515,13 @@ int cmd_status()
     }
 
     std::cout << "\n  \033[1m[2] In-Kernel eBPF/XDP Mitigation Subsystem:\033[0m\n";
-    if (fs::exists("/sys/fs/bpf/blackbox_blocked_ips") || fs::exists("/sys/fs/bpf/blocked_ip_map"))
+    if ((fs::exists("/sys/fs/bpf/blackbox_blocked_ips", ec) || fs::exists("/sys/fs/bpf/blocked_ip_map", ec)) && !ec)
     {
         std::cout << "      eBPF Map Status : \033[1;32mPINNED & ACTIVE IN KERNEL\033[0m (< 0.84 µs SLA)\n";
     }
     else
     {
-        std::cout << "      eBPF Map Status : \033[1;33mIN-PROCESS RUNTIME\033[0m (Local testing mode)\n";
+        std::cout << "      eBPF Map Status : \033[1;33mIN-PROCESS RUNTIME\033[0m (Local testing mode / run with sudo for pinned maps)\n";
     }
 
     std::cout << "\n  \033[1m[3] Central Asset Cache Engine:\033[0m\n";
@@ -528,23 +530,20 @@ int cmd_status()
               << "      Registry URL    : " << normalize_registry_url(g_hub_url) << "\n";
 
     size_t count_native = 0, count_wasm = 0, count_lua = 0;
-    if (fs::exists("/etc/sentinel/plugins.d"))
+    if (fs::exists("/etc/sentinel/plugins.d", ec) && !ec)
     {
-        for (const auto &e : fs::directory_iterator("/etc/sentinel/plugins.d"))
-            if (e.path().extension() == ".so")
-                count_native++;
+        for (const auto &e : fs::directory_iterator("/etc/sentinel/plugins.d", ec))
+            if (e.path().extension() == ".so") count_native++;
     }
-    if (fs::exists("/etc/sentinel/wasm.d"))
+    if (fs::exists("/etc/sentinel/wasm.d", ec) && !ec)
     {
-        for (const auto &e : fs::directory_iterator("/etc/sentinel/wasm.d"))
-            if (e.path().extension() == ".wasm")
-                count_wasm++;
+        for (const auto &e : fs::directory_iterator("/etc/sentinel/wasm.d", ec))
+            if (e.path().extension() == ".wasm") count_wasm++;
     }
-    if (fs::exists("/etc/sentinel/rules.d"))
+    if (fs::exists("/etc/sentinel/rules.d", ec) && !ec)
     {
-        for (const auto &e : fs::directory_iterator("/etc/sentinel/rules.d"))
-            if (e.path().extension() == ".lua")
-                count_lua++;
+        for (const auto &e : fs::directory_iterator("/etc/sentinel/rules.d", ec))
+            if (e.path().extension() == ".lua") count_lua++;
     }
 
     std::cout << "\n  \033[1m[4] Active Edge Extensions Runtime:\033[0m\n"
@@ -556,7 +555,7 @@ int cmd_status()
     std::string found_profile;
     for (const auto &p : {"configs/model_routes.yaml", "../configs/model_routes.yaml", "/etc/sentinel/model_routes.yaml"})
     {
-        if (fs::exists(p))
+        if (fs::exists(p, ec) && !ec)
         {
             found_profile = p;
             break;
@@ -568,12 +567,11 @@ int cmd_status()
     }
     else
     {
-        std::cout << "      Profile         : \033[1;31mMISSING\033[0m\n";
+        std::cout << "      Profile         : \033[1;33mMISSING\033[0m (Run: sudo cp configs/model_routes.yaml /etc/sentinel/)\n";
     }
     std::cout << "\033[1;36m================================================================================\033[0m\n";
     return 0;
 }
-
 // -----------------------------------------------------------------------------
 // COMMAND: sentinel-ctl install <file.spkg>
 // -----------------------------------------------------------------------------
