@@ -2080,11 +2080,27 @@ int main(int argc, char *argv[])
         return cmd_slab_stream(argv[3], port);
     }
 
-    if (cmd == "model" && argc >= 4 && std::string(argv[2]) == "pull")
+    if (cmd == "model" && argc >= 3)
     {
-        return cmd_model_pull(argv[3]);
+        std::string sub = argv[2];
+        if (sub == "pack" && argc >= 4)
+        {
+            std::string precision = "";
+            std::string domain = "";
+            for (int i = 4; i < argc; ++i)
+            {
+                if (std::string(argv[i]) == "--precision" && i + 1 < argc)
+                    precision = argv[++i];
+                else if (std::string(argv[i]) == "--domain" && i + 1 < argc)
+                    domain = argv[++i];
+            }
+            return cmd_model_pack(argv[3], precision, domain);
+        }
+        if (sub == "pull" && argc >= 4)
+            return cmd_model_pull(argv[3]);
+        if (sub == "list")
+            return cmd_generic_list("models", "models", ".onnx");
     }
-
     if (cmd == "sync" || cmd == "check" || cmd == "launch")
     {
         fs::path yaml_path = (argc >= 3) ? argv[2] : "configs/model_routes.yaml";
