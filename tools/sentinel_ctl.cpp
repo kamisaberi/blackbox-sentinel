@@ -1833,6 +1833,67 @@ int cmd_generic_list(const std::string &category, const std::string &stage_dir =
     return 0;
 }
 
+int cmd_package_list()
+{
+    std::cout << "\033[1;36m========================================================================================================\033[0m\n";
+    std::cout << "\033[1;37m                 ARYORITHM SENTINEL PACKAGES (.spkg) & ACTIVE EXTENSIONS                 \033[0m\n";
+    std::cout << "\033[1;36m========================================================================================================\033[0m\n";
+
+    std::error_code ec;
+
+    // 1. Central Cache
+    fs::path c_dir = get_cache_root() / "packages";
+    std::cout << "Cached Packages (" << c_dir.string() << "):\n";
+    if (fs::exists(c_dir, ec) && !ec)
+    {
+        size_t c_cnt = 0;
+        for (const auto &e : fs::directory_iterator(c_dir, ec))
+        {
+            if (e.is_regular_file() && e.path().extension() == ".spkg")
+            {
+                std::cout << "  • " << std::left << std::setw(36) << e.path().filename().string()
+                          << " (" << fs::file_size(e) << " bytes)\n";
+                c_cnt++;
+            }
+        }
+        if (c_cnt == 0) std::cout << "  (No cached .spkg packages)\n";
+    }
+    else
+    {
+        std::cout << "  (Cache directory not initialized)\n";
+    }
+
+    // 2. Active Deployed Runtimes
+    std::cout << "\nActive Deployed Extensions in Runtime:\n";
+
+    // Tier A: Native C++ (.so)
+    if (fs::exists("/etc/sentinel/plugins.d", ec) && !ec)
+    {
+        for (const auto &e : fs::directory_iterator("/etc/sentinel/plugins.d", ec))
+            if (e.path().extension() == ".so")
+                std::cout << "  \033[1;32m[ACTIVE]\033[0m [Tier A - Native C++20] " << e.path().filename().string() << "\n";
+    }
+
+    // Tier B: Rust Wasm (.wasm)
+    if (fs::exists("/etc/sentinel/wasm.d", ec) && !ec)
+    {
+        for (const auto &e : fs::directory_iterator("/etc/sentinel/wasm.d", ec))
+            if (e.path().extension() == ".wasm")
+                std::cout << "  \033[1;32m[ACTIVE]\033[0m [Tier B - Rust Wasm3]   " << e.path().filename().string() << "\n";
+    }
+
+    // Tier C: LuaJIT Rules (.lua)
+    if (fs::exists("/etc/sentinel/rules.d", ec) && !ec)
+    {
+        for (const auto &e : fs::directory_iterator("/etc/sentinel/rules.d", ec))
+            if (e.path().extension() == ".lua")
+                std::cout << "  \033[1;32m[ACTIVE]\033[0m [Tier C - LuaJIT FFI]   " << e.path().filename().string() << "\n";
+    }
+
+    std::cout << "\033[1;36m========================================================================================================\033[0m\n";
+    return 0;
+}
+
 int main(int argc, char *argv[])
 {
     if (argc < 2)
