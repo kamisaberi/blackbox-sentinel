@@ -47,6 +47,63 @@ struct DependencyManifest
 };
 
 // -----------------------------------------------------------------------------
+// CREDENTIALS LOADER HELPER
+// -----------------------------------------------------------------------------
+struct SavedCredentials
+{
+    std::string api_key;
+    std::string hub_url;
+};
+
+fs::path get_credentials_path()
+{
+    const char *home = std::getenv("HOME");
+    if (home)
+    {
+        fs::path p = fs::path(home) / ".sentinel";
+        fs::create_directories(p);
+        return p / "credentials.json";
+    }
+    return fs::path("/etc/sentinel/credentials.json");
+}
+
+static SavedCredentials load_saved_credentials()
+{
+    SavedCredentials creds{};
+    fs::path cred_path = get_credentials_path();
+    if (fs::exists(cred_path))
+    {
+        std::ifstream f(cred_path);
+        std::string line;
+        while (std::getline(f, line))
+        {
+            size_t pos_key = line.find("\"api_key\"");
+            if (pos_key != std::string::npos)
+            {
+                size_t colon = line.find(':', pos_key);
+                size_t start = line.find('"', colon + 1);
+                size_t end = line.find('"', start + 1);
+                if (start != std::string::npos && end != std::string::npos)
+                {
+                    creds.api_key = line.substr(start + 1, end - start - 1);
+                }
+            }
+            size_t pos_url = line.find("\"hub_url\"");
+            if (pos_url != std::string::npos)
+            {
+                size_t colon = line.find(':', pos_url);
+                size_t start = line.find('"', colon + 1);
+                size_t end = line.find('"', start + 1);
+                if (start != std::string::npos && end != std::string::npos)
+                {
+                    creds.hub_url = line.substr(start + 1, end - start - 1);
+                }
+            }
+        }
+    }
+    return creds;
+}
+// -----------------------------------------------------------------------------
 // CACHE & REGISTRY CONFIGURATION WITH URL NORMALIZATION
 // -----------------------------------------------------------------------------
 static std::string g_hub_url = "https://backend.aryorithm.com";
@@ -105,17 +162,6 @@ fs::path get_cache_root()
     return fs::path("/tmp/sentinel_cache");
 }
 
-fs::path get_credentials_path()
-{
-    const char *home = std::getenv("HOME");
-    if (home)
-    {
-        fs::path p = fs::path(home) / ".sentinel";
-        fs::create_directories(p);
-        return p / "credentials.json";
-    }
-    return fs::path("/etc/sentinel/credentials.json");
-}
 
 static std::string trim(const std::string &s)
 {
