@@ -1589,24 +1589,30 @@ int cmd_scenario_pack(const std::string &dir_str, const std::string &out_overrid
     if (slug == "." || slug.empty())
         slug = fs::current_path().filename().string();
 
-    // Auto-generate manifest.json if missing
+    std::string author_pub_hex = get_enrolled_author_pubkey_hex();
+
+    // Auto-generate manifest.json with required schema fields (sector, complexity, author_public_key)
     fs::path manifest_path = target_dir / "manifest.json";
-    if (!fs::exists(manifest_path))
+    std::cout << "[*] Generating compliant scenario manifest for '" << slug << "'...\n";
+    std::ofstream mf(manifest_path);
+    mf << "{\n"
+       << "  \"name\": \"" << slug << "\",\n"
+       << "  \"slug\": \"" << slug << "\",\n"
+       << "  \"title\": \"" << slug << "\",\n"
+       << "  \"version\": \"1.0.0\",\n"
+       << "  \"asset_type\": \"scenario\",\n"
+       << "  \"sector\": \"CRITICAL_INFRASTRUCTURE\",\n"
+       << "  \"complexity\": \"INTERMEDIATE\",\n"
+       << "  \"category\": \"SCADA_ICS\",\n"
+       << "  \"author\": \"Aryorithm Certified Engineer\",\n"
+       << "  \"description\": \"Digital Twin Scenario for " << slug << "\",\n";
+    if (!author_pub_hex.empty())
     {
-        std::cout << "[*] No manifest.json found. Auto-generating scenario manifest for '" << slug << "'...\n";
-        std::ofstream mf(manifest_path);
-        mf << "{\n"
-           << "  \"name\": \"" << slug << "\",\n"
-           << "  \"slug\": \"" << slug << "\",\n"
-           << "  \"version\": \"1.0.0\",\n"
-           << "  \"asset_type\": \"scenario\",\n"
-           << "  \"author\": \"Aryorithm Certified Engineer\",\n"
-           << "  \"description\": \"Digital Twin Scenario for " << slug << "\",\n"
-           << "  \"target_industry\": \"Industrial Cyber-Physical Systems\",\n"
-           << "  \"compliance\": [\"IEC-62443-4-2\", \"NIS2\"]\n"
-           << "}\n";
-        mf.close();
+        mf << "  \"author_public_key\": \"" << author_pub_hex << "\",\n";
     }
+    mf << "  \"compliance\": [\"IEC-62443-4-2\", \"NIS2\"]\n"
+       << "}\n";
+    mf.close();
 
     // Ensure cache scenarios directory exists
     fs::path cache_scen_dir = get_cache_root() / "scenarios";
@@ -1643,9 +1649,14 @@ int cmd_scenario_pack(const std::string &dir_str, const std::string &out_overrid
 
     if (ret == 0 && fs::exists(out_tar))
     {
+        // Also emit companion manifest right next to the archive for 100% reliable publish ingestion
+        fs::path companion_tar_mf = fs::path(out_tar.string() + ".manifest.json");
+        fs::copy_file(manifest_path, companion_tar_mf, fs::copy_options::overwrite_existing);
+
         size_t sz = fs::file_size(out_tar);
         std::cout << "\033[1;32m[+] Successfully packed scenario bundle!\033[0m\n"
                   << "    ├── Archive File : " << out_tar.string() << " (" << sz << " bytes)\n"
+                  << "    ├── Companion MF : " << companion_tar_mf.string() << "\n"
                   << "    └── Ready to publish via: \033[1;37maryo publish " << out_tar.string() << "\033[0m\n";
         std::cout << "\033[1;36m================================================================================\033[0m\n";
         return 0;
@@ -1654,7 +1665,6 @@ int cmd_scenario_pack(const std::string &dir_str, const std::string &out_overrid
     std::cerr << "\033[1;31m[-] Error: Failed to package scenario archive.\033[0m\n";
     return 1;
 }
-
 // -----------------------------------------------------------------------------
 // LIVE CLOUD HUB DISCOVERY (sentinel-ctl hub search / list / info)
 // -----------------------------------------------------------------------------
