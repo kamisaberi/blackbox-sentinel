@@ -162,7 +162,6 @@ fs::path get_cache_root()
     return fs::path("/tmp/sentinel_cache");
 }
 
-
 static std::string trim(const std::string &s)
 {
     auto start = s.find_first_not_of(" \t\r\n\"-");
@@ -2022,9 +2021,11 @@ int main(int argc, char *argv[])
             }
             return cmd_hub_search(q, t);
         }
-        if (sub == "info" && argc >= 5)
+        if (sub == "info" && argc >= 4)
         {
-            return cmd_hub_info(argv[3], argv[4]);
+            std::string type = (argc >= 5) ? argv[3] : "package";
+            std::string slug = (argc >= 5) ? argv[4] : argv[3];
+            return cmd_hub_info(type, slug);
         }
     }
 
