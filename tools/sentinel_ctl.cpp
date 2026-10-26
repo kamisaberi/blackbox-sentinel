@@ -2561,20 +2561,40 @@ int main(int argc, char *argv[])
             return cmd_trism_inspect(prompt);
         }
     }
-    if (cmd == "scenario" && argc >= 3)
+if (cmd == "scenario" && argc >= 3)
     {
         std::string sub = argv[2];
+        if (sub == "new" || sub == "create")
+        {
+            std::string name = (argc >= 4) ? argv[3] : "custom_scenario";
+            std::string sector = "";
+            for (int i = 4; i < argc; ++i)
+                if (std::string(argv[i]) == "--sector" && i + 1 < argc) sector = argv[++i];
+            return cmd_scenario_new(name, sector);
+        }
+        if (sub == "add" && argc >= 5)
+        {
+            bool embed = false;
+            for (int i = 5; i < argc; ++i)
+                if (std::string(argv[i]) == "--embed") embed = true;
+            return cmd_scenario_add(argv[3], argv[4], embed);
+        }
         if (sub == "pack" && argc >= 4)
         {
-            std::string out_tar = (argc >= 5) ? argv[4] : "";
-            return cmd_scenario_pack(argv[3], out_tar);
+            bool embed = false;
+            std::string out_tar = "";
+            for (int i = 4; i < argc; ++i)
+            {
+                if (std::string(argv[i]) == "--embed" || std::string(argv[i]) == "--standalone") embed = true;
+                else if (argv[i][0] != '-') out_tar = argv[i];
+            }
+            return cmd_scenario_pack(argv[3], out_tar, embed);
         }
         if (sub == "pull" && argc >= 4)
             return cmd_scenario_pull(argv[3]);
         if (sub == "list")
             return cmd_scenario_list();
     }
-
     // -------------------------------------------------------------------------
     // HUB ONLINE DISCOVERY COMMANDS
     // -------------------------------------------------------------------------
