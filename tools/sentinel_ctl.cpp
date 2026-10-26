@@ -3124,6 +3124,40 @@ if (cmd == "scenario" && argc >= 3)
         }
         return cmd_cache_search(q, t);
     }
+    if (cmd == "blueprint" && argc >= 3)
+    {
+        std::string sub = argv[2];
+        if (sub == "new")
+        {
+            std::string name = (argc >= 4) ? argv[3] : "site_blueprint";
+            std::string site = (argc >= 6 && std::string(argv[4]) == "--site") ? argv[5] : "";
+            return cmd_blueprint_new(name, site);
+        }
+        if (sub == "add" && argc >= 5)
+        {
+            bool embed = (argc >= 6 && std::string(argv[5]) == "--embed");
+            return cmd_blueprint_add(argv[3], argv[4], embed);
+        }
+        if (sub == "pack" && argc >= 4)
+        {
+            bool embed = false;
+            std::string out_tar = "";
+            for (int i = 4; i < argc; ++i)
+            {
+                if (std::string(argv[i]) == "--embed") embed = true;
+                else if (argv[i][0] != '-') out_tar = argv[i];
+            }
+            return cmd_blueprint_pack(argv[3], out_tar, embed);
+        }
+        if (sub == "inspect" && argc >= 4)
+            return cmd_blueprint_inspect(argv[3]);
+        if (sub == "deploy" && argc >= 4)
+            return cmd_blueprint_deploy(argv[3]);
+        if (sub == "rollback")
+            return cmd_blueprint_rollback();
+        if (sub == "list")
+            return cmd_blueprint_list();
+    }
 
     print_help();
     return 0;
