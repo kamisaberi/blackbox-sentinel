@@ -988,7 +988,7 @@ Appliance & Security Engines:
   sbom generate|enforce|status     Live-SBOM in-kernel W^X memory drift defense
   trism status|inspect|policy      AI TRiSM prompt injection firewall & tool governor
 
-  Scenario & Digital Twin Management:
+Scenario & Digital Twin Management:
   scenario new <name> [--sector <s>] Scaffolds complete turnkey scenario project
   scenario add <dir> <asset> [--embed] Add package/model/pcap by name without paths
   scenario pack <dir> [--embed]      Pack scenario (default: referenced ~15KB, --embed: standalone)
