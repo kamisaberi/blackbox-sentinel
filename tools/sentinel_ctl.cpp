@@ -994,6 +994,15 @@ Scenario & Digital Twin Management:
   scenario pack <dir> [--embed]      Pack scenario (default: referenced ~15KB, --embed: standalone)
   scenario pull <slug>               Pull verified scenario from Hub & stage to sentinel-matrix
   scenario list                      List all locally cached and staged digital twin scenarios
+
+Production Site Blueprints & Hardware Provisioning:
+  blueprint new <name> [--site <s>] Scaffold physical production blueprint
+  blueprint add <dir> <asset>       Add package/model dependency by name or path
+  blueprint pack <dir> [--embed]    Pack blueprint into .blueprint bundle
+  blueprint inspect <file|dir>      Inspect hardware NIC bindings, DAG & SLA
+  blueprint deploy <file|dir>       Atomically deploy to /etc/sentinel/ (with auto-backup)
+  blueprint rollback                Instantly restore previous configuration from backup
+  blueprint list                    List active and cached production blueprints
 )" << std::endl;
 }
 // -----------------------------------------------------------------------------
