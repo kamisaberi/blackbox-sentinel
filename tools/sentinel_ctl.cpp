@@ -987,6 +987,13 @@ Appliance & Security Engines:
   5g enable|status                 3GPP 5G/6G N3 GTP-U wireless network slicing guard
   sbom generate|enforce|status     Live-SBOM in-kernel W^X memory drift defense
   trism status|inspect|policy      AI TRiSM prompt injection firewall & tool governor
+
+  Scenario & Digital Twin Management:
+  scenario new <name> [--sector <s>] Scaffolds complete turnkey scenario project
+  scenario add <dir> <asset> [--embed] Add package/model/pcap by name without paths
+  scenario pack <dir> [--embed]      Pack scenario (default: referenced ~15KB, --embed: standalone)
+  scenario pull <slug>               Pull verified scenario from Hub & stage to sentinel-matrix
+  scenario list                      List all locally cached and staged digital twin scenarios
 )" << std::endl;
 }
 // -----------------------------------------------------------------------------
