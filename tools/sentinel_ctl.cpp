@@ -249,7 +249,7 @@ bool resolve_cached_asset(const std::string &category,
         }
     }
 
-// --- REPLACE REMOTE FETCH & STUB PORTION OF resolve_cached_asset() WITH THIS BLOCK ---
+    // --- REPLACE REMOTE FETCH & STUB PORTION OF resolve_cached_asset() WITH THIS BLOCK ---
     if (!resolved)
     {
         std::string base_api = normalize_registry_url(g_hub_url);
@@ -392,14 +392,22 @@ int cmd_login(const std::string &jwt_token, const std::string &raw_hub_url)
     fs::remove(response_file);
 
     int http_code = 0;
-    try { http_code = std::stoi(last_line); } catch (...) {}
+    try
+    {
+        http_code = std::stoi(last_line);
+    }
+    catch (...)
+    {
+    }
 
     if (http_code == 200 || http_code == 201)
     {
         std::string api_key = "";
         size_t key_pos = full_body.find("\"api_key\"");
-        if (key_pos == std::string::npos) key_pos = full_body.find("\"token\"");
-        if (key_pos == std::string::npos) key_pos = full_body.find("\"key\"");
+        if (key_pos == std::string::npos)
+            key_pos = full_body.find("\"token\"");
+        if (key_pos == std::string::npos)
+            key_pos = full_body.find("\"key\"");
 
         if (key_pos != std::string::npos)
         {
@@ -412,7 +420,8 @@ int cmd_login(const std::string &jwt_token, const std::string &raw_hub_url)
             }
         }
 
-        if (api_key.empty()) api_key = jwt_token;
+        if (api_key.empty())
+            api_key = jwt_token;
 
         fs::path cred_path = get_credentials_path();
         std::ofstream cred_out(cred_path);
@@ -429,7 +438,8 @@ int cmd_login(const std::string &jwt_token, const std::string &raw_hub_url)
     }
 
     std::cerr << "\033[1;31m[-] Authentication Failed (HTTP " << http_code << ")\033[0m\n";
-    if (!full_body.empty()) std::cerr << "    Server message: " << full_body.substr(0, 200) << "\n";
+    if (!full_body.empty())
+        std::cerr << "    Server message: " << full_body.substr(0, 200) << "\n";
     return 1;
 }
 int cmd_whoami()
@@ -2010,17 +2020,21 @@ int cmd_scenario_pack(const std::string &dir_str, const std::string &out_overrid
     }
 
     std::string slug = target_dir.filename().string();
-    if (slug == "." || slug.empty()) slug = fs::current_path().filename().string();
+    if (slug == "." || slug.empty())
+        slug = fs::current_path().filename().string();
 
     fs::path cache_scen_dir = get_cache_root() / "scenarios";
     fs::create_directories(cache_scen_dir);
 
     std::string archive_name = slug;
-    if (archive_name.rfind("scenario_", 0) != 0) archive_name = "scenario_" + archive_name;
-    if (archive_name.size() < 7 || archive_name.substr(archive_name.size() - 7) != ".tar.gz") archive_name += ".tar.gz";
+    if (archive_name.rfind("scenario_", 0) != 0)
+        archive_name = "scenario_" + archive_name;
+    if (archive_name.size() < 7 || archive_name.substr(archive_name.size() - 7) != ".tar.gz")
+        archive_name += ".tar.gz";
 
     fs::path out_tar = out_override.empty() ? (cache_scen_dir / archive_name) : fs::path(out_override);
-    if (out_tar.parent_path().empty()) out_tar = cache_scen_dir / out_tar;
+    if (out_tar.parent_path().empty())
+        out_tar = cache_scen_dir / out_tar;
     fs::create_directories(out_tar.parent_path());
 
     std::cout << "\033[1;36m================================================================================\033[0m\n";
@@ -2447,26 +2461,38 @@ int cmd_blueprint_add(const std::string &bp_dir_str, const std::string &asset_id
         resolved_source = fs::path(asset_id);
         std::string ext = resolved_source.extension().string();
         clean_slug = resolved_source.stem().string();
-        if (ext == ".spkg" || ext == ".lua" || ext == ".so") detected_type = "package";
-        else if (ext == ".onnx") detected_type = "model";
+        if (ext == ".spkg" || ext == ".lua" || ext == ".so")
+            detected_type = "package";
+        else if (ext == ".onnx")
+            detected_type = "model";
     }
     else
     {
-        if (fs::exists("/etc/sentinel/rules.d/" + asset_id + ".lua")) {
+        if (fs::exists("/etc/sentinel/rules.d/" + asset_id + ".lua"))
+        {
             resolved_source = "/etc/sentinel/rules.d/" + asset_id + ".lua";
             detected_type = "package";
-        } else if (fs::exists("/etc/sentinel/models/" + asset_id + ".onnx") || fs::exists("models/" + asset_id + ".onnx")) {
+        }
+        else if (fs::exists("/etc/sentinel/models/" + asset_id + ".onnx") || fs::exists("models/" + asset_id + ".onnx"))
+        {
             resolved_source = fs::exists("models/" + asset_id + ".onnx") ? fs::path("models/" + asset_id + ".onnx") : fs::path("/etc/sentinel/models/" + asset_id + ".onnx");
             detected_type = "model";
-        } else {
+        }
+        else
+        {
             fs::path c_root = get_cache_root();
-            if (fs::exists(c_root / "packages" / (asset_id + ".spkg"))) {
+            if (fs::exists(c_root / "packages" / (asset_id + ".spkg")))
+            {
                 resolved_source = c_root / "packages" / (asset_id + ".spkg");
                 detected_type = "package";
-            } else if (fs::exists(c_root / "models" / (asset_id + ".onnx"))) {
+            }
+            else if (fs::exists(c_root / "models" / (asset_id + ".onnx")))
+            {
                 resolved_source = c_root / "models" / (asset_id + ".onnx");
                 detected_type = "model";
-            } else {
+            }
+            else
+            {
                 std::cout << "[*] Treating '" << asset_id << "' as external dependency reference.\n";
                 detected_type = "package";
             }
@@ -2517,11 +2543,14 @@ int cmd_blueprint_pack(const std::string &dir_str, const std::string &out_overri
     fs::create_directories(cache_dir);
 
     std::string archive_name = slug;
-    if (archive_name.rfind("blueprint_", 0) != 0) archive_name = "blueprint_" + archive_name;
-    if (archive_name.size() < 10 || archive_name.substr(archive_name.size() - 10) != ".blueprint") archive_name += ".blueprint";
+    if (archive_name.rfind("blueprint_", 0) != 0)
+        archive_name = "blueprint_" + archive_name;
+    if (archive_name.size() < 10 || archive_name.substr(archive_name.size() - 10) != ".blueprint")
+        archive_name += ".blueprint";
 
     fs::path out_file = out_override.empty() ? (cache_dir / archive_name) : fs::path(out_override);
-    if (out_file.parent_path().empty()) out_file = cache_dir / out_file;
+    if (out_file.parent_path().empty())
+        out_file = cache_dir / out_file;
     fs::create_directories(out_file.parent_path());
 
     std::cout << "\033[1;36m================================================================================\033[0m\n";
@@ -2530,16 +2559,15 @@ int cmd_blueprint_pack(const std::string &dir_str, const std::string &out_overri
     std::cout << "Source Directory : " << target_dir.string() << "\n"
               << "Output Archive   : " << out_file.string() << "\n";
 
-    std::string tar_cmd = embed ?
-        ("tar -czf \"" + out_file.string() + "\" -C \"" + target_dir.string() + "\" .") :
-        ("tar --exclude='packages/*.spkg' --exclude='models/*.onnx' -czf \"" + out_file.string() + "\" -C \"" + target_dir.string() + "\" .");
+    std::string tar_cmd = embed ? ("tar -czf \"" + out_file.string() + "\" -C \"" + target_dir.string() + "\" .") : ("tar --exclude='packages/*.spkg' --exclude='models/*.onnx' -czf \"" + out_file.string() + "\" -C \"" + target_dir.string() + "\" .");
 
     int ret = std::system(tar_cmd.c_str());
     if (ret == 0 && fs::exists(out_file))
     {
         fs::path companion_mf = fs::path(out_file.string() + ".manifest.json");
         fs::path src_mf = target_dir / "manifest.json";
-        if (fs::exists(src_mf)) fs::copy_file(src_mf, companion_mf, fs::copy_options::overwrite_existing);
+        if (fs::exists(src_mf))
+            fs::copy_file(src_mf, companion_mf, fs::copy_options::overwrite_existing);
 
         std::cout << "\033[1;32m[+] Successfully packed blueprint!\033[0m\n"
                   << "    ├── Archive File : " << out_file.string() << " (" << fs::file_size(out_file) << " bytes)\n"
@@ -2725,7 +2753,8 @@ int cmd_blueprint_list()
                 cnt++;
             }
         }
-        if (cnt == 0) std::cout << "  (No cached .blueprint archives)\n";
+        if (cnt == 0)
+            std::cout << "  (No cached .blueprint archives)\n";
     }
 
     std::cout << "\nActive Hardware Profile:\n";
@@ -2737,6 +2766,103 @@ int cmd_blueprint_list()
     return 0;
 }
 
+// --- INSERT NEW FUNCTIONS ---
+int cmd_blueprint_pull(const std::string &slug)
+{
+    std::string filename = slug;
+    if (filename.size() < 10 || filename.substr(filename.size() - 10) != ".blueprint")
+        filename += ".blueprint";
+
+    std::string base_api = normalize_registry_url(g_hub_url);
+    SavedCredentials creds = load_saved_credentials();
+    std::string auth_hdr = !creds.api_key.empty() ? ("-H \"Authorization: Bearer " + creds.api_key + "\" ") : "";
+
+    fs::path cache_dir = get_cache_root() / "blueprints";
+    fs::create_directories(cache_dir);
+    fs::path cached_file = cache_dir / filename;
+
+    std::string pure_slug = fs::path(filename).stem().string();
+    if (pure_slug.rfind("blueprint_", 0) == 0)
+        pure_slug = pure_slug.substr(10);
+
+    std::string dl_url = base_api + "/hub/blueprints/" + pure_slug + "/download";
+    std::cout << "[*] Pulling blueprint from: " << dl_url << "\n";
+
+    std::string curl_cmd = "curl -sSL -f " + auth_hdr + "-o \"" + cached_file.string() + "\" \"" + dl_url + "\" 2>/dev/null";
+    int ret = std::system(curl_cmd.c_str());
+
+    if (ret != 0 || !fs::exists(cached_file) || fs::file_size(cached_file) == 0)
+    {
+        std::cerr << "[-] Error: Failed to download blueprint '" << slug << "' from Hub.\n";
+        return 1;
+    }
+
+    std::cout << "\033[1;32m[+] Staged blueprint to cache: " << cached_file.string() << " (" << fs::file_size(cached_file) << " bytes)\033[0m\n"
+              << "    Inspect with : aryo blueprint inspect " << cached_file.string() << "\n"
+              << "    Deploy with  : sudo aryo blueprint deploy " << cached_file.string() << "\n";
+    return 0;
+}
+
+int cmd_sbom_attest()
+{
+    fs::path mf = "/etc/sentinel/live_sbom.json";
+    if (!fs::exists(mf))
+    {
+        std::cerr << "[-] Error: " << mf.string() << " not found. Run 'aryo sbom generate' first.\n";
+        return 1;
+    }
+
+    SavedCredentials creds = load_saved_credentials();
+    if (creds.api_key.empty())
+    {
+        std::cerr << "[-] Error: Authentication required. Run 'aryo login' first.\n";
+        return 1;
+    }
+
+    std::string base_api = normalize_registry_url(g_hub_url);
+    std::string endpoint = base_api + "/compliance/sbom/attest";
+    std::cout << "[*] Attesting Live-SBOM to compliance dashboard at " << endpoint << "...\n";
+
+    std::string resp_file = "/tmp/sentinel_sbom_attest_resp.json";
+    std::string curl_cmd = "curl -sSL -w \"\\n%{http_code}\" -X POST \"" + endpoint + "\" " +
+                           "-H \"Authorization: Bearer " + creds.api_key + "\" " +
+                           "-F \"file=@" + mf.string() + "\" > " + resp_file + " 2>&1";
+
+    int ret = std::system(curl_cmd.c_str());
+    (void)ret;
+
+    std::ifstream in(resp_file);
+    std::string line, last_line, body;
+    while (std::getline(in, line))
+    {
+        if (!line.empty())
+        {
+            last_line = line;
+            body += line + "\n";
+        }
+    }
+    in.close();
+    fs::remove(resp_file);
+
+    int http_code = 0;
+    try
+    {
+        http_code = std::stoi(last_line);
+    }
+    catch (...)
+    {
+    }
+
+    if (http_code == 200 || http_code == 201)
+    {
+        std::cout << "\033[1;32m[+] Live-SBOM Attestation Accepted by Cloud Compliance Engine!\033[0m\n"
+                  << "    Audit status recorded for NIS2 / IEC 62443 verification.\n";
+        return 0;
+    }
+    std::cerr << "[-] Attestation failed (HTTP " << http_code << ")\n"
+              << body << "\n";
+    return 1;
+}
 
 int main(int argc, char *argv[])
 {
@@ -2987,7 +3113,7 @@ int main(int argc, char *argv[])
             return cmd_trism_inspect(prompt);
         }
     }
-if (cmd == "scenario" && argc >= 3)
+    if (cmd == "scenario" && argc >= 3)
     {
         std::string sub = argv[2];
         if (sub == "new" || sub == "create")
@@ -2995,14 +3121,16 @@ if (cmd == "scenario" && argc >= 3)
             std::string name = (argc >= 4) ? argv[3] : "custom_scenario";
             std::string sector = "";
             for (int i = 4; i < argc; ++i)
-                if (std::string(argv[i]) == "--sector" && i + 1 < argc) sector = argv[++i];
+                if (std::string(argv[i]) == "--sector" && i + 1 < argc)
+                    sector = argv[++i];
             return cmd_scenario_new(name, sector);
         }
         if (sub == "add" && argc >= 5)
         {
             bool embed = false;
             for (int i = 5; i < argc; ++i)
-                if (std::string(argv[i]) == "--embed") embed = true;
+                if (std::string(argv[i]) == "--embed")
+                    embed = true;
             return cmd_scenario_add(argv[3], argv[4], embed);
         }
         if (sub == "pack" && argc >= 4)
@@ -3011,8 +3139,10 @@ if (cmd == "scenario" && argc >= 3)
             std::string out_tar = "";
             for (int i = 4; i < argc; ++i)
             {
-                if (std::string(argv[i]) == "--embed" || std::string(argv[i]) == "--standalone") embed = true;
-                else if (argv[i][0] != '-') out_tar = argv[i];
+                if (std::string(argv[i]) == "--embed" || std::string(argv[i]) == "--standalone")
+                    embed = true;
+                else if (argv[i][0] != '-')
+                    out_tar = argv[i];
             }
             return cmd_scenario_pack(argv[3], out_tar, embed);
         }
@@ -3140,8 +3270,10 @@ if (cmd == "scenario" && argc >= 3)
             std::string out_tar = "";
             for (int i = 4; i < argc; ++i)
             {
-                if (std::string(argv[i]) == "--embed") embed = true;
-                else if (argv[i][0] != '-') out_tar = argv[i];
+                if (std::string(argv[i]) == "--embed")
+                    embed = true;
+                else if (argv[i][0] != '-')
+                    out_tar = argv[i];
             }
             return cmd_blueprint_pack(argv[3], out_tar, embed);
         }
