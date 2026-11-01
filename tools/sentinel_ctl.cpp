@@ -491,35 +491,6 @@ int cmd_whoami()
         return 1;
     }
 
-    std::ifstream f(cred_path);
-    std::string line, api_key = "", saved_url = "";
-    while (std::getline(f, line))
-    {
-        size_t pos_key = line.find("\"api_key\"");
-        if (pos_key != std::string::npos)
-        {
-            size_t colon = line.find(':', pos_key);
-            size_t start = line.find('"', colon + 1);
-            size_t end = line.find('"', start + 1);
-            if (start != std::string::npos && end != std::string::npos)
-            {
-                api_key = line.substr(start + 1, end - start - 1);
-            }
-        }
-        size_t pos_url = line.find("\"hub_url\"");
-        if (pos_url != std::string::npos)
-        {
-            size_t colon = line.find(':', pos_url);
-            size_t start = line.find('"', colon + 1);
-            size_t end = line.find('"', start + 1);
-            if (start != std::string::npos && end != std::string::npos)
-            {
-                saved_url = line.substr(start + 1, end - start - 1);
-            }
-        }
-    }
-
-    // --- REPLACE DISPLAY IN cmd_whoami() ---
     SavedCredentials creds = load_saved_credentials();
     std::string active_url = !creds.hub_url.empty() ? creds.hub_url : normalize_registry_url(g_hub_url);
 
@@ -527,13 +498,12 @@ int cmd_whoami()
     std::cout << "\033[1;37m                 AUTHENTICATED REGISTRY IDENTITY                                \033[0m\n";
     std::cout << "\033[1;36m================================================================================\033[0m\n"
               << "Credentials File   : " << cred_path.string() << "\n"
-              << "Active API Key     : \033[1;32m" << creds.api_key.substr(0, 16) << "...\033[0m\n"
+              << "Active API Key     : \033[1;32m" << (creds.api_key.empty() ? "None" : creds.api_key.substr(0, 16) + "...") << "\033[0m\n"
               << "Enrolled Author Key: \033[1;33m" << (creds.author_public_key.empty() ? "(Unenrolled - first publish will enroll)" : creds.author_public_key) << "\033[0m\n"
               << "Registry Hub URL   : " << active_url << "\n"
               << "\033[1;36m================================================================================\033[0m\n";
     return 0;
 }
-
 // -----------------------------------------------------------------------------
 // COMMAND: sentinel-ctl status
 // -----------------------------------------------------------------------------
