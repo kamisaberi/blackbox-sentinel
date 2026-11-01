@@ -397,43 +397,86 @@ int cmd_login(const std::string &jwt_token, const std::string &raw_hub_url)
     {
     }
 
+    // --- REPLACE SUCCESS BLOCK IN cmd_login() ---
     if (http_code == 200 || http_code == 201)
     {
         std::string api_key = "";
-        size_t key_pos = full_body.find("\"api_key\"");
-        if (key_pos == std::string::npos)
-            key_pos = full_body.find("\"token\"");
-        if (key_pos == std::string::npos)
-            key_pos = full_body.find("\"key\"");
+        std::string author_pub_key = "";
 
-        if (key_pos != std::string::npos)
+        auto extract_json = [&](const std::string &key, std::string &out)
         {
-            size_t colon = full_body.find(':', key_pos);
-            size_t start = full_body.find('"', colon + 1);
-            size_t end = full_body.find('"', start + 1);
-            if (start != std::string::npos && end != std::string::npos)
+            size_t pos = full_body.find("\"" + key + "\"");
+            if (pos != std::string::npos)
             {
-                api_key = full_body.substr(start + 1, end - start - 1);
+                size_t colon = full_body.find(':', pos);
+                size_t start = full_body.find('"', colon + 1);
+                size_t end = full_body.find('"', start + 1);
+                if (start != std::string::npos && end != std::string::npos)
+                {
+                    out = full_body.substr(start + 1, end - start - 1);
+                }
             }
-        }
+        };
 
+        extract_json("api_key", api_key);
+        if (api_key.empty())
+            extract_json("token", api_key);
         if (api_key.empty())
             api_key = jwt_token;
+
+        extract_json("author_public_key", author_pub_key);
 
         fs::path cred_path = get_credentials_path();
         std::ofstream cred_out(cred_path);
         cred_out << "{\n"
                  << "  \"api_key\": \"" << api_key << "\",\n"
-                 << "  \"hub_url\": \"" << base_api << "\"\n"
+                 << "  \"hub_url\": \"" << base_api << "\",\n"
+                 << "  \"author_public_key\": \"" << author_pub_key << "\"\n"
                  << "}\n";
         cred_out.close();
 
         std::cout << "\033[1;32m[+] Authentication Successful!\033[0m\n"
-                  << "    ├── API Token: " << api_key.substr(0, 16) << "...\n"
-                  << "    └── Saved to : " << cred_path.string() << "\n";
+                  << "    ├── API Token        : " << api_key.substr(0, 16) << "...\n"
+                  << "    ├── Hub Enrolled Key : " << (author_pub_key.empty() ? "(None enrolled yet - will pin on first publish)" : author_pub_key.substr(0, 24) + "...") << "\n"
+                  << "    └── Saved to         : " << cred_path.string() << "\n";
+
+        // Pre-validate local developer private key if enrolled key exists
+        if (!author_pub_key.empty())
+        {
+            const char *home = std::getenv("HOME");
+            fs::path dev_priv = home ? (fs::path(home) / ".sentinel" / "keys" / "developer_private.pem") : fs::path("/etc/sentinel/keys/developer_private.pem");
+            if (fs::exists(dev_priv))
+            {
+                FILE *fp = fopen(dev_priv.c_str(), "rb");
+                if (fp)
+                {
+                    EVP_PKEY *pkey = PEM_read_PrivateKey(fp, nullptr, nullptr, nullptr);
+                    fclose(fp);
+                    if (pkey)
+                    {
+                        size_t len = 32;
+                        uint8_t raw[32];
+                        if (EVP_PKEY_get_raw_public_key(pkey, raw, &len) == 1)
+                        {
+                            std::ostringstream ss;
+                            for (size_t i = 0; i < len; ++i)
+                                ss << std::hex << std::setw(2) << std::setfill('0') << static_cast<int>(raw[i]);
+                            if (ss.str() == author_pub_key)
+                            {
+                                std::cout << "    └── \033[1;32m[KEY SYNCED] Local developer_private.pem matches Hub enrolled identity!\033[0m\n";
+                            }
+                            else
+                            {
+                                std::cout << "    └── \033[1;33m[!] NOTICE: Local key (" << ss.str().substr(0, 12) << "...) differs from Hub enrolled key (" << author_pub_key.substr(0, 12) << "...)\033[0m\n";
+                            }
+                        }
+                        EVP_PKEY_free(pkey);
+                    }
+                }
+            }
+        }
         return 0;
     }
-
     std::cerr << "\033[1;31m[-] Authentication Failed (HTTP " << http_code << ")\033[0m\n";
     if (!full_body.empty())
         std::cerr << "    Server message: " << full_body.substr(0, 200) << "\n";
