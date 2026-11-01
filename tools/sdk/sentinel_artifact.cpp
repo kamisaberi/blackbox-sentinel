@@ -1205,49 +1205,36 @@ bool cmd_publish(const std::string &file_path, std::string token, std::string hu
         upload_endpoint = base_no_pub + "/blueprints/publish";
     }
 
-    // 1. Search for Signing Key (Local, Parent, and ~/.sentinel/keys/)
+    // 1. Search for Signing Key
     const char *home_env = std::getenv("HOME");
     fs::path home_path = home_env ? fs::path(home_env) : fs::path("");
 
     std::vector<fs::path> key_candidates = {
+        fs::path(file_path).parent_path() / "keys" / "developer_private.pem",
         fs::path(file_path).parent_path() / "keys" / "ed25519_private.pem",
         fs::path(file_path).parent_path() / "ed25519_private.pem",
-        fs::path(file_path).parent_path() / "keys" / "developer_private.pem",
-        fs::path(file_path).parent_path() / "developer_private.pem",
-        "keys/ed25519_private.pem",
-        "ed25519_private.pem",
-        "keys/developer_private.pem"};
+        fs::path(file_path).parent_path() / "developer_private.pem"};
 
     if (!home_path.empty())
     {
         key_candidates.push_back(home_path / ".sentinel" / "keys" / "developer_private.pem");
         key_candidates.push_back(home_path / ".sentinel" / "keys" / "ed25519_private.pem");
-        key_candidates.push_back(home_path / ".sentinel" / "developer_private.pem");
-        key_candidates.push_back(home_path / ".sentinel" / "ed25519_private.pem");
     }
 
     key_candidates.push_back("/etc/sentinel/keys/developer_private.pem");
     key_candidates.push_back("/etc/sentinel/keys/ed25519_private.pem");
-    key_candidates.push_back("/etc/sentinel/developer_private.pem");
 
     fs::path priv_key_path;
-    fs::path pub_key_path;
     for (const auto &k : key_candidates)
     {
         if (fs::exists(k) && !fs::is_directory(k))
         {
             priv_key_path = k;
-            std::string k_str = k.string();
-            size_t priv_pos = k_str.find("_private.pem");
-            if (priv_pos != std::string::npos)
-            {
-                pub_key_path = k_str.substr(0, priv_pos) + "_public.pem";
-            }
             break;
         }
     }
 
-    // Auto-generate developer keypair if none found (prevents 'unsigned' 422 rejection)
+    // Auto-generate developer keypair if none found
     if (priv_key_path.empty())
     {
         fs::path dev_dir = !home_path.empty() ? (home_path / ".sentinel" / "keys") : fs::path("/tmp/.sentinel_keys");
@@ -1256,7 +1243,6 @@ bool cmd_publish(const std::string &file_path, std::string token, std::string hu
         std::cout << "[*] No signing key found. Auto-generating developer Ed25519 keypair at " << key_prefix << "...\n";
         cmd_keygen(key_prefix);
         priv_key_path = key_prefix + "_private.pem";
-        pub_key_path = key_prefix + "_public.pem";
     }
 
     std::string sig_hex = "";
@@ -1266,10 +1252,15 @@ bool cmd_publish(const std::string &file_path, std::string token, std::string hu
         sig_hex = sign_file_bytes_hex(file_path, priv_key_path);
     }
 
+    // Direct derivation of author public key from private key
     std::string clean_author_key = "";
-    if (fs::exists(pub_key_path))
+    if (!priv_key_path.empty())
     {
-        clean_author_key = extract_pubkey_hex(pub_key_path);
+        clean_author_key = extract_pubkey_from_privkey_hex(priv_key_path);
+    }
+    if (clean_author_key.empty() && !saved_creds.author_public_key.empty())
+    {
+        clean_author_key = saved_creds.author_public_key;
     }
 
     // 2. Normalize Slug
@@ -1421,8 +1412,7 @@ bool cmd_publish(const std::string &file_path, std::string token, std::string hu
     std::string curl_cmd;
     if (asset_type == "blueprint")
     {
-        // POST /api/v1/hub/blueprints/publish expects file, manifest, signature
-        curl_cmd = "curl -sSL -w \"\\n%{http_code}\" -X POST \"" + upload_endpoint + "\" " +
+        curl_cmd = "curl -sSL --max-time 15 --connect-timeout 5 -w \"\\n%{http_code}\" -X POST \"" + upload_endpoint + "\" " +
                    "-H \"Authorization: Bearer " + token + "\" " +
                    "-F \"file=@" + file_path + "\" " +
                    "-F \"signature=" + sig_hex + "\" " +
@@ -1430,8 +1420,7 @@ bool cmd_publish(const std::string &file_path, std::string token, std::string hu
     }
     else
     {
-        // POST /api/v1/hub/publish expects asset_type, file, manifest, signature
-        curl_cmd = "curl -sSL -w \"\\n%{http_code}\" -X POST \"" + upload_endpoint + "\" " +
+        curl_cmd = "curl -sSL --max-time 15 --connect-timeout 5 -w \"\\n%{http_code}\" -X POST \"" + upload_endpoint + "\" " +
                    "-H \"Authorization: Bearer " + token + "\" " +
                    "-F \"file=@" + file_path + "\" " +
                    "-F \"asset_type=" + asset_type + "\" " +
@@ -1495,7 +1484,6 @@ bool cmd_publish(const std::string &file_path, std::string token, std::string hu
         return false;
     }
 }
-
 // 10. IDEA D: AUTONOMOUS VACCINE SYNTHESIZER (sentinel-artifact synthesize-vaccine)
 // -----------------------------------------------------------------------------
 static std::vector<uint8_t> hex_to_bytes(const std::string &hex)
