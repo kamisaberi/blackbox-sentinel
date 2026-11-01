@@ -53,6 +53,7 @@ struct SavedCredentials
 {
     std::string api_key;
     std::string hub_url;
+    std::string author_public_key;
 };
 
 fs::path get_credentials_path()
