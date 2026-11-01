@@ -485,19 +485,31 @@ bool cmd_pack_dir(const std::string &dir_str, const std::string &key_override = 
         return false;
     }
 
-    // 1. Locate Signing Key (Auto-generate if missing)
+    // --- REPLACE KEY CANDIDATES SEARCH IN cmd_pack_dir() ---
+    // 1. Locate Signing Key (Prioritize persistent developer identity in ~/.sentinel/keys/)
     fs::path key_path = key_override;
     fs::path pub_key_path;
     if (key_path.empty())
     {
-        std::vector<fs::path> key_candidates = {
-            target_dir / "keys" / "ed25519_private.pem",
-            target_dir / "ed25519_private.pem",
-            "keys/ed25519_private.pem",
-            "ed25519_private.pem"};
+        const char *home = std::getenv("HOME");
+        std::vector<fs::path> key_candidates;
+
+        // Check project-specific override first
+        key_candidates.push_back(target_dir / "keys" / "ed25519_private.pem");
+        key_candidates.push_back(target_dir / "keys" / "developer_private.pem");
+
+        // Check global author identity key in ~/.sentinel/keys/
+        if (home)
+        {
+            key_candidates.push_back(fs::path(home) / ".sentinel" / "keys" / "developer_private.pem");
+            key_candidates.push_back(fs::path(home) / ".sentinel" / "keys" / "ed25519_private.pem");
+        }
+        key_candidates.push_back("/etc/sentinel/keys/developer_private.pem");
+        key_candidates.push_back("/etc/sentinel/keys/ed25519_private.pem");
+
         for (const auto &k : key_candidates)
         {
-            if (fs::exists(k))
+            if (fs::exists(k) && !fs::is_directory(k))
             {
                 key_path = k;
                 break;
@@ -507,10 +519,13 @@ bool cmd_pack_dir(const std::string &dir_str, const std::string &key_override = 
 
     if (key_path.empty() || !fs::exists(key_path))
     {
-        std::cout << "[*] No private key found. Auto-generating Ed25519 keypair in " << (target_dir / "keys").string() << "...\n";
-        fs::create_directories(target_dir / "keys");
-        cmd_keygen((target_dir / "keys" / "ed25519").string());
-        key_path = target_dir / "keys" / "ed25519_private.pem";
+        const char *home = std::getenv("HOME");
+        fs::path persistent_dir = home ? (fs::path(home) / ".sentinel" / "keys") : (target_dir / "keys");
+        fs::create_directories(persistent_dir);
+        std::string prefix = (persistent_dir / "developer").string();
+        std::cout << "[*] No author key found. Enrolling persistent Ed25519 keypair in " << persistent_dir.string() << "...\n";
+        cmd_keygen(prefix);
+        key_path = prefix + "_private.pem";
     }
 
     std::string key_str = key_path.string();
