@@ -913,7 +913,7 @@ int cmd_5g_enable(const std::string &iface, const fs::path &cfg_path)
                           "import sys, yaml, os\n"
                           "print(\"[+] Enrolling 5G Slices: URLLC (SST 2) & eMBB (SST 1)...\")\n"
                           "' 2>/dev/null || true";
-    auto result =std::system(sys_cmd.c_str());
+    std::system(sys_cmd.c_str());
 
     std::cout << "  \033[1;32m[PASS]\033[0m Slice 1: URLLC (TEID: 0x00000100) -> Allowed Ports: [502, 102, 2404]\n";
     std::cout << "  \033[1;32m[PASS]\033[0m Slice 2: eMBB  (TEID: 0x00000200) -> Allowed Ports: [80, 443, 8554]\n";
