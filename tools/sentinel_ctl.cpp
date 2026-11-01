@@ -3279,6 +3279,20 @@ int main(int argc, char *argv[])
             std::string site = (argc >= 6 && std::string(argv[4]) == "--site") ? argv[5] : "";
             return cmd_blueprint_new(name, site);
         }
+        // Add inside main() under 'if (cmd == "blueprint")':
+        if (sub == "pull" && argc >= 4)
+            return cmd_blueprint_pull(argv[3]);
+
+        // Add inside main() under 'if (cmd == "sbom")':
+        if (sub == "attest")
+            return cmd_sbom_attest();
+
+        // Update inside main() under 'if (cmd == "trism")':
+        if (sub == "policy")
+        {
+            std::string act = (argc >= 4) ? argv[3] : "show";
+            return cmd_trism_policy(act);
+        }
         if (sub == "add" && argc >= 5)
         {
             bool embed = (argc >= 6 && std::string(argv[5]) == "--embed");
