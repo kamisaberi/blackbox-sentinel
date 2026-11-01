@@ -1115,9 +1115,7 @@ bool cmd_test_preflight(const std::string &spkg_path)
         return false;
     }
 }
-// -----------------------------------------------------------------------------
-// 9. UNIVERSAL PUBLISHER (sentinel-artifact publish) - REFINED
-// -----------------------------------------------------------------------------
+
 // -----------------------------------------------------------------------------
 // 9. UNIVERSAL PUBLISHER (sentinel-artifact publish)
 // -----------------------------------------------------------------------------
@@ -1148,7 +1146,7 @@ bool cmd_publish(const std::string &file_path, std::string token, std::string hu
         hub_url = !saved_creds.hub_url.empty() ? saved_creds.hub_url : "https://backend.aryorithm.com";
     }
 
-    std::string upload_endpoint = normalize_publish_endpoint(hub_url);
+    std::string base_endpoint = normalize_publish_endpoint(hub_url);
     std::string ext = fs::path(file_path).extension().string();
 
     std::string asset_type = "package";
@@ -1167,6 +1165,23 @@ bool cmd_publish(const std::string &file_path, std::string token, std::string hu
     else if (ext == ".gz" || ext == ".tgz" || ext == ".tar")
     {
         asset_type = "scenario";
+    }
+    else if (ext == ".blueprint")
+    {
+        asset_type = "blueprint";
+    }
+
+    // Direct blueprints to dedicated /api/v1/hub/blueprints/publish
+    std::string upload_endpoint = base_endpoint;
+    if (asset_type == "blueprint")
+    {
+        std::string base_no_pub = base_endpoint;
+        size_t pos_pub = base_no_pub.rfind("/publish");
+        if (pos_pub != std::string::npos)
+        {
+            base_no_pub = base_no_pub.substr(0, pos_pub);
+        }
+        upload_endpoint = base_no_pub + "/blueprints/publish";
     }
 
     // 1. Search for Signing Key (Local, Parent, and ~/.sentinel/keys/)
@@ -1211,15 +1226,23 @@ bool cmd_publish(const std::string &file_path, std::string token, std::string hu
         }
     }
 
+    // Auto-generate developer keypair if none found (prevents 'unsigned' 422 rejection)
+    if (priv_key_path.empty())
+    {
+        fs::path dev_dir = !home_path.empty() ? (home_path / ".sentinel" / "keys") : fs::path("/tmp/.sentinel_keys");
+        fs::create_directories(dev_dir);
+        std::string key_prefix = (dev_dir / "developer").string();
+        std::cout << "[*] No signing key found. Auto-generating developer Ed25519 keypair at " << key_prefix << "...\n";
+        cmd_keygen(key_prefix);
+        priv_key_path = key_prefix + "_private.pem";
+        pub_key_path = key_prefix + "_public.pem";
+    }
+
     std::string sig_hex = "";
     if (!priv_key_path.empty())
     {
         std::cout << "[+] Signing artifact bytes with key: " << priv_key_path.string() << "\n";
         sig_hex = sign_file_bytes_hex(file_path, priv_key_path);
-    }
-    else
-    {
-        std::cout << "[!] Notice: No local private key found. Checking container header for signature...\n";
     }
 
     std::string clean_author_key = "";
@@ -1237,6 +1260,10 @@ bool cmd_publish(const std::string &file_path, std::string token, std::string hu
     if (slug_val.rfind("scenario_", 0) == 0)
     {
         slug_val = slug_val.substr(9);
+    }
+    if (slug_val.rfind("blueprint_", 0) == 0)
+    {
+        slug_val = slug_val.substr(10);
     }
 
     // 3. Assemble Manifest (Companion on disk wins, else synthesizes schema-aware defaults)
@@ -1264,6 +1291,7 @@ bool cmd_publish(const std::string &file_path, std::string token, std::string hu
            << "  \"name\": \"" << slug_val << "\",\n"
            << "  \"slug\": \"" << slug_val << "\",\n"
            << "  \"title\": \"" << slug_val << "\",\n"
+           << "  \"version\": \"1.0.0\",\n"
            << "  \"asset_type\": \"" << asset_type << "\",\n";
 
         if (asset_type == "dataset")
@@ -1294,6 +1322,12 @@ bool cmd_publish(const std::string &file_path, std::string token, std::string hu
                << "  \"complexity\": \"INTERMEDIATE\",\n"
                << "  \"category\": \"SCADA_ICS\",\n";
         }
+        else if (asset_type == "blueprint")
+        {
+            ss << "  \"target_site\": \"Site-" << slug_val << "\",\n"
+               << "  \"target_arch\": \"x86_64\",\n"
+               << "  \"industry\": \"POWER_GRID\",\n";
+        }
 
         if (!clean_author_key.empty())
         {
@@ -1304,7 +1338,7 @@ bool cmd_publish(const std::string &file_path, std::string token, std::string hu
         manifest_json = ss.str();
     }
 
-    // For .spkg containers, inherit internal manifest if available
+    // For .spkg containers, inherit internal manifest and signature if available
     auto container = read_binary_file(file_path);
     if (ext == ".spkg" && container.size() >= sizeof(SpkgHeader))
     {
@@ -1350,11 +1384,6 @@ bool cmd_publish(const std::string &file_path, std::string token, std::string hu
         }
     }
 
-    if (sig_hex.empty())
-    {
-        sig_hex = "unsigned";
-    }
-
     std::string manifest_tmp = "/tmp/sentinel_manifest_temp.json";
     std::ofstream mf_out(manifest_tmp);
     mf_out << manifest_json;
@@ -1367,12 +1396,27 @@ bool cmd_publish(const std::string &file_path, std::string token, std::string hu
 
     std::string response_file = "/tmp/sentinel_pub_resp.txt";
 
-    std::string curl_cmd = "curl -sSL -w \"\\n%{http_code}\" -X POST \"" + upload_endpoint + "\" " +
-                           "-H \"Authorization: Bearer " + token + "\" " +
-                           "-F \"file=@" + file_path + "\" " +
-                           "-F \"asset_type=" + asset_type + "\" " +
-                           "-F \"signature=" + sig_hex + "\" " +
-                           "-F \"manifest=<" + manifest_tmp + "\" > " + response_file + " 2>&1";
+    // Format curl multipart request based on endpoint
+    std::string curl_cmd;
+    if (asset_type == "blueprint")
+    {
+        // POST /api/v1/hub/blueprints/publish expects file, manifest, signature
+        curl_cmd = "curl -sSL -w \"\\n%{http_code}\" -X POST \"" + upload_endpoint + "\" " +
+                   "-H \"Authorization: Bearer " + token + "\" " +
+                   "-F \"file=@" + file_path + "\" " +
+                   "-F \"signature=" + sig_hex + "\" " +
+                   "-F \"manifest=<" + manifest_tmp + "\" > " + response_file + " 2>&1";
+    }
+    else
+    {
+        // POST /api/v1/hub/publish expects asset_type, file, manifest, signature
+        curl_cmd = "curl -sSL -w \"\\n%{http_code}\" -X POST \"" + upload_endpoint + "\" " +
+                   "-H \"Authorization: Bearer " + token + "\" " +
+                   "-F \"file=@" + file_path + "\" " +
+                   "-F \"asset_type=" + asset_type + "\" " +
+                   "-F \"signature=" + sig_hex + "\" " +
+                   "-F \"manifest=<" + manifest_tmp + "\" > " + response_file + " 2>&1";
+    }
 
     std::cout << "    --> Executing upload stream to Hub Intake API...\n";
     int ret = std::system(curl_cmd.c_str());
@@ -1416,7 +1460,7 @@ bool cmd_publish(const std::string &file_path, std::string token, std::string hu
     }
     else if (http_code == 422)
     {
-        std::cerr << "\033[1;31m[-] Error 422 Unprocessable Entity: Server rejected form schema.\033[0m\n"
+        std::cerr << "\033[1;31m[-] Error 422 Unprocessable Entity: Server rejected schema.\033[0m\n"
                   << "    Server response: " << full_body.substr(0, 300) << "\n";
         return false;
     }
@@ -1429,7 +1473,8 @@ bool cmd_publish(const std::string &file_path, std::string token, std::string hu
         }
         return false;
     }
-} // -----------------------------------------------------------------------------
+}
+
 // 10. IDEA D: AUTONOMOUS VACCINE SYNTHESIZER (sentinel-artifact synthesize-vaccine)
 // -----------------------------------------------------------------------------
 static std::vector<uint8_t> hex_to_bytes(const std::string &hex)
