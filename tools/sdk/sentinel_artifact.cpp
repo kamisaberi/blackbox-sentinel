@@ -466,10 +466,35 @@ bool cmd_pack_raw(const std::string &priv_key_path,
     return true;
 }
 
+// Direct Ed25519 Public Key Derivation from Private Key (Phase 1, Step 2)
+static std::string extract_pubkey_from_privkey_hex(const fs::path &priv_key_path)
+{
+    FILE *fp = fopen(priv_key_path.c_str(), "rb");
+    if (!fp) return "";
+    EVP_PKEY *pkey = PEM_read_PrivateKey(fp, nullptr, nullptr, nullptr);
+    fclose(fp);
+    if (!pkey) return "";
+
+    size_t len = 32;
+    uint8_t raw_key[32];
+    std::string hex_str = "";
+    if (EVP_PKEY_get_raw_public_key(pkey, raw_key, &len) == 1)
+    {
+        std::ostringstream ss;
+        for (size_t i = 0; i < len; ++i)
+        {
+            ss << std::hex << std::setw(2) << std::setfill('0') << static_cast<int>(raw_key[i]);
+        }
+        hex_str = ss.str();
+    }
+    EVP_PKEY_free(pkey);
+    return hex_str;
+}
+
 // -----------------------------------------------------------------------------
-// 4. SMART DIRECTORY AUTO-PACKER (sentinel-artifact pack [dir])
+// 4. SMART DIRECTORY AUTO-PACKER (sentinel-artifact pack [dir] [key])
 // -----------------------------------------------------------------------------
-bool cmd_pack_dir(const std::string &dir_str, const std::string &key_override = "")
+bool cmd_pack_dir(const std::string &dir_str, const std::string &key_override)
 {
     fs::path target_dir = dir_str.empty() ? "." : dir_str;
     if (!fs::is_directory(target_dir))
@@ -485,29 +510,25 @@ bool cmd_pack_dir(const std::string &dir_str, const std::string &key_override = 
         return false;
     }
 
-    // --- REPLACE KEY CANDIDATES SEARCH IN cmd_pack_dir() ---
-    // 1. Locate Signing Key (Prioritize persistent developer identity in ~/.sentinel/keys/)
+    // 1. Locate Signing Key (Prioritize explicit override, then project, then global ~/.sentinel/keys/)
     fs::path key_path = key_override;
-    fs::path pub_key_path;
     if (key_path.empty())
     {
         const char *home = std::getenv("HOME");
-        std::vector<fs::path> key_candidates;
+        std::vector<fs::path> candidates;
+        candidates.push_back(target_dir / "keys" / "developer_private.pem");
+        candidates.push_back(target_dir / "keys" / "ed25519_private.pem");
+        candidates.push_back(target_dir / "ed25519_private.pem");
 
-        // Check project-specific override first
-        key_candidates.push_back(target_dir / "keys" / "ed25519_private.pem");
-        key_candidates.push_back(target_dir / "keys" / "developer_private.pem");
-
-        // Check global author identity key in ~/.sentinel/keys/
         if (home)
         {
-            key_candidates.push_back(fs::path(home) / ".sentinel" / "keys" / "developer_private.pem");
-            key_candidates.push_back(fs::path(home) / ".sentinel" / "keys" / "ed25519_private.pem");
+            candidates.push_back(fs::path(home) / ".sentinel" / "keys" / "developer_private.pem");
+            candidates.push_back(fs::path(home) / ".sentinel" / "keys" / "ed25519_private.pem");
         }
-        key_candidates.push_back("/etc/sentinel/keys/developer_private.pem");
-        key_candidates.push_back("/etc/sentinel/keys/ed25519_private.pem");
+        candidates.push_back("/etc/sentinel/keys/developer_private.pem");
+        candidates.push_back("/etc/sentinel/keys/ed25519_private.pem");
 
-        for (const auto &k : key_candidates)
+        for (const auto &k : candidates)
         {
             if (fs::exists(k) && !fs::is_directory(k))
             {
@@ -520,19 +541,22 @@ bool cmd_pack_dir(const std::string &dir_str, const std::string &key_override = 
     if (key_path.empty() || !fs::exists(key_path))
     {
         const char *home = std::getenv("HOME");
-        fs::path persistent_dir = home ? (fs::path(home) / ".sentinel" / "keys") : (target_dir / "keys");
-        fs::create_directories(persistent_dir);
-        std::string prefix = (persistent_dir / "developer").string();
-        std::cout << "[*] No author key found. Enrolling persistent Ed25519 keypair in " << persistent_dir.string() << "...\n";
+        fs::path p_dir = home ? (fs::path(home) / ".sentinel" / "keys") : (target_dir / "keys");
+        fs::create_directories(p_dir);
+        std::string prefix = (p_dir / "developer").string();
+        std::cout << "[*] No author key found. Enrolling persistent Ed25519 keypair in " << p_dir.string() << "...\n";
         cmd_keygen(prefix);
         key_path = prefix + "_private.pem";
     }
 
-    std::string key_str = key_path.string();
-    size_t priv_pos = key_str.find("_private.pem");
-    if (priv_pos != std::string::npos)
+    // Direct derivation of 64-char hex public key from private key
+    std::string clean_hex_key = extract_pubkey_from_privkey_hex(key_path);
+
+    // If ~/.sentinel/credentials.json has an enrolled key, prioritize it for the manifest
+    SavedCredentials saved = load_saved_credentials();
+    if (!saved.author_public_key.empty())
     {
-        pub_key_path = key_str.substr(0, priv_pos) + "_public.pem";
+        clean_hex_key = saved.author_public_key;
     }
 
     // 2. Read and auto-inject 64-char Hex author_public_key and slug into manifest if missing
@@ -540,7 +564,6 @@ bool cmd_pack_dir(const std::string &dir_str, const std::string &key_override = 
     std::string manifest_str(reinterpret_cast<const char *>(mf_bytes.data()), mf_bytes.size());
     bool manifest_updated = false;
 
-    std::string clean_hex_key = extract_pubkey_hex(pub_key_path);
     if (!clean_hex_key.empty() && manifest_str.find("author_public_key") == std::string::npos)
     {
         size_t last_brace = manifest_str.rfind('}');
@@ -597,21 +620,13 @@ bool cmd_pack_dir(const std::string &dir_str, const std::string &key_override = 
             target_dir / "plugin.wasm"};
         for (const auto &p : candidates)
         {
-            if (fs::exists(p))
-            {
-                payload_path = p;
-                break;
-            }
+            if (fs::exists(p)) { payload_path = p; break; }
         }
         if (payload_path.empty())
         {
             for (const auto &entry : fs::recursive_directory_iterator(target_dir))
             {
-                if (entry.path().extension() == ".wasm")
-                {
-                    payload_path = entry.path();
-                    break;
-                }
+                if (entry.path().extension() == ".wasm") { payload_path = entry.path(); break; }
             }
         }
     }
@@ -623,11 +638,7 @@ bool cmd_pack_dir(const std::string &dir_str, const std::string &key_override = 
             target_dir / "plugin.so"};
         for (const auto &p : candidates)
         {
-            if (fs::exists(p))
-            {
-                payload_path = p;
-                break;
-            }
+            if (fs::exists(p)) { payload_path = p; break; }
         }
     }
     else if (tier == SPKG_TIER_LUA)
@@ -638,11 +649,7 @@ bool cmd_pack_dir(const std::string &dir_str, const std::string &key_override = 
             target_dir / "plugin.lua"};
         for (const auto &p : candidates)
         {
-            if (fs::exists(p))
-            {
-                payload_path = p;
-                break;
-            }
+            if (fs::exists(p)) { payload_path = p; break; }
         }
     }
 
@@ -683,7 +690,6 @@ bool cmd_pack_dir(const std::string &dir_str, const std::string &key_override = 
     return cmd_pack_raw(key_path.string(), tier, manifest_path.string(), payload_path.string(),
                         source_path.string(), test_pkt_path.string(), out_spkg_path.string());
 }
-
 // -----------------------------------------------------------------------------
 // 5. INSPECT & VERIFY COMMANDS
 // -----------------------------------------------------------------------------
