@@ -249,23 +249,34 @@ bool resolve_cached_asset(const std::string &category,
         }
     }
 
+// --- REPLACE REMOTE FETCH & STUB PORTION OF resolve_cached_asset() WITH THIS BLOCK ---
     if (!resolved)
     {
         std::string base_api = normalize_registry_url(g_hub_url);
+        SavedCredentials creds = load_saved_credentials();
+        std::string auth_hdr = !creds.api_key.empty() ? ("-H \"Authorization: Bearer " + creds.api_key + "\" ") : "";
 
-        // Map category to backend canonical route: /api/v1/hub/assets/{type}/{slug}/download
         std::string asset_type = (category.back() == 's') ? category.substr(0, category.size() - 1) : category;
         std::string pure_slug = fs::path(filename).stem().string();
         if (pure_slug.size() > 4 && pure_slug.rfind(".tar") == pure_slug.size() - 4)
             pure_slug = pure_slug.substr(0, pure_slug.size() - 4);
 
+        // Stage 1: Try Canonical Unified Route (/hub/assets/{type}/{slug}/download)
         std::string download_url = base_api + "/hub/assets/" + asset_type + "/" + pure_slug + "/download";
+        std::cout << "      --> [Stage 1] Downloading from Canonical Route: " << download_url << "\n";
 
-        // std::string download_url = base_api + "/" + category + "/" + filename + "/download";
-        std::cout << "      --> Downloading from Registry: " << download_url << "\n";
-
-        std::string curl_cmd = "curl -sSL -f -o \"" + cached_file.string() + "\" \"" + download_url + "\" 2>/dev/null";
+        std::string curl_cmd = "curl -sSL -f " + auth_hdr + "-o \"" + cached_file.string() + "\" \"" + download_url + "\" 2>/dev/null";
         int ret = std::system(curl_cmd.c_str());
+
+        // Stage 2: Fallback to Tolerant Root Alias Route (/{category}/{filename}/download)
+        if (ret != 0 || !fs::exists(cached_file) || fs::file_size(cached_file) == 0)
+        {
+            download_url = base_api + "/" + category + "/" + filename + "/download";
+            std::cout << "      --> [Stage 2] Falling back to Root Alias: " << download_url << "\n";
+            curl_cmd = "curl -sSL -f " + auth_hdr + "-o \"" + cached_file.string() + "\" \"" + download_url + "\" 2>/dev/null";
+            ret = std::system(curl_cmd.c_str());
+        }
+
         if (ret == 0 && fs::exists(cached_file) && fs::file_size(cached_file) > 0)
         {
             resolved = true;
@@ -275,14 +286,12 @@ bool resolve_cached_asset(const std::string &category,
 
     if (!resolved)
     {
-        std::ofstream stub(cached_file, std::ios::binary);
-        stub << "SENTINEL_CACHED_ASSET_STUB_" << filename;
-        resolved = true;
-        std::cout << "      --> \033[1;33mCreated local verified cache asset: " << cached_file.string() << "\033[0m\n";
+        std::cerr << "      --> \033[1;31m[-] Error: Unable to resolve " << filename << " from cache or registry.\033[0m\n";
+        return false;
     }
 
     out_staged_path = cached_file;
-    return resolved;
+    return true;
 }
 
 // -----------------------------------------------------------------------------
