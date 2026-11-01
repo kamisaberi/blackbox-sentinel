@@ -519,14 +519,17 @@ int cmd_whoami()
         }
     }
 
-    std::string active_url = !saved_url.empty() ? saved_url : normalize_registry_url(g_hub_url);
+    // --- REPLACE DISPLAY IN cmd_whoami() ---
+    SavedCredentials creds = load_saved_credentials();
+    std::string active_url = !creds.hub_url.empty() ? creds.hub_url : normalize_registry_url(g_hub_url);
 
     std::cout << "\033[1;36m================================================================================\033[0m\n";
     std::cout << "\033[1;37m                 AUTHENTICATED REGISTRY IDENTITY                                \033[0m\n";
     std::cout << "\033[1;36m================================================================================\033[0m\n"
-              << "Credentials File : " << cred_path.string() << "\n"
-              << "Active API Key   : \033[1;32m" << api_key.substr(0, 16) << "...\033[0m\n"
-              << "Registry Hub URL : " << active_url << "\n"
+              << "Credentials File   : " << cred_path.string() << "\n"
+              << "Active API Key     : \033[1;32m" << creds.api_key.substr(0, 16) << "...\033[0m\n"
+              << "Enrolled Author Key: \033[1;33m" << (creds.author_public_key.empty() ? "(Unenrolled - first publish will enroll)" : creds.author_public_key) << "\033[0m\n"
+              << "Registry Hub URL   : " << active_url << "\n"
               << "\033[1;36m================================================================================\033[0m\n";
     return 0;
 }
