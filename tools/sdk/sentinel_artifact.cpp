@@ -152,10 +152,12 @@ static std::string sign_file_bytes_hex(const fs::path &file_path, const fs::path
     return ss.str();
 }
 
+// --- REPLACE SavedCredentials AND load_saved_credentials() in sentinel_artifact.cpp ---
 struct SavedCredentials
 {
     std::string api_key;
     std::string hub_url;
+    std::string author_public_key;
 };
 
 static SavedCredentials load_saved_credentials()
@@ -175,34 +177,25 @@ static SavedCredentials load_saved_credentials()
             std::string line;
             while (std::getline(f, line))
             {
-                size_t pos_key = line.find("\"api_key\"");
-                if (pos_key != std::string::npos)
-                {
-                    size_t colon = line.find(':', pos_key);
-                    size_t start = line.find('"', colon + 1);
-                    size_t end = line.find('"', start + 1);
-                    if (start != std::string::npos && end != std::string::npos)
-                    {
-                        creds.api_key = line.substr(start + 1, end - start - 1);
+                auto extract_field = [&](const std::string &key, std::string &target) {
+                    size_t pos = line.find("\"" + key + "\"");
+                    if (pos != std::string::npos) {
+                        size_t colon = line.find(':', pos);
+                        size_t start = line.find('"', colon + 1);
+                        size_t end = line.find('"', start + 1);
+                        if (start != std::string::npos && end != std::string::npos) {
+                            target = line.substr(start + 1, end - start - 1);
+                        }
                     }
-                }
-                size_t pos_url = line.find("\"hub_url\"");
-                if (pos_url != std::string::npos)
-                {
-                    size_t colon = line.find(':', pos_url);
-                    size_t start = line.find('"', colon + 1);
-                    size_t end = line.find('"', start + 1);
-                    if (start != std::string::npos && end != std::string::npos)
-                    {
-                        creds.hub_url = line.substr(start + 1, end - start - 1);
-                    }
-                }
+                };
+                extract_field("api_key", creds.api_key);
+                extract_field("hub_url", creds.hub_url);
+                extract_field("author_public_key", creds.author_public_key);
             }
         }
     }
     return creds;
 }
-
 static std::string normalize_publish_endpoint(std::string url)
 {
     if (url.empty())
