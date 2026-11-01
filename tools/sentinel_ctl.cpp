@@ -1459,8 +1459,29 @@ int cmd_trism_test_jailbreak()
     return 0;
 }
 
-int cmd_trism_policy()
+// --- REPLACE cmd_trism_policy() WITH THIS BLOCK ---
+int cmd_trism_policy(const std::string &action = "show")
 {
+    std::string base_api = normalize_registry_url(g_hub_url);
+    SavedCredentials creds = load_saved_credentials();
+    std::string auth_hdr = !creds.api_key.empty() ? ("-H \"Authorization: Bearer " + creds.api_key + "\" ") : "";
+
+    if (action == "pull")
+    {
+        std::string endpoint = base_api + "/ai/trism/policy";
+        std::cout << "[*] Pulling fleet-wide AI TRiSM policy from " << endpoint << "...\n";
+        fs::create_directories("configs");
+        std::string curl_cmd = "curl -sSL " + auth_hdr + "\"" + endpoint + "\" | jq -r '.policy_yaml // .yaml // empty' > configs/trism_policy.yaml";
+        int ret = std::system(curl_cmd.c_str());
+        if (ret == 0 && fs::exists("configs/trism_policy.yaml") && fs::file_size("configs/trism_policy.yaml") > 0)
+        {
+            std::cout << "\033[1;32m[+] Synced fleet policy -> configs/trism_policy.yaml\033[0m\n";
+            return 0;
+        }
+        std::cerr << "[-] Failed to pull policy from backend.\n";
+        return 1;
+    }
+
     fs::path p = "configs/trism_policy.yaml";
     if (fs::exists(p))
     {
@@ -1468,10 +1489,9 @@ int cmd_trism_policy()
         std::cout << f.rdbuf() << std::endl;
         return 0;
     }
-    std::cerr << "[-] Error: Policy file not found at " << p.string() << std::endl;
+    std::cerr << "[-] Error: Policy file not found at " << p.string() << ". Run 'aryo trism policy pull'.\n";
     return 1;
 }
-
 // -----------------------------------------------------------------------------
 // SCENARIO BUNDLE PULL & STAGING (sentinel-ctl scenario pull <slug>)
 // -----------------------------------------------------------------------------
