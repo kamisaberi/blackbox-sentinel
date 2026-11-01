@@ -358,12 +358,16 @@ int cmd_login(const std::string &jwt_token, const std::string &raw_hub_url)
     std::string token_endpoint = base_api + "/registry/tokens";
     std::cout << "[*] Authenticating with Registry Token API at " << token_endpoint << "...\n";
 
+    // Backend contract: POST /api/v1/registry/tokens requires {name, scopes, expires_in_days}
+    std::string req_json = "{\"name\":\"sentinel-cli\",\"scopes\":[\"packages:publish\",\"packages:validate\"],\"expires_in_days\":365}";
     std::string response_file = "/tmp/sentinel_login_resp.json";
     std::string curl_cmd = "curl -sSL -w \"\\n%{http_code}\" -X POST \"" + token_endpoint + "\" " +
                            "-H \"Authorization: Bearer " + jwt_token + "\" " +
-                           "-H \"Content-Type: application/json\" > " + response_file + " 2>&1";
+                           "-H \"Content-Type: application/json\" " +
+                           "-d '" + req_json + "' > " + response_file + " 2>&1";
 
     int ret = std::system(curl_cmd.c_str());
+    (void)ret;
 
     std::ifstream resp_in(response_file);
     std::string line, last_line, full_body;
@@ -379,22 +383,14 @@ int cmd_login(const std::string &jwt_token, const std::string &raw_hub_url)
     fs::remove(response_file);
 
     int http_code = 0;
-    try
-    {
-        http_code = std::stoi(last_line);
-    }
-    catch (...)
-    {
-    }
+    try { http_code = std::stoi(last_line); } catch (...) {}
 
     if (http_code == 200 || http_code == 201)
     {
         std::string api_key = "";
         size_t key_pos = full_body.find("\"api_key\"");
-        if (key_pos == std::string::npos)
-            key_pos = full_body.find("\"token\"");
-        if (key_pos == std::string::npos)
-            key_pos = full_body.find("\"key\"");
+        if (key_pos == std::string::npos) key_pos = full_body.find("\"token\"");
+        if (key_pos == std::string::npos) key_pos = full_body.find("\"key\"");
 
         if (key_pos != std::string::npos)
         {
@@ -407,10 +403,7 @@ int cmd_login(const std::string &jwt_token, const std::string &raw_hub_url)
             }
         }
 
-        if (api_key.empty())
-        {
-            api_key = jwt_token;
-        }
+        if (api_key.empty()) api_key = jwt_token;
 
         fs::path cred_path = get_credentials_path();
         std::ofstream cred_out(cred_path);
@@ -425,17 +418,11 @@ int cmd_login(const std::string &jwt_token, const std::string &raw_hub_url)
                   << "    └── Saved to : " << cred_path.string() << "\n";
         return 0;
     }
-    else
-    {
-        std::cerr << "\033[1;31m[-] Authentication Failed (HTTP " << http_code << ")\033[0m\n";
-        if (!full_body.empty())
-        {
-            std::cerr << "    Server message: " << full_body.substr(0, 200) << "\n";
-        }
-        return 1;
-    }
-}
 
+    std::cerr << "\033[1;31m[-] Authentication Failed (HTTP " << http_code << ")\033[0m\n";
+    if (!full_body.empty()) std::cerr << "    Server message: " << full_body.substr(0, 200) << "\n";
+    return 1;
+}
 int cmd_whoami()
 {
     fs::path cred_path = get_credentials_path();
