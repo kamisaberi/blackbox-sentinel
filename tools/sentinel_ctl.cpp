@@ -57,7 +57,6 @@ struct SavedCredentials
     std::string author_public_key;
 };
 
-
 fs::path get_credentials_path()
 {
     const char *home = std::getenv("HOME");
@@ -434,6 +433,7 @@ int cmd_login(const std::string &jwt_token, const std::string &raw_hub_url)
         std::ofstream cred_out(cred_path);
         cred_out << "{\n"
                  << "  \"api_key\": \"" << api_key << "\",\n"
+                 << "  \"jwt_token\": \"" << jwt_token << "\",\n"
                  << "  \"hub_url\": \"" << base_api << "\",\n"
                  << "  \"author_public_key\": \"" << author_pub_key << "\"\n"
                  << "}\n";
