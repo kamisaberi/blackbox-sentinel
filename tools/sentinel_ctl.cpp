@@ -2905,10 +2905,19 @@ int main(int argc, char *argv[])
         return 0;
     }
 
+    // 1. Inherit registry URL from credentials.json first
+    SavedCredentials creds = load_saved_credentials();
+    if (!creds.hub_url.empty())
+    {
+        g_hub_url = creds.hub_url;
+    }
+
+    // 2. Allow environment variable to override credentials if explicitly set
     const char *env_url = std::getenv("SENTINEL_HUB_URL");
     if (env_url && std::strlen(env_url) > 0)
+    {
         g_hub_url = env_url;
-
+    }
     std::string cmd = argv[1];
 
     if (cmd == "status")
