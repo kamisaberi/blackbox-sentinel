@@ -249,8 +249,9 @@ bool resolve_cached_asset(const std::string &category,
     // --- REPLACE REMOTE FETCH & STUB PORTION OF resolve_cached_asset() WITH THIS BLOCK ---
     if (!resolved)
     {
-        std::string base_api = normalize_registry_url(g_hub_url);
         SavedCredentials creds = load_saved_credentials();
+        std::string effective_url = !creds.hub_url.empty() ? creds.hub_url : g_hub_url;
+        std::string base_api = normalize_registry_url(effective_url);
         std::string auth_hdr = !creds.api_key.empty() ? ("-H \"Authorization: Bearer " + creds.api_key + "\" ") : "";
 
         std::string asset_type = (category.back() == 's') ? category.substr(0, category.size() - 1) : category;
