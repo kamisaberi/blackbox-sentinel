@@ -2900,6 +2900,95 @@ int cmd_sbom_attest()
               << body << "\n";
     return 1;
 }
+// -----------------------------------------------------------------------------
+// ARTIFACT VISIBILITY CONTROLLER (Method 2: PUT /hub/assets/{type}/{slug}/visibility)
+// -----------------------------------------------------------------------------
+int cmd_hub_visibility(const std::string &raw_type, const std::string &slug, std::string mode = "public")
+{
+    std::transform(mode.begin(), mode.end(), mode.begin(), ::tolower);
+    if (mode != "public" && mode != "private")
+    {
+        std::cerr << "[-] Error: Visibility mode must be either 'public' or 'private'.\n";
+        return 1;
+    }
+
+    SavedCredentials creds = load_saved_credentials();
+    std::string token = !creds.jwt_token.empty() ? creds.jwt_token : creds.api_key;
+    if (token.empty())
+    {
+        std::cerr << "[-] Error: Authentication required. Run 'aryo login --jwt <TOKEN>' first.\n";
+        return 1;
+    }
+
+    std::string effective_url = !creds.hub_url.empty() ? creds.hub_url : g_hub_url;
+    std::string base_api = normalize_registry_url(effective_url);
+
+    std::string asset_type = (raw_type.back() == 's' && raw_type != "pcapng") ? raw_type.substr(0, raw_type.size() - 1) : raw_type;
+    std::string pure_slug = fs::path(slug).stem().string();
+    if (pure_slug.size() > 4 && pure_slug.rfind(".tar") == pure_slug.size() - 4)
+        pure_slug = pure_slug.substr(0, pure_slug.size() - 4);
+
+    std::string endpoint = base_api + "/hub/assets/" + asset_type + "/" + pure_slug + "/visibility";
+    std::cout << "[*] Updating visibility of [" << asset_type << "] " << pure_slug << " -> " << mode << "...\n";
+
+    std::string req_json = "{\"visibility\":\"" + mode + "\"}";
+    std::string resp_file = "/tmp/sentinel_visibility_resp.json";
+    std::string curl_cmd = "curl -sSL -w \"\\n%{http_code}\" -X PUT \"" + endpoint + "\" " +
+                           "-H \"Authorization: Bearer " + token + "\" " +
+                           "-H \"Content-Type: application/json\" " +
+                           "-d '" + req_json + "' > " + resp_file + " 2>&1";
+
+    int ret = std::system(curl_cmd.c_str());
+    (void)ret;
+
+    std::ifstream in(resp_file);
+    std::string line, last_line, body;
+    while (std::getline(in, line))
+    {
+        if (!line.empty())
+        {
+            last_line = line;
+            body += line + "\n";
+        }
+    }
+    in.close();
+    fs::remove(resp_file);
+
+    int http_code = 0;
+    try
+    {
+        http_code = std::stoi(last_line);
+    }
+    catch (...)
+    {
+    }
+
+    if (http_code == 200)
+    {
+        std::cout << "\033[1;32m[+] Successfully updated visibility to '" << mode << "'!\033[0m\n"
+                  << "    Asset: " << asset_type << "/" << pure_slug << "\n";
+        return 0;
+    }
+    else if (http_code == 401)
+    {
+        std::cerr << "\033[1;31m[-] Error 401: Unauthorized. Please re-authenticate with 'aryo login --jwt <TOKEN>'.\033[0m\n";
+        return 1;
+    }
+    else if (http_code == 403)
+    {
+        std::cerr << "\033[1;31m[-] Error 403: Forbidden. ADMIN or Owner permission required.\033[0m\n";
+        return 1;
+    }
+    else if (http_code == 404)
+    {
+        std::cerr << "\033[1;31m[-] Error 404: Asset " << asset_type << "/" << pure_slug << " not found.\033[0m\n";
+        return 1;
+    }
+
+    std::cerr << "\033[1;31m[-] Error (HTTP " << http_code << "): Failed to update visibility.\033[0m\n"
+              << body << "\n";
+    return 1;
+}
 
 int main(int argc, char *argv[])
 {
