@@ -95,6 +95,7 @@ static SavedCredentials load_saved_credentials()
                 }
             };
             extract_field("api_key", creds.api_key);
+            extract_field("jwt_token", creds.jwt_token);
             extract_field("hub_url", creds.hub_url);
             extract_field("author_public_key", creds.author_public_key);
         }
