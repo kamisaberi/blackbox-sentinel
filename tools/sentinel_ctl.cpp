@@ -1864,14 +1864,25 @@ int cmd_package_list()
 // -----------------------------------------------------------------------------
 static std::string get_enrolled_author_pubkey_hex()
 {
+    // 1. Highest priority: The enrolled author key saved from login in credentials.json
+    SavedCredentials creds = load_saved_credentials();
+    if (!creds.author_public_key.empty())
+    {
+        return creds.author_public_key;
+    }
+
+    // 2. Fallback: Search developer keys on disk (supports both public and private PEM)
     const char *home = std::getenv("HOME");
     std::vector<fs::path> candidates;
     if (home)
     {
         candidates.push_back(fs::path(home) / ".sentinel" / "keys" / "developer_public.pem");
-        candidates.push_back(fs::path(home) / ".sentinel" / "keys" / "ed25519_public.pem");
+        candidates.push_back(fs::path(home) / ".sentinel" / "keys" / "developer_private.pem");
     }
+    candidates.push_back("/home/kami/.sentinel/keys/developer_public.pem");
+    candidates.push_back("/home/kami/.sentinel/keys/developer_private.pem");
     candidates.push_back("/etc/sentinel/keys/developer_public.pem");
+    candidates.push_back("/etc/sentinel/keys/developer_private.pem");
 
     for (const auto &p : candidates)
     {
@@ -1881,7 +1892,13 @@ static std::string get_enrolled_author_pubkey_hex()
             if (fp)
             {
                 EVP_PKEY *pkey = PEM_read_PUBKEY(fp, nullptr, nullptr, nullptr);
+                if (!pkey)
+                {
+                    fseek(fp, 0, SEEK_SET);
+                    pkey = PEM_read_PrivateKey(fp, nullptr, nullptr, nullptr);
+                }
                 fclose(fp);
+
                 if (pkey)
                 {
                     size_t len = 32;
@@ -1903,7 +1920,6 @@ static std::string get_enrolled_author_pubkey_hex()
     }
     return "";
 }
-
 int cmd_model_pack(const std::string &model_path_str,
                    const std::string &precision_override = "",
                    const std::string &domain_override = "")
