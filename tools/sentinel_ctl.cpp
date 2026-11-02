@@ -3292,6 +3292,14 @@ int main(int argc, char *argv[])
     if (cmd == "hub" && argc >= 3)
     {
         std::string sub = argv[2];
+
+        if (sub == "visibility" && argc >= 5)
+        {
+            std::string type = argv[3];
+            std::string slug = argv[4];
+            std::string mode = (argc >= 6) ? argv[5] : "public";
+            return cmd_hub_visibility(type, slug, mode);
+        }
         if (sub == "search" || sub == "list")
         {
             std::string q = (argc >= 4 && argv[3][0] != '-') ? argv[3] : "";
