@@ -3259,7 +3259,10 @@ int main(int argc, char *argv[])
         if (sub == "test-jailbreak")
             return cmd_trism_test_jailbreak();
         if (sub == "policy")
-            return cmd_trism_policy();
+        {
+            std::string act = (argc >= 4) ? argv[3] : "show";
+            return cmd_trism_policy(act);
+        }
         if (sub == "inspect")
         {
             std::string prompt = "";
