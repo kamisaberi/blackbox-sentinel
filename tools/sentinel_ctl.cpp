@@ -52,9 +52,11 @@ struct DependencyManifest
 struct SavedCredentials
 {
     std::string api_key;
+    std::string jwt_token;
     std::string hub_url;
     std::string author_public_key;
 };
+
 
 fs::path get_credentials_path()
 {
