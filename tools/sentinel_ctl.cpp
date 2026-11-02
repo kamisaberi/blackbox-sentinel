@@ -1477,11 +1477,16 @@ int cmd_trism_test_jailbreak()
 }
 
 // --- REPLACE cmd_trism_policy() WITH THIS BLOCK ---
+// --- REPLACE cmd_trism_policy() IN sentinel_ctl.cpp ---
 int cmd_trism_policy(const std::string &action = "show")
 {
-    std::string base_api = normalize_registry_url(g_hub_url);
     SavedCredentials creds = load_saved_credentials();
-    std::string auth_hdr = !creds.api_key.empty() ? ("-H \"Authorization: Bearer " + creds.api_key + "\" ") : "";
+    std::string effective_url = !creds.hub_url.empty() ? creds.hub_url : g_hub_url;
+    std::string base_api = normalize_registry_url(effective_url);
+
+    // Use JWT token first (required by get_current_user on /ai/trism/policy)
+    std::string token = !creds.jwt_token.empty() ? creds.jwt_token : creds.api_key;
+    std::string auth_hdr = !token.empty() ? ("-H \"Authorization: Bearer " + token + "\" ") : "";
 
     if (action == "pull")
     {
@@ -1503,6 +1508,12 @@ int cmd_trism_policy(const std::string &action = "show")
     if (fs::exists(p))
     {
         std::ifstream f(p);
+        std::cout << f.rdbuf() << std::endl;
+        return 0;
+    }
+    if (fs::exists("/etc/sentinel/configs/trism_policy.yaml"))
+    {
+        std::ifstream f("/etc/sentinel/configs/trism_policy.yaml");
         std::cout << f.rdbuf() << std::endl;
         return 0;
     }
