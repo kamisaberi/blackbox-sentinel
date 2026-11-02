@@ -3325,6 +3325,14 @@ int main(int argc, char *argv[])
     if (cmd == "package" && argc >= 3)
     {
         std::string sub = argv[2];
+
+        if (sub == "visibility" && argc >= 4)
+        {
+            std::string slug = argv[3];
+            std::string mode = (argc >= 5) ? argv[4] : "public";
+            return cmd_hub_visibility("package", slug, mode);
+        }
+
         if (sub == "pull" && argc >= 4)
         {
             std::string pkg_name = argv[3];
