@@ -383,7 +383,46 @@ int cmd_scenario_pull(const std::string &slug)
     std::cerr << "[-] Error: Failed to unpack archive into " << target_matrix_dir.string() << std::endl;
     return 1;
 }
-int cmd_scenario_list();
+int cmd_scenario_list()
+{
+    std::cout << "\033[1;36m========================================================================================================\033[0m\n";
+    std::cout << "\033[1;37m                 ARYORITHM DIGITAL TWIN SCENARIOS: LOCAL REPOSITORY                      \033[0m\n";
+    std::cout << "\033[1;36m========================================================================================================\033[0m\n";
+
+    fs::path cache_scen_dir = get_cache_root() / "scenarios";
+    std::cout << "Cached Archives (" << cache_scen_dir.string() << "):\n";
+    if (fs::exists(cache_scen_dir))
+    {
+        for (const auto &entry : fs::directory_iterator(cache_scen_dir))
+        {
+            if (entry.is_regular_file())
+            {
+                std::cout << "  • " << std::left << std::setw(36) << entry.path().filename().string()
+                          << " (" << fs::file_size(entry) << " bytes)\n";
+            }
+        }
+    }
+    else
+    {
+        std::cout << "  (No cached scenario archives found)\n";
+    }
+
+    fs::path matrix_scen_dir = "/home/kami/sentinel-matrix/scenarios";
+    std::cout << "\nStaged Scenarios for Sentinel-Matrix (" << matrix_scen_dir.string() << "):\n";
+    if (fs::exists(matrix_scen_dir))
+    {
+        for (const auto &entry : fs::directory_iterator(matrix_scen_dir))
+        {
+            if (entry.is_directory() || entry.path().extension() == ".yaml")
+            {
+                std::cout << "  \033[1;32m[READY]\033[0m " << entry.path().filename().string() << "\n";
+            }
+        }
+    }
+    std::cout << "\033[1;36m========================================================================================================\033[0m\n";
+    return 0;
+}
+
 
 int cmd_blueprint_new(const std::string &name, const std::string &site_override = "");
 int cmd_blueprint_add(const std::string &bp_dir_str, const std::string &asset_id, bool embed_binary = false);
