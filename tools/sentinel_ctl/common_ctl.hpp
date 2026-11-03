@@ -1,6 +1,7 @@
 #pragma once
 
 #include <unistd.h>
+
 #include <iostream>
 #include <fstream>
 #include <sstream>
@@ -11,6 +12,17 @@
 #include <iomanip>
 #include <cstring>
 #include <cstdlib>
+#include <openssl/evp.h>
+#include <openssl/pem.h>
+#include <sys/socket.h>
+#include <netinet/in.h>
+#include <arpa/inet.h>
+#include <sys/wait.h>
+#include <sys/mman.h>
+#include <sys/stat.h>
+
+#include "sentinel/hardware/tpm_enrollment.hpp"
+#include "sentinel/subsystems/trism_firewall.hpp"
 #include <openssl/evp.h>
 #include <openssl/pem.h>
 
@@ -40,9 +52,41 @@ struct SavedCredentials
     std::string author_public_key;
 };
 
+struct SbomArtifact
+{
+    std::string path;
+    uint64_t inode;
+    std::string sha256;
+    size_t size;
+};
+
+
 static std::string g_hub_url = "https://backend.aryorithm.com";
 
 // --- FUNCTION PROTOTYPES & UTILITIES ---
+
+
+
+// --- FUNCTION PROTOTYPES ---
+
+static SbomArtifact compute_artifact_sbom(const fs::path &p)
+{
+    SbomArtifact a{};
+    a.path = p.string();
+    if (!fs::exists(p))
+        return a;
+
+    struct stat st{};
+    if (stat(p.c_str(), &st) == 0)
+    {
+        a.inode = st.st_ino;
+        a.size = st.st_size;
+    }
+    auto bytes = read_binary_file(p);
+    a.sha256 = sha256_hex(bytes.data(), bytes.size());
+    return a;
+}
+
 
 static std::vector<uint8_t> read_binary_file(const fs::path &p)
 {
@@ -305,6 +349,29 @@ bool resolve_cached_asset(const std::string &category,
 
     out_staged_path = cached_file;
     return true;
+}
+
+static std::vector<uint8_t> sha256_buffer(const uint8_t *data, size_t len)
+{
+    std::vector<uint8_t> hash(32);
+    EVP_MD_CTX *ctx = EVP_MD_CTX_new();
+    EVP_DigestInit_ex(ctx, EVP_sha256(), nullptr);
+    EVP_DigestUpdate(ctx, data, len);
+    unsigned int out_len = 0;
+    EVP_DigestFinal_ex(ctx, hash.data(), &out_len);
+    EVP_MD_CTX_free(ctx);
+    return hash;
+}
+
+[[maybe_unused]] static std::string sha256_hex(const uint8_t *data, size_t len)
+{
+    auto h = sha256_buffer(data, len);
+    std::ostringstream ss;
+    for (uint8_t b : h)
+    {
+        ss << std::hex << std::setw(2) << std::setfill('0') << static_cast<int>(b);
+    }
+    return ss.str();
 }
 
 // [PLACEHOLDER: Implementations of load_saved_credentials, resolve_cached_asset, get_enrolled_author_pubkey_hex remain identical to previous turns]
