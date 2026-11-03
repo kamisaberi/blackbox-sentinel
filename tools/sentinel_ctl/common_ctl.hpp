@@ -60,12 +60,9 @@ struct SbomArtifact
     size_t size;
 };
 
-
 static std::string g_hub_url = "https://backend.aryorithm.com";
 
 // --- FUNCTION PROTOTYPES & UTILITIES ---
-
-
 
 // --- FUNCTION PROTOTYPES ---
 
@@ -86,7 +83,6 @@ static SbomArtifact compute_artifact_sbom(const fs::path &p)
     a.sha256 = sha256_hex(bytes.data(), bytes.size());
     return a;
 }
-
 
 static std::vector<uint8_t> read_binary_file(const fs::path &p)
 {

@@ -423,7 +423,6 @@ int cmd_scenario_list()
     return 0;
 }
 
-
 int cmd_blueprint_new(const std::string &name, const std::string &site_override = "")
 {
     fs::path target_dir = fs::current_path() / name;
