@@ -12,11 +12,11 @@ cd "$PROJECT_ROOT"
 echo "[+] Step 1: Provisioning /etc/sentinel directories..."
 sudo mkdir -p /etc/sentinel/rules.d
 sudo mkdir -p /etc/sentinel/plugins.d
-sudo chown -R "$USER:$USER" /etc/sentinel
+sudo mkdir -p /etc/sentinel/wasm.d
 
-# 2. Write the fixed Log4j rule with tonumber()
+# 2. Write the fixed Log4j rule
 echo "[+] Step 2: Writing fixed Log4j Lua rule..."
-cat << 'LUA' > /etc/sentinel/rules.d/100_threat_log4j_jndi.lua
+sudo tee /etc/sentinel/rules.d/100_threat_log4j_jndi.lua > /dev/null << 'LUA'
 local ffi = ffi or require("ffi")
 
 Rule = {
@@ -47,9 +47,9 @@ function Rule.inspect(pkt)
 end
 LUA
 
-# 3. Write the fixed Modbus Rate Clamp rule with tonumber()
+# 3. Write the fixed Modbus Rate Clamp rule
 echo "[+] Step 3: Writing fixed Modbus burst Lua rule..."
-cat << 'LUA' > /etc/sentinel/rules.d/200_threat_modbus_burst.lua
+sudo tee /etc/sentinel/rules.d/200_threat_modbus_burst.lua > /dev/null << 'LUA'
 local ffi = ffi or require("ffi")
 
 Rule = {
@@ -87,33 +87,29 @@ end
 LUA
 
 # 4. Clean up any leftover temporary canary rules
-rm -f /etc/sentinel/rules.d/300_threat_test_canary.lua
+sudo rm -f /etc/sentinel/rules.d/300_threat_test_canary.lua
 
 # 5. Compile the Native C++20 Modbus Guard Plugin
-echo "[+] Step 4: Compiling native reference plugin (sentinel_modbus_guard.so)..."
+echo "[+] Step 4: Compiling native reference plugin (modbus_guard.so)..."
 cd examples/plugins/native_modbus_guard
 mkdir -p build && cd build
 cmake .. -DCMAKE_BUILD_TYPE=Release
 make -j"$(nproc)"
-cp -f sentinel_modbus_guard.so /etc/sentinel/plugins.d/
+
+# Copy both naming variations so loaders find it regardless of 'lib' prefix
+sudo cp -f *modbus_guard.so /etc/sentinel/plugins.d/ 2>/dev/null || true
+sudo cp -f *modbus_guard.so /etc/sentinel/plugins.d/sentinel_modbus_guard.so 2>/dev/null || true
 cd "$PROJECT_ROOT"
 
-# 6. Compile the Test Executable (with -Wno-unused-result)
-echo "[+] Step 5: Compiling test_extensibility test runner..."
-g++ -std=c++20 -O3 -march=native -Wno-unused-result \
-    examples/05_test_extensibility_engine.cpp \
-    src/sdk/NativePluginLoader.cpp \
-    src/sdk/LuaHotReloadEngine.cpp \
-    src/sdk/PluginSupervisor.cpp \
-    -Iinclude \
-    -Isrc \
-    $(pkg-config --cflags --libs luajit) \
-    -lcrypto -ldl -lpthread \
-    -o test_extensibility
+# 6. Build test_extensibility via CMake target
+echo "[+] Step 5: Building test_extensibility via CMake..."
+mkdir -p build && cd build
+cmake .. -DCMAKE_BUILD_TYPE=Release
+make -j"$(nproc)" test_extensibility
+cd "$PROJECT_ROOT"
 
 echo "[+] Step 6: Running test suite..."
 echo "------------------------------------------------------------"
-sudo ./test_extensibility
+sudo ./build/test_extensibility
 echo "------------------------------------------------------------"
 echo "[SUCCESS] Extensibility Subsystem is fully operational!"
-
