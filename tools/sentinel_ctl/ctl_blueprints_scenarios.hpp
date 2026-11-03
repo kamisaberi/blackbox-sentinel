@@ -253,8 +253,136 @@ int cmd_scenario_add(const std::string &scenario_dir_str, const std::string &ass
     return 0;
 }
 
-int cmd_scenario_pack(const std::string &dir_str, const std::string &out_override = "", bool embed = false);
-int cmd_scenario_pull(const std::string &slug);
+int cmd_scenario_pack(const std::string &dir_str, const std::string &out_override = "", bool embed = false)
+{
+    fs::path target_dir = dir_str.empty() ? fs::current_path() : fs::path(dir_str);
+    if (!fs::exists(target_dir))
+    {
+        target_dir = fs::path("/home/kami/sentinel-matrix/scenarios") / dir_str;
+    }
+    if (!fs::exists(target_dir) || !fs::is_directory(target_dir))
+    {
+        std::cerr << "[-] Error: Scenario directory not found: " << target_dir.string() << std::endl;
+        return 1;
+    }
+
+    std::string slug = target_dir.filename().string();
+    if (slug == "." || slug.empty())
+        slug = fs::current_path().filename().string();
+
+    fs::path cache_scen_dir = get_cache_root() / "scenarios";
+    fs::create_directories(cache_scen_dir);
+
+    std::string archive_name = slug;
+    if (archive_name.rfind("scenario_", 0) != 0)
+        archive_name = "scenario_" + archive_name;
+    if (archive_name.size() < 7 || archive_name.substr(archive_name.size() - 7) != ".tar.gz")
+        archive_name += ".tar.gz";
+
+    fs::path out_tar = out_override.empty() ? (cache_scen_dir / archive_name) : fs::path(out_override);
+    if (out_tar.parent_path().empty())
+        out_tar = cache_scen_dir / out_tar;
+    fs::create_directories(out_tar.parent_path());
+
+    std::cout << "\033[1;36m================================================================================\033[0m\n";
+    std::cout << "\033[1;37m        PACKING SCENARIO BUNDLE [" << (embed ? "EMBEDDED STANDALONE" : "DECLARATIVE REFERENCED") << "]\033[0m\n";
+    std::cout << "\033[1;36m================================================================================\033[0m\n";
+    std::cout << "Source Directory : " << target_dir.string() << "\n"
+              << "Output Archive   : " << out_tar.string() << "\n";
+
+    std::string tar_cmd;
+    if (embed)
+    {
+        // Pack entire folder including packages/ and models/
+        tar_cmd = "tar -czf \"" + out_tar.string() + "\" -C \"" + target_dir.string() + "\" .";
+    }
+    else
+    {
+        // Exclude large binary folders to keep the bundle lightweight (~15 KB)
+        tar_cmd = "tar --exclude='packages/*.spkg' --exclude='models/*.onnx' -czf \"" + out_tar.string() + "\" -C \"" + target_dir.string() + "\" .";
+    }
+
+    int ret = std::system(tar_cmd.c_str());
+
+    if (ret == 0 && fs::exists(out_tar))
+    {
+        fs::path companion_tar_mf = fs::path(out_tar.string() + ".manifest.json");
+        fs::path src_mf = target_dir / "manifest.json";
+        if (fs::exists(src_mf))
+        {
+            fs::copy_file(src_mf, companion_tar_mf, fs::copy_options::overwrite_existing);
+        }
+
+        size_t sz = fs::file_size(out_tar);
+        std::cout << "\033[1;32m[+] Successfully packed scenario bundle!\033[0m\n"
+                  << "    ├── Mode    : " << (embed ? "EMBEDDED (Air-Gapped)" : "DECLARATIVE (Hub-Optimized)") << "\n"
+                  << "    ├── Size    : " << sz << " bytes\n"
+                  << "    └── Publish : \033[1;37maryo publish " << out_tar.string() << "\033[0m\n";
+        std::cout << "\033[1;36m================================================================================\033[0m\n";
+        return 0;
+    }
+
+    return 1;
+}
+int cmd_scenario_pull(const std::string &slug)
+{
+    std::string filename = slug;
+    if (filename.size() < 7 || filename.substr(filename.size() - 7) != ".tar.gz")
+    {
+        if (filename.size() >= 4 && filename.substr(filename.size() - 4) == ".tgz")
+            filename = filename.substr(0, filename.size() - 4) + ".tar.gz";
+        else
+            filename += ".tar.gz";
+    }
+
+    fs::path cached_path;
+    if (!resolve_cached_asset("scenarios", filename, cached_path))
+    {
+        std::cerr << "[-] Error: Failed to resolve scenario '" << slug << "' from cache or Hub registry.\n";
+        return 1;
+    }
+
+    // Determine target extraction directory inside sentinel-matrix
+    std::string pure_slug = fs::path(filename).stem().string();
+    if (pure_slug.rfind("scenario_", 0) == 0)
+        pure_slug = pure_slug.substr(9);
+
+    fs::path target_matrix_dir = fs::path("/home/kami/sentinel-matrix/scenarios") / pure_slug;
+
+    if (!fs::exists("/home/kami/sentinel-matrix/scenarios"))
+    {
+        target_matrix_dir = fs::path("/etc/sentinel/scenarios") / pure_slug;
+    }
+
+    fs::create_directories(target_matrix_dir);
+
+    std::cout << "[*] Unpacking scenario bundle: " << cached_path.filename().string() << "...\n"
+              << "    --> Destination: " << target_matrix_dir.string() << "\n";
+
+    std::string untar_cmd = "tar -xzf \"" + cached_path.string() + "\" -C \"" + target_matrix_dir.string() + "\"";
+    int ret = std::system(untar_cmd.c_str());
+
+    if (ret == 0)
+    {
+        std::cout << "\033[1;32m[+] Successfully staged digital twin scenario!\033[0m\n"
+                  << "    Location : " << target_matrix_dir.string() << "\n";
+
+        // Check if scenario.yaml exists inside
+        fs::path scen_yaml = target_matrix_dir / "scenario.yaml";
+        if (fs::exists(scen_yaml))
+        {
+            std::cout << "    Launch   : \033[1;37maryo matrix scenario load " << scen_yaml.string() << "\033[0m\n";
+        }
+        else
+        {
+            std::cout << "    Launch   : \033[1;37maryo matrix scenario load " << target_matrix_dir.string() << "\033[0m\n";
+        }
+        return 0;
+    }
+
+    std::cerr << "[-] Error: Failed to unpack archive into " << target_matrix_dir.string() << std::endl;
+    return 1;
+}
 int cmd_scenario_list();
 
 int cmd_blueprint_new(const std::string &name, const std::string &site_override = "");
