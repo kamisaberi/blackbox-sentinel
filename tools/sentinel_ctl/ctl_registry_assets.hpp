@@ -552,15 +552,284 @@ int cmd_package_list()
     return 0;
 }
 
-int cmd_model_pack(const std::string &model_path_str, const std::string &precision_override = "", const std::string &domain_override = "");
-int cmd_model_pull(const std::string &model_slug);
 
-int cmd_dataset_pull(const std::string &slug);
-int cmd_slab_stream(const fs::path &slab_path, uint16_t port);
+int cmd_model_pack(const std::string &model_path_str,
+                   const std::string &precision_override = "",
+                   const std::string &domain_override = "")
+{
+    fs::path model_path(model_path_str);
+    if (!fs::exists(model_path))
+    {
+        std::cerr << "[-] Error: ONNX model file not found: " << model_path.string() << std::endl;
+        return 1;
+    }
 
-int cmd_pcap_pack(const std::string &pcap_path_str, const std::string &category_override = "", const std::string &protocol_override = "", const std::string &attack_override = "");
-int cmd_pcap_pull(const std::string &slug);
+    std::string slug = model_path.stem().string();
+    std::string precision = "FP32";
 
-int cmd_generic_list(const std::string &category, const std::string &stage_dir = "", const std::string &ext = "");
+    // Auto-detect precision from filename or flag
+    if (!precision_override.empty())
+    {
+        precision = precision_override;
+    }
+    else if (slug.find("int8") != std::string::npos || slug.find("INT8") != std::string::npos)
+    {
+        precision = "INT8";
+    }
+
+    std::string domain = domain_override.empty() ? "SCADA_ICS" : domain_override;
+    std::string author_pub_hex = get_enrolled_author_pubkey_hex();
+
+    fs::path manifest_out = model_path.parent_path() / "manifest.json";
+    fs::path manifest_named_out = fs::path(model_path.string() + ".manifest.json");
+
+    std::cout << "\033[1;36m================================================================================\033[0m\n";
+    std::cout << "\033[1;37m        PACKING ONNX MODEL & GENERATING HUB COMPANION MANIFEST                  \033[0m\n";
+    std::cout << "\033[1;36m================================================================================\033[0m\n";
+    std::cout << "Model Path   : " << model_path.string() << " (" << fs::file_size(model_path) << " bytes)\n"
+              << "Format       : ONNX\n"
+              << "Precision    : " << precision << "\n"
+              << "Domain       : " << domain << "\n"
+              << "Author Key   : " << (author_pub_hex.empty() ? "None (Unenrolled)" : author_pub_hex.substr(0, 16) + "...") << "\n";
+
+    auto write_manifest = [&](const fs::path &target_mf)
+    {
+        std::ofstream mf(target_mf);
+        mf << "{\n"
+           << "  \"name\": \"" << slug << "\",\n"
+           << "  \"slug\": \"" << slug << "\",\n"
+           << "  \"title\": \"" << slug << "\",\n"
+           << "  \"asset_type\": \"model\",\n"
+           << "  \"format\": \"ONNX\",\n"
+           << "  \"precision\": \"" << precision << "\",\n"
+           << "  \"domain\": \"" << domain << "\",\n"
+           << "  \"target_protocol\": \"MODBUS_TCP\",\n";
+        if (!author_pub_hex.empty())
+        {
+            mf << "  \"author_public_key\": \"" << author_pub_hex << "\",\n";
+        }
+        mf << "  \"compliance\": [\"IEC-62443-4-2\", \"NIS2\"]\n"
+           << "}\n";
+        mf.close();
+    };
+
+    write_manifest(manifest_out);
+    write_manifest(manifest_named_out);
+
+    std::cout << "--------------------------------------------------------------------------------\n";
+    std::cout << "\033[1;32m[+] Successfully generated model companion manifest!\033[0m\n"
+              << "    ├── Primary Manifest: " << manifest_out.string() << "\n"
+              << "    └── Ready to publish: \033[1;37maryo publish " << model_path.string() << "\033[0m\n";
+    std::cout << "\033[1;36m================================================================================\033[0m\n";
+    return 0;
+}
+
+int cmd_model_pull(const std::string &model_slug)
+{
+    std::string filename = model_slug;
+    if (filename.size() < 5 || filename.substr(filename.size() - 5) != ".onnx")
+        filename += ".onnx";
+
+    fs::path cached_path;
+    if (!resolve_cached_asset("models", filename, cached_path))
+    {
+        return 1;
+    }
+
+    fs::path dest = fs::path("models") / filename;
+    fs::create_directories("models");
+    fs::copy_file(cached_path, dest, fs::copy_options::overwrite_existing);
+
+    std::cout << "\033[1;32m[+] Staged AI model to active runtime: " << dest.string() << "\033[0m\n";
+    return 0;
+}
+
+int cmd_dataset_pull(const std::string &slug)
+{
+    std::string filename = slug;
+    if (filename.size() < 5 || filename.substr(filename.size() - 5) != ".slab")
+        filename += ".slab";
+
+    fs::path cached_path;
+    if (!resolve_cached_asset("datasets", filename, cached_path))
+    {
+        return 1;
+    }
+
+    fs::path dest_dir = "/etc/sentinel/datasets";
+    fs::create_directories(dest_dir);
+    fs::path dest_path = dest_dir / filename;
+    fs::copy_file(cached_path, dest_path, fs::copy_options::overwrite_existing);
+
+    std::cout << "\033[1;32m[+] Deployed to active runtime: " << dest_path.string() << "\033[0m\n";
+    return 0;
+}
+int cmd_slab_stream(const fs::path &slab_path, uint16_t port)
+{
+    if (!fs::exists(slab_path))
+    {
+        std::cerr << "[-] Error: SLAB dataset not found: " << slab_path << std::endl;
+        return 1;
+    }
+
+    std::ifstream file(slab_path, std::ios::binary);
+    if (!file.is_open())
+        return 1;
+
+    int sock = socket(AF_INET, SOCK_DGRAM, 0);
+    if (sock < 0)
+        return 1;
+
+    sockaddr_in dest{};
+    dest.sin_family = AF_INET;
+    dest.sin_port = htons(port);
+    inet_pton(AF_INET, "127.0.0.1", &dest.sin_addr);
+
+    std::cout << "\033[1;36m[*] Blasting zero-copy SLAB stream from " << slab_path.filename().string()
+              << " to 127.0.0.1:" << port << "...\033[0m\n";
+
+    char buffer[4096];
+    size_t records = 0;
+    auto t_start = std::chrono::steady_clock::now();
+
+    while (file.read(buffer, 144))
+    {
+        sendto(sock, buffer, 144, 0, (struct sockaddr *)&dest, sizeof(dest));
+        records++;
+    }
+    close(sock);
+
+    auto elapsed_ms = std::chrono::duration_cast<std::chrono::milliseconds>(
+                          std::chrono::steady_clock::now() - t_start)
+                          .count();
+    uint64_t eps = (elapsed_ms > 0) ? (records * 1000 / elapsed_ms) : records;
+
+    std::cout << "\033[1;32m[SUCCESS] Streamed " << records << " records in "
+              << elapsed_ms << " ms (" << eps << " EPS line rate!)\033[0m\n";
+    return 0;
+}
+
+int cmd_pcap_pack(const std::string &pcap_path_str,
+                  const std::string &category_override = "",
+                  const std::string &protocol_override = "",
+                  const std::string &attack_override = "")
+{
+    fs::path pcap_path(pcap_path_str);
+    if (!fs::exists(pcap_path))
+    {
+        std::cerr << "[-] Error: PCAP file not found: " << pcap_path.string() << std::endl;
+        return 1;
+    }
+
+    std::string slug = pcap_path.stem().string();
+    std::string category = category_override.empty() ? "SCADA_ICS" : category_override;
+    std::string protocol = protocol_override.empty() ? "MODBUS_TCP" : protocol_override;
+    std::string attack_type = attack_override.empty() ? "RECON" : attack_override;
+    std::string author_pub_hex = get_enrolled_author_pubkey_hex();
+
+    fs::path manifest_out = pcap_path.parent_path() / "manifest.json";
+    fs::path manifest_named_out = fs::path(pcap_path.string() + ".manifest.json");
+
+    std::cout << "\033[1;36m================================================================================\033[0m\n";
+    std::cout << "\033[1;37m        PACKING PCAP CAPTURE & GENERATING HUB COMPANION MANIFEST                \033[0m\n";
+    std::cout << "\033[1;36m================================================================================\033[0m\n";
+    std::cout << "PCAP File    : " << pcap_path.string() << " (" << fs::file_size(pcap_path) << " bytes)\n"
+              << "Category     : " << category << "\n"
+              << "Protocol     : " << protocol << "\n"
+              << "Attack Type  : " << attack_type << "\n"
+              << "Author Key   : " << (author_pub_hex.empty() ? "None (Unenrolled)" : author_pub_hex.substr(0, 16) + "...") << "\n";
+
+    auto write_manifest = [&](const fs::path &target_mf)
+    {
+        std::ofstream mf(target_mf);
+        mf << "{\n"
+           << "  \"name\": \"" << slug << "\",\n"
+           << "  \"slug\": \"" << slug << "\",\n"
+           << "  \"title\": \"" << slug << "\",\n"
+           << "  \"asset_type\": \"pcap\",\n"
+           << "  \"category\": \"" << category << "\",\n"
+           << "  \"target_protocol\": \"" << protocol << "\",\n"
+           << "  \"attack_type\": \"" << attack_type << "\",\n"
+           << "  \"source_origin\": \"TESTBED\",\n";
+        if (!author_pub_hex.empty())
+        {
+            mf << "  \"author_public_key\": \"" << author_pub_hex << "\",\n";
+        }
+        mf << "  \"compliance\": [\"IEC-62443-4-2\", \"NIS2\"]\n"
+           << "}\n";
+        mf.close();
+    };
+
+    write_manifest(manifest_out);
+    write_manifest(manifest_named_out);
+
+    std::cout << "--------------------------------------------------------------------------------\n";
+    std::cout << "\033[1;32m[+] Successfully generated PCAP companion manifest!\033[0m\n"
+              << "    ├── Primary Manifest: " << manifest_out.string() << "\n"
+              << "    └── Ready to publish: \033[1;37maryo publish " << pcap_path.string() << "\033[0m\n";
+    std::cout << "\033[1;36m================================================================================\033[0m\n";
+    return 0;
+}
+
+
+int cmd_pcap_pull(const std::string &slug)
+{
+    std::string filename = slug;
+    if (filename.size() < 5 || filename.substr(filename.size() - 5) != ".pcap")
+        filename += ".pcap";
+
+    fs::path cached_path;
+    if (!resolve_cached_asset("pcaps", filename, cached_path))
+    {
+        return 1;
+    }
+
+    fs::path dest_dir = "/etc/sentinel/pcaps";
+    fs::create_directories(dest_dir);
+    fs::path dest_path = dest_dir / filename;
+    fs::copy_file(cached_path, dest_path, fs::copy_options::overwrite_existing);
+
+    std::cout << "\033[1;32m[+] Deployed to active runtime: " << dest_path.string() << "\033[0m\n";
+    return 0;
+}
+
+int cmd_generic_list(const std::string &category, const std::string &stage_dir = "", const std::string &ext = "")
+{
+    std::cout << "\033[1;36m================================================================================\033[0m\n";
+    std::cout << "\033[1;37m        LOCAL ASSET REPOSITORY: " << category << "\033[0m\n";
+    std::cout << "\033[1;36m================================================================================\033[0m\n";
+
+    fs::path c_dir = get_cache_root() / category;
+    std::cout << "Cached in " << c_dir.string() << ":\n";
+    if (fs::exists(c_dir))
+    {
+        for (const auto &entry : fs::directory_iterator(c_dir))
+        {
+            if (entry.is_regular_file())
+            {
+                std::cout << "  • " << std::left << std::setw(36) << entry.path().filename().string()
+                          << " (" << fs::file_size(entry) << " bytes)\n";
+            }
+        }
+    }
+    else
+    {
+        std::cout << "  (No cached items)\n";
+    }
+
+    if (!stage_dir.empty() && fs::exists(stage_dir))
+    {
+        std::cout << "\nActive Staged in " << stage_dir << ":\n";
+        for (const auto &entry : fs::directory_iterator(stage_dir))
+        {
+            if (entry.is_regular_file() && (ext.empty() || entry.path().extension() == ext))
+            {
+                std::cout << "  \033[1;32m[ACTIVE]\033[0m " << entry.path().filename().string() << "\n";
+            }
+        }
+    }
+    std::cout << "\033[1;36m================================================================================\033[0m\n";
+    return 0;
+}
 
 // [PLACEHOLDER: Full implementations of cmd_login, cmd_whoami, cmd_hub_*, cmd_model_*, cmd_pcap_* go here]
