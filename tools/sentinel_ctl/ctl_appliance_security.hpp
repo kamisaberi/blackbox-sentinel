@@ -113,7 +113,22 @@ int cmd_hardware_status()
     return 0;
 }
 
-int cmd_hardware_enroll();
+int cmd_hardware_enroll()
+{
+    sentinel::hardware::TpmEnrollmentManager mgr;
+    auto token = mgr.generate_hardware_token();
+    bool saved = mgr.save_hardware_token(token);
+
+    if (saved)
+    {
+        std::cout << "\033[1;32m[+] Successfully enrolled hardware identity token into /etc/sentinel/hardware_identity.token\033[0m\n"
+                  << "    Token Hash: " << token.hardware_token_hash << "\n";
+        return 0;
+    }
+    std::cerr << "[-] Error: Failed to save hardware token to /etc/sentinel/\n";
+    return 1;
+}
+
 int cmd_license_apply(const fs::path &lic_path);
 int cmd_license_inspect(const fs::path &lic_path);
 
