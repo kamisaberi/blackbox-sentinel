@@ -85,7 +85,42 @@ int cmd_cache_clean()
     }
     return 0;
 }
-int cmd_cache_export(const std::string &out_tar);
-int cmd_cache_import(const std::string &in_tar);
+int cmd_cache_export(const std::string &out_tar)
+{
+    fs::path root = get_cache_root();
+    if (!fs::exists(root))
+    {
+        std::cerr << "[-] Error: Cache is empty. Nothing to export." << std::endl;
+        return 1;
+    }
+    std::string cmd = "tar -czf \"" + out_tar + "\" -C \"" + root.string() + "\" .";
+    int ret = std::system(cmd.c_str());
+    if (ret == 0)
+    {
+        std::cout << "\033[1;32m[+] Successfully exported air-gapped cache bundle: " << out_tar << "\033[0m\n"
+                  << "    Ready for USB Sneakernet transfer to isolated facilities.\n";
+        return 0;
+    }
+    return 1;
+}
+
+int cmd_cache_import(const std::string &in_tar)
+{
+    if (!fs::exists(in_tar))
+    {
+        std::cerr << "[-] Error: Archive not found: " << in_tar << std::endl;
+        return 1;
+    }
+    fs::path root = get_cache_root();
+    fs::create_directories(root);
+    std::string cmd = "tar -xzf \"" + in_tar + "\" -C \"" + root.string() + "\"";
+    int ret = std::system(cmd.c_str());
+    if (ret == 0)
+    {
+        std::cout << "\033[1;32m[+] Successfully imported offline cache bundle into: " << root.string() << "\033[0m\n";
+        return 0;
+    }
+    return 1;
+}
 
 // [PLACEHOLDER: Full implementations of cmd_cache_* go here]
