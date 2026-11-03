@@ -424,8 +424,199 @@ int cmd_scenario_list()
 }
 
 
-int cmd_blueprint_new(const std::string &name, const std::string &site_override = "");
-int cmd_blueprint_add(const std::string &bp_dir_str, const std::string &asset_id, bool embed_binary = false);
+int cmd_blueprint_new(const std::string &name, const std::string &site_override = "")
+{
+    fs::path target_dir = fs::current_path() / name;
+    if (fs::exists(target_dir))
+    {
+        std::cerr << "[-] Error: Blueprint directory already exists: " << target_dir.string() << std::endl;
+        return 1;
+    }
+
+    std::string site_name = site_override.empty() ? ("Site-" + name) : site_override;
+    std::string author_pub_hex = get_enrolled_author_pubkey_hex();
+
+    fs::create_directories(target_dir / "configs");
+    fs::create_directories(target_dir / "packages");
+    fs::create_directories(target_dir / "models");
+
+    // 1. Create manifest.json
+    std::ofstream mf(target_dir / "manifest.json");
+    mf << "{\n"
+       << "  \"name\": \"" << name << "\",\n"
+       << "  \"slug\": \"" << name << "\",\n"
+       << "  \"title\": \"" << name << "\",\n"
+       << "  \"version\": \"1.0.0\",\n"
+       << "  \"asset_type\": \"blueprint\",\n"
+       << "  \"target_site\": \"" << site_name << "\",\n"
+       << "  \"author\": \"Aryorithm Certified Engineer\",\n"
+       << "  \"description\": \"Production Edge Blueprint for " << site_name << "\",\n";
+    if (!author_pub_hex.empty())
+        mf << "  \"author_public_key\": \"" << author_pub_hex << "\",\n";
+    mf << "  \"dependencies\": {\n"
+       << "    \"packages\": [],\n"
+       << "    \"models\": []\n"
+       << "  },\n"
+       << "  \"compliance\": [\"IEC-62443-4-2\", \"NIS2\"]\n"
+       << "}\n";
+    mf.close();
+
+    // 2. Create blueprint.yaml (Physical Hardware Binding)
+    std::ofstream bp(target_dir / "blueprint.yaml");
+    bp << "# ==============================================================================\n"
+       << "# ARYORITHM PRODUCTION HARDWARE BLUEPRINT SPECIFICATION\n"
+       << "# ==============================================================================\n"
+       << "blueprint:\n"
+       << "  name: \"" << name << "\"\n"
+       << "  site_identifier: \"" << site_name << "\"\n"
+       << "  target_architecture: \"x86_64\"\n\n"
+       << "hardware_binding:\n"
+       << "  primary_interface: \"ens160\"           # Physical NIC (ens160, eth0, or gtp5g0)\n"
+       << "  af_xdp_mode: \"SKB\"                   # ZEROCOPY for physical NIC, SKB for virtualized\n"
+       << "  rss_queues: [0, 1, 2, 3]             # Multi-Queue RSS queue pinning\n"
+       << "  cpu_affinity_cores: [2, 3, 4, 5]\n"
+       << "  require_physical_tpm: true\n\n"
+       << "sla_guarantees:\n"
+       << "  max_pipeline_latency_us: 100.0\n"
+       << "  critical_clearing_time_ms: 38.4\n";
+    bp.close();
+
+    // 3. Create model_routes.yaml (Production 4-Stage Pipeline DAG)
+    std::ofstream mr(target_dir / "model_routes.yaml");
+    mr << "# ==============================================================================\n"
+       << "# 4-STAGE MODEL ROUTER PIPELINE CONFIGURATION\n"
+       << "# ==============================================================================\n"
+       << "pipeline:\n"
+       << "  stage_1_reflex:\n"
+       << "    enabled: true\n"
+       << "    rules:\n"
+       << "      - name: \"modbus_fast_drop\"\n"
+       << "        port: 502\n"
+       << "        tier: \"lua\"\n"
+       << "  stage_2_dissectors:\n"
+       << "    enabled: true\n"
+       << "    protocols: [\"MODBUS\", \"S7COMM\", \"IEC104\"]\n"
+       << "  stage_3_inference:\n"
+       << "    enabled: true\n"
+       << "    primary_backend: \"INTEL_OPENVINO\"\n"
+       << "    models:\n"
+       << "      - name: \"network_threat_detector\"\n"
+       << "        precision: \"INT8\"\n"
+       << "  stage_4_fusion:\n"
+       << "    enabled: true\n"
+       << "    correlator_mode: \"CROSS_MODAL_PHYSICS\"\n";
+    mr.close();
+
+    // 4. Create deploy.sh
+    std::ofstream dp(target_dir / "deploy.sh");
+    dp << "#!/usr/bin/env bash\n"
+       << "set -euo pipefail\n"
+       << "SCRIPT_DIR=\"$(cd \"$(dirname \"${BASH_SOURCE[0]}\")\" && pwd)\"\n"
+       << "echo \"[*] Deploying Production Blueprint: " << name << "\"\n"
+       << "sudo aryo blueprint deploy \"$SCRIPT_DIR\"\n";
+    dp.close();
+    fs::permissions(target_dir / "deploy.sh", fs::perms::owner_all | fs::perms::group_read | fs::perms::group_exec | fs::perms::others_read | fs::perms::others_exec);
+
+    std::cout << "\033[1;32m[+] Successfully scaffolded production blueprint:\033[0m " << target_dir.string() << "\n"
+              << "    ├── manifest.json       (Attestation & dependency metadata)\n"
+              << "    ├── blueprint.yaml      (Physical NIC & hardware binding)\n"
+              << "    ├── model_routes.yaml   (4-Stage ModelRouter DAG)\n"
+              << "    ├── configs/            (Subsystem policy manifests)\n"
+              << "    └── deploy.sh           (1-Click deployment hook)\n";
+    return 0;
+}
+int cmd_blueprint_add(const std::string &bp_dir_str, const std::string &asset_id, bool embed_binary = false)
+{
+    fs::path target_dir(bp_dir_str);
+    if (!fs::exists(target_dir) || !fs::is_directory(target_dir))
+    {
+        std::cerr << "[-] Error: Blueprint directory not found: " << bp_dir_str << std::endl;
+        return 1;
+    }
+
+    fs::path manifest_path = target_dir / "manifest.json";
+    if (!fs::exists(manifest_path))
+    {
+        std::cerr << "[-] Error: manifest.json missing in " << target_dir.string() << std::endl;
+        return 1;
+    }
+
+    std::string detected_type = "unknown";
+    fs::path resolved_source;
+    std::string clean_slug = asset_id;
+
+    if (fs::exists(asset_id))
+    {
+        resolved_source = fs::path(asset_id);
+        std::string ext = resolved_source.extension().string();
+        clean_slug = resolved_source.stem().string();
+        if (ext == ".spkg" || ext == ".lua" || ext == ".so")
+            detected_type = "package";
+        else if (ext == ".onnx")
+            detected_type = "model";
+    }
+    else
+    {
+        if (fs::exists("/etc/sentinel/rules.d/" + asset_id + ".lua"))
+        {
+            resolved_source = "/etc/sentinel/rules.d/" + asset_id + ".lua";
+            detected_type = "package";
+        }
+        else if (fs::exists("/etc/sentinel/models/" + asset_id + ".onnx") || fs::exists("models/" + asset_id + ".onnx"))
+        {
+            resolved_source = fs::exists("models/" + asset_id + ".onnx") ? fs::path("models/" + asset_id + ".onnx") : fs::path("/etc/sentinel/models/" + asset_id + ".onnx");
+            detected_type = "model";
+        }
+        else
+        {
+            fs::path c_root = get_cache_root();
+            if (fs::exists(c_root / "packages" / (asset_id + ".spkg")))
+            {
+                resolved_source = c_root / "packages" / (asset_id + ".spkg");
+                detected_type = "package";
+            }
+            else if (fs::exists(c_root / "models" / (asset_id + ".onnx")))
+            {
+                resolved_source = c_root / "models" / (asset_id + ".onnx");
+                detected_type = "model";
+            }
+            else
+            {
+                std::cout << "[*] Treating '" << asset_id << "' as external dependency reference.\n";
+                detected_type = "package";
+            }
+        }
+    }
+
+    std::cout << "\033[1;36m[*] [Blueprint Add] Registered asset '" << clean_slug << "' as [" << detected_type << "]\033[0m\n";
+
+    if (embed_binary && !resolved_source.empty() && fs::exists(resolved_source))
+    {
+        fs::path dest_dir = (detected_type == "package") ? (target_dir / "packages") : (target_dir / "models");
+        fs::create_directories(dest_dir);
+        fs::path dest_file = dest_dir / resolved_source.filename();
+        fs::copy_file(resolved_source, dest_file, fs::copy_options::overwrite_existing);
+        std::cout << "    ├── \033[1;32m[EMBEDDED]\033[0m Staged -> " << dest_file.string() << "\n";
+    }
+
+    // Update manifest dependencies
+    auto mf_bytes = read_binary_file(manifest_path);
+    std::string mf_str(reinterpret_cast<const char *>(mf_bytes.data()), mf_bytes.size());
+    std::string dep_key = "\"" + detected_type + "s\": [";
+    size_t pos = mf_str.find(dep_key);
+    if (pos != std::string::npos)
+    {
+        size_t insert_pos = pos + dep_key.length();
+        std::string to_insert = (mf_str[insert_pos] == ']') ? ("\"" + clean_slug + "\"") : ("\"" + clean_slug + "\", ");
+        mf_str.insert(insert_pos, to_insert);
+        std::ofstream mf_out(manifest_path);
+        mf_out << mf_str;
+        mf_out.close();
+    }
+
+    std::cout << "    └── \033[1;32m[UPDATED]\033[0m Manifest synchronized.\n";
+    return 0;
+}
 int cmd_blueprint_pack(const std::string &dir_str, const std::string &out_override = "", bool embed = false);
 int cmd_blueprint_inspect(const std::string &target_str);
 int cmd_blueprint_deploy(const std::string &target_str);
