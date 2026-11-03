@@ -44,6 +44,18 @@ static std::string g_hub_url = "https://backend.aryorithm.com";
 
 // --- FUNCTION PROTOTYPES & UTILITIES ---
 
+static std::vector<uint8_t> read_binary_file(const fs::path &p)
+{
+    std::ifstream f(p, std::ios::binary | std::ios::ate);
+    if (!f.is_open())
+        return {};
+    size_t sz = f.tellg();
+    f.seekg(0, std::ios::beg);
+    std::vector<uint8_t> b(sz);
+    f.read(reinterpret_cast<char *>(b.data()), sz);
+    return b;
+}
+
 static std::string trim(const std::string &s)
 {
     auto start = s.find_first_not_of(" \t\r\n\"-");
