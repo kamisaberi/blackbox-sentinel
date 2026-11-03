@@ -55,8 +55,73 @@ fs::path get_credentials_path()
     return fs::path("/etc/sentinel/credentials.json");
 }
 
-SavedCredentials load_saved_credentials();
-std::string normalize_registry_url(std::string url);
+static SavedCredentials load_saved_credentials()
+{
+    SavedCredentials creds{};
+    fs::path cred_path = get_credentials_path();
+    if (fs::exists(cred_path))
+    {
+        std::ifstream f(cred_path);
+        std::string line;
+        while (std::getline(f, line))
+        {
+            auto extract_field = [&](const std::string &key, std::string &target)
+            {
+                size_t pos = line.find("\"" + key + "\"");
+                if (pos != std::string::npos)
+                {
+                    size_t colon = line.find(':', pos);
+                    size_t start = line.find('"', colon + 1);
+                    size_t end = line.find('"', start + 1);
+                    if (start != std::string::npos && end != std::string::npos)
+                    {
+                        target = line.substr(start + 1, end - start - 1);
+                    }
+                }
+            };
+            extract_field("api_key", creds.api_key);
+            extract_field("jwt_token", creds.jwt_token);
+            extract_field("hub_url", creds.hub_url);
+            extract_field("author_public_key", creds.author_public_key);
+        }
+    }
+    return creds;
+}
+
+static std::string normalize_registry_url(std::string url)
+{
+    if (url.empty())
+    {
+        url = "https://backend.aryorithm.com";
+    }
+
+    // Auto-detect http scheme for localhost/IPs, https for remote domains
+    if (url.find("://") == std::string::npos)
+    {
+        if (url.rfind("localhost", 0) == 0 || url.rfind("127.0.0.1", 0) == 0)
+        {
+            url = "http://" + url;
+        }
+        else
+        {
+            url = "https://" + url;
+        }
+    }
+
+    // Strip trailing slashes
+    while (!url.empty() && url.back() == '/')
+    {
+        url.pop_back();
+    }
+
+    // Append /api/v1 if not present
+    if (url.rfind("/api/v1") == std::string::npos)
+    {
+        url += "/api/v1";
+    }
+
+    return url;
+}
 fs::path get_cache_root();
 std::string get_enrolled_author_pubkey_hex();
 bool resolve_cached_asset(const std::string &category, const std::string &filename, fs::path &out_staged_path, bool force_refresh = false);
