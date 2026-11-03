@@ -374,4 +374,28 @@ static std::vector<uint8_t> sha256_buffer(const uint8_t *data, size_t len)
     return ss.str();
 }
 
+static std::string execute_http_get(const std::string &url, const std::string &token = "")
+{
+    std::string resp_file = "/tmp/sentinel_http_get_resp.json";
+    std::string auth_header = !token.empty() ? "-H \"Authorization: Bearer " + token + "\" " : "";
+    std::string curl_cmd = "curl -sSL -w \"\\n%{http_code}\" " + auth_header + "\"" + url + "\" > " + resp_file + " 2>/dev/null";
+
+    int ret = std::system(curl_cmd.c_str());
+    (void)ret;
+
+    std::ifstream resp_in(resp_file);
+    std::string line, last_line, full_body;
+    while (std::getline(resp_in, line))
+    {
+        if (!line.empty())
+        {
+            last_line = line;
+            full_body += line + "\n";
+        }
+    }
+    resp_in.close();
+    fs::remove(resp_file);
+    return full_body;
+}
+
 // [PLACEHOLDER: Implementations of load_saved_credentials, resolve_cached_asset, get_enrolled_author_pubkey_hex remain identical to previous turns]
