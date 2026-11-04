@@ -628,7 +628,7 @@ std::string package_id_to_stem(const std::string &pkg_id)
     return (last_dot != std::string::npos) ? pkg_id.substr(last_dot + 1) : pkg_id;
 }
 
-static std::string extract_pubkey_from_privkey_hex(const fs::path &priv_key_path)
+std::string extract_pubkey_from_privkey_hex(const fs::path &priv_key_path)
 {
     FILE *fp = fopen(priv_key_path.c_str(), "rb");
     if (!fp) return "";
