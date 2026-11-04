@@ -67,4 +67,3 @@ std::string sign_file_bytes_hex(const fs::path &file_path, const fs::path &priv_
 SavedCredentials load_saved_credentials();
 std::string normalize_publish_endpoint(std::string url);
 
-// [PLACEHOLDER: Implementations of sha256_*, read_binary_file, extract_pubkey_*, sign_file_bytes_hex, and load_saved_credentials go here]

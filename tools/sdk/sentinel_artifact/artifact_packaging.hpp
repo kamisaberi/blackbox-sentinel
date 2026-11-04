@@ -12,4 +12,3 @@ bool cmd_verify(const std::string &pub_key_path, const std::string &spkg_path);
 bool cmd_extract_source(const std::string &spkg_path, const std::string &out_source_file);
 bool cmd_test_preflight(const std::string &spkg_path);
 
-// [PLACEHOLDER: Implementations of cmd_new, cmd_keygen, cmd_pack_*, cmd_inspect, cmd_verify, cmd_extract_source, and cmd_test_preflight go here]
