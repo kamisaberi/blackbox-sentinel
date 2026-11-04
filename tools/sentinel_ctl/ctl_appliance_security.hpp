@@ -550,6 +550,63 @@ int cmd_trism_test_jailbreak()
 
 // --- REPLACE cmd_trism_policy() WITH THIS BLOCK ---
 // --- REPLACE cmd_trism_policy() IN sentinel_ctl.cpp ---
+
+int cmd_trism_policy_push(const std::string &policy_file_path = "configs/trism_policy.yaml")
+{
+    fs::path p = policy_file_path;
+    if (!fs::exists(p))
+    {
+        std::cerr << "[-] Error: Policy file not found: " << p.string() << "\n";
+        return 1;
+    }
+
+    SavedCredentials creds = load_saved_credentials();
+    std::string token = !creds.jwt_token.empty() ? creds.jwt_token : creds.api_key;
+    if (token.empty())
+    {
+        std::cerr << "[-] Error: Authentication required. Run 'aryo login' first.\n";
+        return 1;
+    }
+
+    std::string base_api = normalize_registry_url(!creds.hub_url.empty() ? creds.hub_url : g_hub_url);
+    std::string endpoint = base_api + "/ai/trism/policy";
+
+    std::cout << "[*] Pushing AI TRiSM governance policy from " << p.string() << " to fleet...\n";
+
+    // Read YAML file
+    std::ifstream f(p);
+    std::stringstream buffer;
+    buffer << f.rdbuf();
+    std::string raw_yaml = buffer.str();
+
+    // Prepare JSON payload: {"require_human_approval": true} or direct policy push
+    std::string req_json = "{\"require_human_approval\": true}";
+    std::string resp_file = "/tmp/sentinel_trism_push_resp.json";
+    std::string curl_cmd = "curl -sSL -w \"\\n%{http_code}\" -X PUT \"" + endpoint + "\" " +
+                           "-H \"Authorization: Bearer " + token + "\" " +
+                           "-H \"Content-Type: application/json\" " +
+                           "-d '" + req_json + "' > " + resp_file + " 2>&1";
+
+    std::system(curl_cmd.c_str());
+
+    std::ifstream in(resp_file);
+    std::string line, last_line, body;
+    while (std::getline(in, line)) { if (!line.empty()) { last_line = line; body += line + "\n"; } }
+    in.close();
+    fs::remove(resp_file);
+
+    int code = 0;
+    try { code = std::stoi(last_line); } catch (...) {}
+
+    if (code == 200)
+    {
+        std::cout << "\033[1;32m[+] Fleet AI TRiSM Policy Successfully Updated on Backend!\033[0m\n";
+        return 0;
+    }
+    std::cerr << "\033[1;31m[-] Error (HTTP " << code << "): Failed to push TRiSM policy.\033[0m\n" << body << "\n";
+    return 1;
+}
+
 int cmd_trism_policy(const std::string &action = "show", const std::string &path = "configs/trism_policy.yaml")
 {
     if (action == "push")
@@ -695,61 +752,6 @@ int cmd_threat_vaccine_feed(int limit = 50)
 // -----------------------------------------------------------------------------
 // GAP 6: AI TRiSM FLEET POLICY PUSH (PUT /api/v1/ai/trism/policy)
 // -----------------------------------------------------------------------------
-int cmd_trism_policy_push(const std::string &policy_file_path = "configs/trism_policy.yaml")
-{
-    fs::path p = policy_file_path;
-    if (!fs::exists(p))
-    {
-        std::cerr << "[-] Error: Policy file not found: " << p.string() << "\n";
-        return 1;
-    }
-
-    SavedCredentials creds = load_saved_credentials();
-    std::string token = !creds.jwt_token.empty() ? creds.jwt_token : creds.api_key;
-    if (token.empty())
-    {
-        std::cerr << "[-] Error: Authentication required. Run 'aryo login' first.\n";
-        return 1;
-    }
-
-    std::string base_api = normalize_registry_url(!creds.hub_url.empty() ? creds.hub_url : g_hub_url);
-    std::string endpoint = base_api + "/ai/trism/policy";
-
-    std::cout << "[*] Pushing AI TRiSM governance policy from " << p.string() << " to fleet...\n";
-
-    // Read YAML file
-    std::ifstream f(p);
-    std::stringstream buffer;
-    buffer << f.rdbuf();
-    std::string raw_yaml = buffer.str();
-
-    // Prepare JSON payload: {"require_human_approval": true} or direct policy push
-    std::string req_json = "{\"require_human_approval\": true}";
-    std::string resp_file = "/tmp/sentinel_trism_push_resp.json";
-    std::string curl_cmd = "curl -sSL -w \"\\n%{http_code}\" -X PUT \"" + endpoint + "\" " +
-                           "-H \"Authorization: Bearer " + token + "\" " +
-                           "-H \"Content-Type: application/json\" " +
-                           "-d '" + req_json + "' > " + resp_file + " 2>&1";
-
-    std::system(curl_cmd.c_str());
-
-    std::ifstream in(resp_file);
-    std::string line, last_line, body;
-    while (std::getline(in, line)) { if (!line.empty()) { last_line = line; body += line + "\n"; } }
-    in.close();
-    fs::remove(resp_file);
-
-    int code = 0;
-    try { code = std::stoi(last_line); } catch (...) {}
-
-    if (code == 200)
-    {
-        std::cout << "\033[1;32m[+] Fleet AI TRiSM Policy Successfully Updated on Backend!\033[0m\n";
-        return 0;
-    }
-    std::cerr << "\033[1;31m[-] Error (HTTP " << code << "): Failed to push TRiSM policy.\033[0m\n" << body << "\n";
-    return 1;
-}
 
 // -----------------------------------------------------------------------------
 // GAP 8: OFFICIAL APPLIANCE PULL (.aryopack) (GET /api/v1/hub/appliances/{slug}/download)
