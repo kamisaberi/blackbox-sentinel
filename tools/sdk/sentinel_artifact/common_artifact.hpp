@@ -94,9 +94,100 @@ static std::vector<uint8_t> read_binary_file(const fs::path &p)
     return b;
 }
 
-std::string extract_pubkey_hex(const fs::path &pub_key_path);
-std::string extract_pubkey_from_privkey_hex(const fs::path &priv_key_path);
-std::string sign_file_bytes_hex(const fs::path &file_path, const fs::path &priv_key_path);
+static std::string extract_pubkey_hex(const fs::path &pub_key_path)
+{
+    FILE *fp = fopen(pub_key_path.c_str(), "rb");
+    if (!fp)
+        return "";
+    EVP_PKEY *pkey = PEM_read_PUBKEY(fp, nullptr, nullptr, nullptr);
+    fclose(fp);
+    if (!pkey)
+        return "";
+
+    size_t len = 32;
+    uint8_t raw_key[32];
+    if (EVP_PKEY_get_raw_public_key(pkey, raw_key, &len) == 1)
+    {
+        EVP_PKEY_free(pkey);
+        std::ostringstream ss;
+        for (size_t i = 0; i < len; ++i)
+        {
+            ss << std::hex << std::setw(2) << std::setfill('0') << static_cast<int>(raw_key[i]);
+        }
+        return ss.str();
+    }
+    EVP_PKEY_free(pkey);
+    return "";
+}
+
+static std::string extract_pubkey_from_privkey_hex(const fs::path &priv_key_path)
+{
+    FILE *fp = fopen(priv_key_path.c_str(), "rb");
+    if (!fp) return "";
+    EVP_PKEY *pkey = PEM_read_PrivateKey(fp, nullptr, nullptr, nullptr);
+    fclose(fp);
+    if (!pkey) return "";
+
+    size_t len = 32;
+    uint8_t raw_key[32];
+    std::string hex_str = "";
+    if (EVP_PKEY_get_raw_public_key(pkey, raw_key, &len) == 1)
+    {
+        std::ostringstream ss;
+        for (size_t i = 0; i < len; ++i)
+        {
+            ss << std::hex << std::setw(2) << std::setfill('0') << static_cast<int>(raw_key[i]);
+        }
+        hex_str = ss.str();
+    }
+    EVP_PKEY_free(pkey);
+    return hex_str;
+}
+
+
+static std::string sign_file_bytes_hex(const fs::path &file_path, const fs::path &priv_key_path)
+{
+    auto file_bytes = read_binary_file(file_path);
+    if (file_bytes.empty() || !fs::exists(priv_key_path))
+        return "";
+
+    FILE *fp = fopen(priv_key_path.c_str(), "rb");
+    if (!fp)
+        return "";
+
+    EVP_PKEY *pkey = PEM_read_PrivateKey(fp, nullptr, nullptr, nullptr);
+    fclose(fp);
+    if (!pkey)
+        return "";
+
+    EVP_MD_CTX *md_ctx = EVP_MD_CTX_new();
+    if (EVP_DigestSignInit(md_ctx, nullptr, nullptr, nullptr, pkey) != 1)
+    {
+        EVP_MD_CTX_free(md_ctx);
+        EVP_PKEY_free(pkey);
+        return "";
+    }
+
+    uint8_t sig[64];
+    size_t sig_len = sizeof(sig);
+    if (EVP_DigestSign(md_ctx, sig, &sig_len, file_bytes.data(), file_bytes.size()) != 1)
+    {
+        EVP_MD_CTX_free(md_ctx);
+        EVP_PKEY_free(pkey);
+        return "";
+    }
+
+    EVP_MD_CTX_free(md_ctx);
+    EVP_PKEY_free(pkey);
+
+    std::ostringstream ss;
+    for (size_t i = 0; i < sig_len; ++i)
+    {
+        ss << std::hex << std::setw(2) << std::setfill('0') << static_cast<int>(sig[i]);
+    }
+    return ss.str();
+}
+
 SavedCredentials load_saved_credentials();
 std::string normalize_publish_endpoint(std::string url);
 
