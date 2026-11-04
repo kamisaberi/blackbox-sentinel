@@ -114,33 +114,6 @@ bool cmd_new(const std::string &name, std::string lang)
     return true;
 }
 
-bool cmd_keygen(const std::string &prefix)
-{
-    EVP_PKEY_CTX *pctx = EVP_PKEY_CTX_new_id(EVP_PKEY_ED25519, nullptr);
-    if (!pctx)
-        return false;
-    EVP_PKEY_keygen_init(pctx);
-    EVP_PKEY *pkey = nullptr;
-    EVP_PKEY_keygen(pctx, &pkey);
-    EVP_PKEY_CTX_free(pctx);
-
-    std::string p_priv = prefix + "_private.pem";
-    std::string p_pub = prefix + "_public.pem";
-
-    FILE *f1 = fopen(p_priv.c_str(), "wb");
-    PEM_write_PrivateKey(f1, pkey, nullptr, nullptr, 0, nullptr, nullptr);
-    fclose(f1);
-
-    FILE *f2 = fopen(p_pub.c_str(), "wb");
-    PEM_write_PUBKEY(f2, pkey);
-    fclose(f2);
-
-    EVP_PKEY_free(pkey);
-    std::cout << "\033[1;32m[+] Generated Ed25519 Keypair:\033[0m\n"
-              << "    Private Key: " << p_priv << "\n"
-              << "    Public Key : " << p_pub << std::endl;
-    return true;
-}
 
 bool cmd_pack_raw(const std::string &priv_key_path,
                   uint32_t tier,
