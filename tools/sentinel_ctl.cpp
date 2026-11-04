@@ -546,6 +546,46 @@ int main(int argc, char *argv[])
             return cmd_blueprint_list();
     }
 
+
+    // Gap 2: Hub Yank
+    if (cmd == "hub" && argc >= 5 && std::string(argv[2]) == "yank")
+    {
+        return cmd_hub_yank(argv[3], argv[4]);
+    }
+
+    // Gap 3 & 4: Threat Vaccine Share & Feed
+    if (cmd == "threat" && argc >= 3)
+    {
+        std::string sub = argv[2];
+        if (sub == "vaccine-share" && argc >= 4) return cmd_threat_vaccine_share(argv[3]);
+        if (sub == "vaccine-feed") return cmd_threat_vaccine_feed((argc >= 4) ? std::stoi(argv[3]) : 50);
+    }
+
+    // Gap 5: Live-SBOM Drift Events
+    if (cmd == "sbom" && argc >= 3 && std::string(argv[2]) == "drift-events")
+    {
+        int limit = (argc >= 4) ? std::stoi(argv[3]) : 50;
+        return cmd_sbom_drift_events(limit);
+    }
+
+    // Gap 6: TRiSM Policy Push
+    if (cmd == "trism" && argc >= 4 && std::string(argv[2]) == "policy" && std::string(argv[3]) == "push")
+    {
+        std::string path = (argc >= 5) ? argv[4] : "configs/trism_policy.yaml";
+        return cmd_trism_policy_push(path);
+    }
+
+    // Gap 7: Raw Blueprint DAG
+    if (cmd == "blueprint" && argc >= 4 && std::string(argv[2]) == "raw-dag")
+    {
+        return cmd_blueprint_raw_dag(argv[3]);
+    }
+
+    // Gap 8: Appliance Pull
+    if (cmd == "appliance" && argc >= 4 && std::string(argv[2]) == "pull")
+    {
+        return cmd_appliance_pull(argv[3]);
+    }
     print_help();
     return 0;
 }
