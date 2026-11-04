@@ -887,4 +887,19 @@ int cmd_blueprint_list()
     return 0;
 }
 
-// [PLACEHOLDER: Full implementations of cmd_scenario_* and cmd_blueprint_* go here]
+// -----------------------------------------------------------------------------
+// GAP 7: RAW BLUEPRINT DAG RETRIEVAL (GET /api/v1/hub/blueprints/{slug}/raw-dag)
+// -----------------------------------------------------------------------------
+int cmd_blueprint_raw_dag(const std::string &slug)
+{
+    SavedCredentials creds = load_saved_credentials();
+    std::string base_api = normalize_registry_url(!creds.hub_url.empty() ? creds.hub_url : g_hub_url);
+    std::string endpoint = base_api + "/hub/blueprints/" + slug + "/raw-dag";
+
+    std::string token = !creds.jwt_token.empty() ? creds.jwt_token : creds.api_key;
+    std::string auth_hdr = !token.empty() ? ("-H \"Authorization: Bearer " + token + "\" ") : "";
+
+    std::string curl_cmd = "curl -sSL -f " + auth_hdr + "\"" + endpoint + "\"";
+    int ret = std::system(curl_cmd.c_str());
+    return ret == 0 ? 0 : 1;
+}
