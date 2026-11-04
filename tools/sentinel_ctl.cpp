@@ -406,6 +406,11 @@ int main(int argc, char *argv[])
             std::string slug = (argc >= 5) ? argv[4] : argv[3];
             return cmd_hub_info(type, slug);
         }
+
+        if (sub == "yank" && argc >= 5)
+        {
+            return cmd_hub_yank(argv[3], argv[4]);
+        }
     }
 
     // -------------------------------------------------------------------------
