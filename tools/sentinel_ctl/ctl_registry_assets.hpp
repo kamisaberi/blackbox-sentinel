@@ -832,4 +832,122 @@ int cmd_generic_list(const std::string &category, const std::string &stage_dir =
     return 0;
 }
 
-// [PLACEHOLDER: Full implementations of cmd_login, cmd_whoami, cmd_hub_*, cmd_model_*, cmd_pcap_* go here]
+// -----------------------------------------------------------------------------
+// GAP 1: AUTHOR KEY ROTATION (PUT /api/v1/hub/author/key)
+// -----------------------------------------------------------------------------
+int cmd_auth_update_key(const std::string &key_file_path = "")
+{
+    fs::path target_pem = key_file_path;
+    if (target_pem.empty())
+    {
+        const char *home = std::getenv("HOME");
+        target_pem = home ? (fs::path(home) / ".sentinel" / "keys" / "developer_private.pem") : fs::path("/etc/sentinel/keys/developer_private.pem");
+    }
+
+    if (!fs::exists(target_pem))
+    {
+        std::cerr << "[-] Error: Private key file not found: " << target_pem.string() << "\n";
+        return 1;
+    }
+
+    std::string new_pub_hex = extract_pubkey_from_privkey_hex(target_pem);
+    if (new_pub_hex.empty())
+    {
+        std::cerr << "[-] Error: Failed to derive Ed25519 public key from " << target_pem.string() << "\n";
+        return 1;
+    }
+
+    SavedCredentials creds = load_saved_credentials();
+    std::string token = !creds.jwt_token.empty() ? creds.jwt_token : creds.api_key;
+    if (token.empty())
+    {
+        std::cerr << "[-] Error: Authentication required. Run 'aryo login' first.\n";
+        return 1;
+    }
+
+    std::string base_api = normalize_registry_url(!creds.hub_url.empty() ? creds.hub_url : g_hub_url);
+    std::string endpoint = base_api + "/hub/author/key";
+
+    std::cout << "[*] Rotating author public key on backend to: " << new_pub_hex << "...\n";
+
+    std::string req_json = "{\"author_public_key\":\"" + new_pub_hex + "\"}";
+    std::string resp_file = "/tmp/sentinel_rotate_resp.json";
+    std::string curl_cmd = "curl -sSL -w \"\\n%{http_code}\" -X PUT \"" + endpoint + "\" " +
+                           "-H \"Authorization: Bearer " + token + "\" " +
+                           "-H \"Content-Type: application/json\" " +
+                           "-d '" + req_json + "' > " + resp_file + " 2>&1";
+
+    std::system(curl_cmd.c_str());
+
+    std::ifstream in(resp_file);
+    std::string line, last_line, body;
+    while (std::getline(in, line)) { if (!line.empty()) { last_line = line; body += line + "\n"; } }
+    in.close();
+    fs::remove(resp_file);
+
+    int code = 0;
+    try { code = std::stoi(last_line); } catch (...) {}
+
+    if (code == 200)
+    {
+        // Update credentials.json locally
+        fs::path c_path = get_credentials_path();
+        std::ofstream out(c_path);
+        out << "{\n"
+            << "  \"api_key\": \"" << creds.api_key << "\",\n"
+            << "  \"jwt_token\": \"" << creds.jwt_token << "\",\n"
+            << "  \"hub_url\": \"" << creds.hub_url << "\",\n"
+            << "  \"author_public_key\": \"" << new_pub_hex << "\"\n"
+            << "}\n";
+        out.close();
+
+        std::cout << "\033[1;32m[+] Author Public Key Successfully Rotated on Backend & Saved Locally!\033[0m\n"
+                  << "    New Author Key : " << new_pub_hex << "\n";
+        return 0;
+    }
+    std::cerr << "\033[1;31m[-] Error (HTTP " << code << "): Key rotation rejected.\033[0m\n" << body << "\n";
+    return 1;
+}
+
+// -----------------------------------------------------------------------------
+// GAP 2: ARTIFACT YANK / DELETE (DELETE /api/v1/hub/assets/{type}/{slug})
+// -----------------------------------------------------------------------------
+int cmd_hub_yank(const std::string &raw_type, const std::string &slug)
+{
+    SavedCredentials creds = load_saved_credentials();
+    std::string token = !creds.jwt_token.empty() ? creds.jwt_token : creds.api_key;
+    if (token.empty())
+    {
+        std::cerr << "[-] Error: Authentication required to yank artifacts. Run 'aryo login' first.\n";
+        return 1;
+    }
+
+    std::string base_api = normalize_registry_url(!creds.hub_url.empty() ? creds.hub_url : g_hub_url);
+    std::string asset_type = (raw_type.back() == 's' && raw_type != "pcapng") ? raw_type.substr(0, raw_type.size() - 1) : raw_type;
+    std::string endpoint = base_api + "/hub/assets/" + asset_type + "/" + slug;
+
+    std::cout << "[*] Requesting artifact yank/deletion for: " << asset_type << "/" << slug << "...\n";
+
+    std::string resp_file = "/tmp/sentinel_yank_resp.json";
+    std::string curl_cmd = "curl -sSL -w \"\\n%{http_code}\" -X DELETE \"" + endpoint + "\" " +
+                           "-H \"Authorization: Bearer " + token + "\" > " + resp_file + " 2>&1";
+
+    std::system(curl_cmd.c_str());
+
+    std::ifstream in(resp_file);
+    std::string line, last_line, body;
+    while (std::getline(in, line)) { if (!line.empty()) { last_line = line; body += line + "\n"; } }
+    in.close();
+    fs::remove(resp_file);
+
+    int code = 0;
+    try { code = std::stoi(last_line); } catch (...) {}
+
+    if (code == 200 || code == 204)
+    {
+        std::cout << "\033[1;32m[+] Successfully yanked/deleted " << asset_type << "/" << slug << " from Hub!\033[0m\n";
+        return 0;
+    }
+    std::cerr << "\033[1;31m[-] Error (HTTP " << code << "): Failed to yank artifact.\033[0m\n" << body << "\n";
+    return 1;
+}
