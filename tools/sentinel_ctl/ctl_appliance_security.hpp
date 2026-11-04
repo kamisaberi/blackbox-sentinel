@@ -550,8 +550,13 @@ int cmd_trism_test_jailbreak()
 
 // --- REPLACE cmd_trism_policy() WITH THIS BLOCK ---
 // --- REPLACE cmd_trism_policy() IN sentinel_ctl.cpp ---
-int cmd_trism_policy(const std::string &action = "show")
+int cmd_trism_policy(const std::string &action = "show", const std::string &path = "configs/trism_policy.yaml")
 {
+    if (action == "push")
+    {
+        return cmd_trism_policy_push(path);
+    }
+
     SavedCredentials creds = load_saved_credentials();
     std::string effective_url = !creds.hub_url.empty() ? creds.hub_url : g_hub_url;
     std::string base_api = normalize_registry_url(effective_url);
@@ -576,7 +581,7 @@ int cmd_trism_policy(const std::string &action = "show")
         return 1;
     }
 
-    fs::path p = "configs/trism_policy.yaml";
+    fs::path p = path.empty() ? fs::path("configs/trism_policy.yaml") : fs::path(path);
     if (fs::exists(p))
     {
         std::ifstream f(p);
@@ -592,6 +597,7 @@ int cmd_trism_policy(const std::string &action = "show")
     std::cerr << "[-] Error: Policy file not found at " << p.string() << ". Run 'aryo trism policy pull'.\n";
     return 1;
 }
+
 
 // -----------------------------------------------------------------------------
 // GAP 5: LIVE-SBOM DRIFT AUDIT FEED (GET /api/v1/compliance/sbom/drift-events)
