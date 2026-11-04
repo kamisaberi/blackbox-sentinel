@@ -564,9 +564,20 @@ int main(int argc, char *argv[])
     // Gap 5: Live-SBOM Drift Events
     if (cmd == "sbom" && argc >= 3 && std::string(argv[2]) == "drift-events")
     {
-        int limit = (argc >= 4) ? std::stoi(argv[3]) : 50;
-        return cmd_sbom_drift_events(limit);
-    }
+int limit = 50;
+        for (int i = 3; i < argc; ++i)
+        {
+            std::string arg = argv[i];
+            if ((arg == "--limit" || arg == "-l") && i + 1 < argc)
+            {
+                try { limit = std::stoi(argv[++i]); } catch (...) {}
+            }
+            else if (arg[0] != '-')
+            {
+                try { limit = std::stoi(arg); } catch (...) {}
+            }
+        }
+        return cmd_sbom_drift_events(limit);    }
 
     // Gap 6: TRiSM Policy Push
     if (cmd == "trism" && argc >= 4 && std::string(argv[2]) == "policy" && std::string(argv[3]) == "push")
