@@ -264,3 +264,30 @@ static std::string normalize_publish_endpoint(std::string url)
     return url + "/api/v1/hub/publish";
 }
 
+static std::string extract_json_field(const std::string &json, const std::string &key)
+{
+    std::string search = "\"" + key + "\"";
+    size_t pos = json.find(search);
+    if (pos == std::string::npos)
+        return "";
+    size_t colon = json.find(':', pos);
+    if (colon == std::string::npos)
+        return "";
+    size_t start = json.find_first_not_of(" \t\r\n", colon + 1);
+    if (start == std::string::npos)
+        return "";
+
+    if (json[start] == '"')
+    {
+        size_t end = json.find('"', start + 1);
+        if (end != std::string::npos)
+            return json.substr(start + 1, end - start - 1);
+    }
+    else
+    {
+        size_t end = json.find_first_of(",}\r\n", start);
+        if (end != std::string::npos)
+            return json.substr(start, end - start);
+    }
+    return "";
+}
