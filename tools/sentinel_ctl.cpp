@@ -521,7 +521,7 @@ int main(int argc, char *argv[])
             {
                 return cmd_trism_policy_push(path);
             }
-            return cmd_trism_policy(act);
+            return cmd_trism_policy(act,path);
         }
         if (sub == "add" && argc >= 5)
         {
