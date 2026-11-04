@@ -188,6 +188,79 @@ static std::string sign_file_bytes_hex(const fs::path &file_path, const fs::path
     return ss.str();
 }
 
-SavedCredentials load_saved_credentials();
-std::string normalize_publish_endpoint(std::string url);
+static SavedCredentials load_saved_credentials()
+{
+    SavedCredentials creds{};
+    const char *home = std::getenv("HOME");
+    std::vector<fs::path> cred_paths;
+    if (home)
+        cred_paths.push_back(fs::path(home) / ".sentinel" / "credentials.json");
+    cred_paths.push_back("/etc/sentinel/credentials.json");
+
+    for (const auto &p : cred_paths)
+    {
+        if (fs::exists(p))
+        {
+            std::ifstream f(p);
+            std::string line;
+            while (std::getline(f, line))
+            {
+                auto extract_field = [&](const std::string &key, std::string &target) {
+                    size_t pos = line.find("\"" + key + "\"");
+                    if (pos != std::string::npos) {
+                        size_t colon = line.find(':', pos);
+                        size_t start = line.find('"', colon + 1);
+                        size_t end = line.find('"', start + 1);
+                        if (start != std::string::npos && end != std::string::npos) {
+                            target = line.substr(start + 1, end - start - 1);
+                        }
+                    }
+                };
+                extract_field("api_key", creds.api_key);
+                extract_field("hub_url", creds.hub_url);
+                extract_field("author_public_key", creds.author_public_key);
+            }
+        }
+    }
+    return creds;
+}
+static std::string normalize_publish_endpoint(std::string url)
+{
+    if (url.empty())
+    {
+        url = "https://backend.aryorithm.com";
+    }
+
+    if (url.find("://") == std::string::npos)
+    {
+        if (url.rfind("localhost", 0) == 0 || url.rfind("127.0.0.1", 0) == 0)
+        {
+            url = "http://" + url;
+        }
+        else
+        {
+            url = "https://" + url;
+        }
+    }
+
+    while (!url.empty() && url.back() == '/')
+    {
+        url.pop_back();
+    }
+
+    if (url.rfind("/publish") != std::string::npos)
+    {
+        return url;
+    }
+    if (url.rfind("/api/v1/hub") != std::string::npos)
+    {
+        return url + "/publish";
+    }
+    if (url.rfind("/api/v1") != std::string::npos)
+    {
+        return url + "/hub/publish";
+    }
+
+    return url + "/api/v1/hub/publish";
+}
 
