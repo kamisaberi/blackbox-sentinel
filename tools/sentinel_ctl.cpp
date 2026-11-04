@@ -516,6 +516,11 @@ int main(int argc, char *argv[])
         if (sub == "policy")
         {
             std::string act = (argc >= 4) ? argv[3] : "show";
+            std::string path = (argc >= 5) ? argv[4] : "configs/trism_policy.yaml";
+            if (act == "push")
+            {
+                return cmd_trism_policy_push(path);
+            }
             return cmd_trism_policy(act);
         }
         if (sub == "add" && argc >= 5)
