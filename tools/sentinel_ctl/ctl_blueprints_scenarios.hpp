@@ -817,6 +817,43 @@ int cmd_blueprint_rollback()
     return 0;
 }
 
+int cmd_blueprint_pull(const std::string &slug)
+{
+    std::string filename = slug;
+    if (filename.size() < 10 || filename.substr(filename.size() - 10) != ".blueprint")
+        filename += ".blueprint";
+
+    std::string base_api = normalize_registry_url(g_hub_url);
+    SavedCredentials creds = load_saved_credentials();
+    std::string auth_hdr = !creds.api_key.empty() ? ("-H \"Authorization: Bearer " + creds.api_key + "\" ") : "";
+
+    fs::path cache_dir = get_cache_root() / "blueprints";
+    fs::create_directories(cache_dir);
+    fs::path cached_file = cache_dir / filename;
+
+    std::string pure_slug = fs::path(filename).stem().string();
+    if (pure_slug.rfind("blueprint_", 0) == 0)
+        pure_slug = pure_slug.substr(10);
+
+    std::string dl_url = base_api + "/hub/blueprints/" + pure_slug + "/download";
+    std::cout << "[*] Pulling blueprint from: " << dl_url << "\n";
+
+    std::string curl_cmd = "curl -sSL -f " + auth_hdr + "-o \"" + cached_file.string() + "\" \"" + dl_url + "\" 2>/dev/null";
+    int ret = std::system(curl_cmd.c_str());
+
+    if (ret != 0 || !fs::exists(cached_file) || fs::file_size(cached_file) == 0)
+    {
+        std::cerr << "[-] Error: Failed to download blueprint '" << slug << "' from Hub.\n";
+        return 1;
+    }
+
+    std::cout << "\033[1;32m[+] Staged blueprint to cache: " << cached_file.string() << " (" << fs::file_size(cached_file) << " bytes)\033[0m\n"
+              << "    Inspect with : aryo blueprint inspect " << cached_file.string() << "\n"
+              << "    Deploy with  : sudo aryo blueprint deploy " << cached_file.string() << "\n";
+    return 0;
+}
+
+
 int cmd_blueprint_list()
 {
     std::cout << "\033[1;36m========================================================================================================\033[0m\n";

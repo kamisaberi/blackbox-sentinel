@@ -60,11 +60,54 @@ struct SbomArtifact
     size_t size;
 };
 
+struct DependencyManifest
+{
+    std::vector<std::string> required_spkgs;
+    std::vector<std::string> required_models;
+};
+
 static std::string g_hub_url = "https://backend.aryorithm.com";
 
 // --- FUNCTION PROTOTYPES & UTILITIES ---
 
 // --- FUNCTION PROTOTYPES ---
+
+static std::vector<uint8_t> sha256_buffer(const uint8_t *data, size_t len)
+{
+    std::vector<uint8_t> hash(32);
+    EVP_MD_CTX *ctx = EVP_MD_CTX_new();
+    EVP_DigestInit_ex(ctx, EVP_sha256(), nullptr);
+    EVP_DigestUpdate(ctx, data, len);
+    unsigned int out_len = 0;
+    EVP_DigestFinal_ex(ctx, hash.data(), &out_len);
+    EVP_MD_CTX_free(ctx);
+    return hash;
+}
+
+[[maybe_unused]] static std::string sha256_hex(const uint8_t *data, size_t len)
+{
+    auto h = sha256_buffer(data, len);
+    std::ostringstream ss;
+    for (uint8_t b : h)
+    {
+        ss << std::hex << std::setw(2) << std::setfill('0') << static_cast<int>(b);
+    }
+    return ss.str();
+}
+
+
+static std::vector<uint8_t> read_binary_file(const fs::path &p)
+{
+    std::ifstream f(p, std::ios::binary | std::ios::ate);
+    if (!f.is_open())
+        return {};
+    size_t sz = f.tellg();
+    f.seekg(0, std::ios::beg);
+    std::vector<uint8_t> b(sz);
+    f.read(reinterpret_cast<char *>(b.data()), sz);
+    return b;
+}
+
 
 static SbomArtifact compute_artifact_sbom(const fs::path &p)
 {
@@ -84,17 +127,6 @@ static SbomArtifact compute_artifact_sbom(const fs::path &p)
     return a;
 }
 
-static std::vector<uint8_t> read_binary_file(const fs::path &p)
-{
-    std::ifstream f(p, std::ios::binary | std::ios::ate);
-    if (!f.is_open())
-        return {};
-    size_t sz = f.tellg();
-    f.seekg(0, std::ios::beg);
-    std::vector<uint8_t> b(sz);
-    f.read(reinterpret_cast<char *>(b.data()), sz);
-    return b;
-}
 
 static std::string trim(const std::string &s)
 {
@@ -347,28 +379,7 @@ bool resolve_cached_asset(const std::string &category,
     return true;
 }
 
-static std::vector<uint8_t> sha256_buffer(const uint8_t *data, size_t len)
-{
-    std::vector<uint8_t> hash(32);
-    EVP_MD_CTX *ctx = EVP_MD_CTX_new();
-    EVP_DigestInit_ex(ctx, EVP_sha256(), nullptr);
-    EVP_DigestUpdate(ctx, data, len);
-    unsigned int out_len = 0;
-    EVP_DigestFinal_ex(ctx, hash.data(), &out_len);
-    EVP_MD_CTX_free(ctx);
-    return hash;
-}
 
-[[maybe_unused]] static std::string sha256_hex(const uint8_t *data, size_t len)
-{
-    auto h = sha256_buffer(data, len);
-    std::ostringstream ss;
-    for (uint8_t b : h)
-    {
-        ss << std::hex << std::setw(2) << std::setfill('0') << static_cast<int>(b);
-    }
-    return ss.str();
-}
 
 static std::string execute_http_get(const std::string &url, const std::string &token = "")
 {
@@ -394,172 +405,228 @@ static std::string execute_http_get(const std::string &url, const std::string &t
     return full_body;
 }
 
-int cmd_install_spkg(const fs::path &spkg_path)
+// int cmd_install_spkg(const fs::path &spkg_path)
+// {
+//     if (!fs::exists(spkg_path))
+//     {
+//         std::cerr << "[-] Error: Package not found: " << spkg_path << std::endl;
+//         return 1;
+//     }
+
+//     auto container = read_binary_file(spkg_path);
+//     if (container.size() < sizeof(SpkgHeader))
+//     {
+//         std::cerr << "[-] Error: File too small to be a valid .spkg" << std::endl;
+//         return 1;
+//     }
+
+//     SpkgHeader hdr;
+//     std::memcpy(&hdr, container.data(), sizeof(hdr));
+
+//     if (hdr.magic != SPKG_MAGIC)
+//     {
+//         std::cerr << "[-] Error: Magic mismatch! Not a valid .spkg package." << std::endl;
+//         return 1;
+//     }
+
+//     const uint8_t *man_ptr = container.data() + sizeof(SpkgHeader);
+//     const uint8_t *pay_ptr = man_ptr + hdr.manifest_len;
+//     const uint8_t *src_ptr = pay_ptr + hdr.payload_len;
+//     const uint8_t *test_ptr = src_ptr + hdr.source_len;
+
+//     // Compute 4-way Merkle Tree Hash Input
+//     auto h_man = sha256_buffer(man_ptr, hdr.manifest_len);
+//     auto h_pay = sha256_buffer(pay_ptr, hdr.payload_len);
+//     auto h_src = sha256_buffer(src_ptr, hdr.source_len);
+//     auto h_test = sha256_buffer(test_ptr, hdr.test_vector_len);
+
+//     std::vector<uint8_t> merkle_input;
+//     merkle_input.insert(merkle_input.end(), h_man.begin(), h_man.end());
+//     merkle_input.insert(merkle_input.end(), h_pay.begin(), h_pay.end());
+//     merkle_input.insert(merkle_input.end(), h_src.begin(), h_src.end());
+//     merkle_input.insert(merkle_input.end(), h_test.begin(), h_test.end());
+
+//     bool signature_valid = false;
+//     std::string signer_type = "UNKNOWN";
+
+//     // -------------------------------------------------------------------------
+//     // TIER 1: Check Official Authority Root Key
+//     // -------------------------------------------------------------------------
+//     std::vector<fs::path> key_candidates = {
+//         "/home/kami/sentinel-hub/keys/authority_key_public.pem",
+//         "/etc/sentinel/authority_key_public.pem",
+//         "keys/authority_key_public.pem"};
+
+//     for (const auto &pub_key_path : key_candidates)
+//     {
+//         if (fs::exists(pub_key_path))
+//         {
+//             FILE *fp = fopen(pub_key_path.c_str(), "rb");
+//             if (fp)
+//             {
+//                 EVP_PKEY *pkey = PEM_read_PUBKEY(fp, nullptr, nullptr, nullptr);
+//                 fclose(fp);
+//                 if (pkey)
+//                 {
+//                     EVP_MD_CTX *ctx = EVP_MD_CTX_new();
+//                     EVP_DigestVerifyInit(ctx, nullptr, nullptr, nullptr, pkey);
+//                     int res = EVP_DigestVerify(ctx, hdr.signature, 64, merkle_input.data(), merkle_input.size());
+//                     EVP_MD_CTX_free(ctx);
+//                     EVP_PKEY_free(pkey);
+
+//                     if (res == 1)
+//                     {
+//                         signature_valid = true;
+//                         signer_type = "OFFICIAL_AUTHORITY_ROOT";
+//                         break;
+//                     }
+//                 }
+//             }
+//         }
+//     }
+
+//     // -------------------------------------------------------------------------
+//     // TIER 2: Check Developer Key Embedded in Manifest (author_public_key)
+//     // -------------------------------------------------------------------------
+//     if (!signature_valid && hdr.manifest_len > 0)
+//     {
+//         std::string manifest_str(reinterpret_cast<const char *>(man_ptr), hdr.manifest_len);
+//         std::string search_key = "\"author_public_key\"";
+//         size_t pos = manifest_str.find(search_key);
+//         if (pos != std::string::npos)
+//         {
+//             size_t colon = manifest_str.find(':', pos);
+//             size_t start = manifest_str.find('"', colon + 1);
+//             size_t end = manifest_str.find('"', start + 1);
+//             if (start != std::string::npos && end != std::string::npos)
+//             {
+//                 std::string hex_key = manifest_str.substr(start + 1, end - start - 1);
+//                 if (hex_key.length() == 64)
+//                 {
+//                     uint8_t raw_pubkey[32];
+//                     for (size_t i = 0; i < 32; ++i)
+//                     {
+//                         raw_pubkey[i] = static_cast<uint8_t>(std::strtoul(hex_key.substr(i * 2, 2).c_str(), nullptr, 16));
+//                     }
+
+//                     EVP_PKEY *dev_pkey = EVP_PKEY_new_raw_public_key(EVP_PKEY_ED25519, nullptr, raw_pubkey, 32);
+//                     if (dev_pkey)
+//                     {
+//                         EVP_MD_CTX *ctx = EVP_MD_CTX_new();
+//                         EVP_DigestVerifyInit(ctx, nullptr, nullptr, nullptr, dev_pkey);
+//                         int res = EVP_DigestVerify(ctx, hdr.signature, 64, merkle_input.data(), merkle_input.size());
+//                         EVP_MD_CTX_free(ctx);
+//                         EVP_PKEY_free(dev_pkey);
+
+//                         if (res == 1)
+//                         {
+//                             signature_valid = true;
+//                             signer_type = "CERTIFIED_DEVELOPER (" + hex_key.substr(0, 16) + "...)";
+//                         }
+//                     }
+//                 }
+//             }
+//         }
+//     }
+
+//     // -------------------------------------------------------------------------
+//     // Enforce Verification Verdict
+//     // -------------------------------------------------------------------------
+//     if (!signature_valid)
+//     {
+//         std::cerr << "\033[1;31m[-] CRITICAL ERROR: Cryptographic signature verification failed! Package is TAMPERED.\033[0m\n";
+//         return 1;
+//     }
+
+//     std::cout << "[+] \033[1;32mEd25519 Merkle Signature VERIFIED AUTHENTIC [" << signer_type << "].\033[0m\n";
+
+//     // Deploy to appropriate runtime directory
+//     std::string stem = spkg_path.stem().string();
+//     fs::path target_dir;
+//     std::string ext;
+
+//     if (hdr.tier == 0)
+//     {
+//         target_dir = "/etc/sentinel/plugins.d";
+//         ext = ".so";
+//     }
+//     else if (hdr.tier == 1)
+//     {
+//         target_dir = "/etc/sentinel/wasm.d";
+//         ext = ".wasm";
+//     }
+//     else
+//     {
+//         target_dir = "/etc/sentinel/rules.d";
+//         ext = ".lua";
+//     }
+
+//     fs::create_directories(target_dir);
+//     fs::path dest = target_dir / (stem + ext);
+
+//     std::ofstream out(dest, std::ios::binary);
+//     out.write(reinterpret_cast<const char *>(pay_ptr), hdr.payload_len);
+//     out.close();
+
+//     std::cout << "\033[1;32m[+] Successfully deployed " << spkg_path.filename().string()
+//               << " -> " << dest.string() << " (" << hdr.payload_len << " bytes)\033[0m\n";
+//     return 0;
+// }
+
+DependencyManifest parse_yaml_requirements(const fs::path &yaml_path)
 {
-    if (!fs::exists(spkg_path))
+    DependencyManifest manifest;
+    std::ifstream file(yaml_path);
+    if (!file.is_open())
+        return manifest;
+
+    std::string line;
+    while (std::getline(file, line))
     {
-        std::cerr << "[-] Error: Package not found: " << spkg_path << std::endl;
-        return 1;
-    }
+        auto comment_pos = line.find('#');
+        if (comment_pos != std::string::npos)
+            line = line.substr(0, comment_pos);
 
-    auto container = read_binary_file(spkg_path);
-    if (container.size() < sizeof(SpkgHeader))
-    {
-        std::cerr << "[-] Error: File too small to be a valid .spkg" << std::endl;
-        return 1;
-    }
+        auto colon_pos = line.find(':');
+        if (colon_pos == std::string::npos)
+            continue;
 
-    SpkgHeader hdr;
-    std::memcpy(&hdr, container.data(), sizeof(hdr));
+        std::string raw_key = line.substr(0, colon_pos);
+        std::string raw_val = line.substr(colon_pos + 1);
 
-    if (hdr.magic != SPKG_MAGIC)
-    {
-        std::cerr << "[-] Error: Magic mismatch! Not a valid .spkg package." << std::endl;
-        return 1;
-    }
+        auto k_start = raw_key.find_first_not_of(" \t\r\n-");
+        if (k_start == std::string::npos)
+            continue;
+        auto k_end = raw_key.find_last_not_of(" \t\r\n");
+        std::string key = raw_key.substr(k_start, k_end - k_start + 1);
 
-    const uint8_t *man_ptr = container.data() + sizeof(SpkgHeader);
-    const uint8_t *pay_ptr = man_ptr + hdr.manifest_len;
-    const uint8_t *src_ptr = pay_ptr + hdr.payload_len;
-    const uint8_t *test_ptr = src_ptr + hdr.source_len;
+        std::string val = trim(raw_val);
+        if (val.empty())
+            continue;
 
-    // Compute 4-way Merkle Tree Hash Input
-    auto h_man = sha256_buffer(man_ptr, hdr.manifest_len);
-    auto h_pay = sha256_buffer(pay_ptr, hdr.payload_len);
-    auto h_src = sha256_buffer(src_ptr, hdr.source_len);
-    auto h_test = sha256_buffer(test_ptr, hdr.test_vector_len);
-
-    std::vector<uint8_t> merkle_input;
-    merkle_input.insert(merkle_input.end(), h_man.begin(), h_man.end());
-    merkle_input.insert(merkle_input.end(), h_pay.begin(), h_pay.end());
-    merkle_input.insert(merkle_input.end(), h_src.begin(), h_src.end());
-    merkle_input.insert(merkle_input.end(), h_test.begin(), h_test.end());
-
-    bool signature_valid = false;
-    std::string signer_type = "UNKNOWN";
-
-    // -------------------------------------------------------------------------
-    // TIER 1: Check Official Authority Root Key
-    // -------------------------------------------------------------------------
-    std::vector<fs::path> key_candidates = {
-        "/home/kami/sentinel-hub/keys/authority_key_public.pem",
-        "/etc/sentinel/authority_key_public.pem",
-        "keys/authority_key_public.pem"};
-
-    for (const auto &pub_key_path : key_candidates)
-    {
-        if (fs::exists(pub_key_path))
+        if (key == "package_id")
         {
-            FILE *fp = fopen(pub_key_path.c_str(), "rb");
-            if (fp)
+            if (std::find(manifest.required_spkgs.begin(), manifest.required_spkgs.end(), val) == manifest.required_spkgs.end())
             {
-                EVP_PKEY *pkey = PEM_read_PUBKEY(fp, nullptr, nullptr, nullptr);
-                fclose(fp);
-                if (pkey)
-                {
-                    EVP_MD_CTX *ctx = EVP_MD_CTX_new();
-                    EVP_DigestVerifyInit(ctx, nullptr, nullptr, nullptr, pkey);
-                    int res = EVP_DigestVerify(ctx, hdr.signature, 64, merkle_input.data(), merkle_input.size());
-                    EVP_MD_CTX_free(ctx);
-                    EVP_PKEY_free(pkey);
-
-                    if (res == 1)
-                    {
-                        signature_valid = true;
-                        signer_type = "OFFICIAL_AUTHORITY_ROOT";
-                        break;
-                    }
-                }
+                manifest.required_spkgs.push_back(val);
+            }
+        }
+        else if (key == "model_id")
+        {
+            if (std::find(manifest.required_models.begin(), manifest.required_models.end(), val) == manifest.required_models.end())
+            {
+                manifest.required_models.push_back(val);
             }
         }
     }
-
-    // -------------------------------------------------------------------------
-    // TIER 2: Check Developer Key Embedded in Manifest (author_public_key)
-    // -------------------------------------------------------------------------
-    if (!signature_valid && hdr.manifest_len > 0)
-    {
-        std::string manifest_str(reinterpret_cast<const char *>(man_ptr), hdr.manifest_len);
-        std::string search_key = "\"author_public_key\"";
-        size_t pos = manifest_str.find(search_key);
-        if (pos != std::string::npos)
-        {
-            size_t colon = manifest_str.find(':', pos);
-            size_t start = manifest_str.find('"', colon + 1);
-            size_t end = manifest_str.find('"', start + 1);
-            if (start != std::string::npos && end != std::string::npos)
-            {
-                std::string hex_key = manifest_str.substr(start + 1, end - start - 1);
-                if (hex_key.length() == 64)
-                {
-                    uint8_t raw_pubkey[32];
-                    for (size_t i = 0; i < 32; ++i)
-                    {
-                        raw_pubkey[i] = static_cast<uint8_t>(std::strtoul(hex_key.substr(i * 2, 2).c_str(), nullptr, 16));
-                    }
-
-                    EVP_PKEY *dev_pkey = EVP_PKEY_new_raw_public_key(EVP_PKEY_ED25519, nullptr, raw_pubkey, 32);
-                    if (dev_pkey)
-                    {
-                        EVP_MD_CTX *ctx = EVP_MD_CTX_new();
-                        EVP_DigestVerifyInit(ctx, nullptr, nullptr, nullptr, dev_pkey);
-                        int res = EVP_DigestVerify(ctx, hdr.signature, 64, merkle_input.data(), merkle_input.size());
-                        EVP_MD_CTX_free(ctx);
-                        EVP_PKEY_free(dev_pkey);
-
-                        if (res == 1)
-                        {
-                            signature_valid = true;
-                            signer_type = "CERTIFIED_DEVELOPER (" + hex_key.substr(0, 16) + "...)";
-                        }
-                    }
-                }
-            }
-        }
-    }
-
-    // -------------------------------------------------------------------------
-    // Enforce Verification Verdict
-    // -------------------------------------------------------------------------
-    if (!signature_valid)
-    {
-        std::cerr << "\033[1;31m[-] CRITICAL ERROR: Cryptographic signature verification failed! Package is TAMPERED.\033[0m\n";
-        return 1;
-    }
-
-    std::cout << "[+] \033[1;32mEd25519 Merkle Signature VERIFIED AUTHENTIC [" << signer_type << "].\033[0m\n";
-
-    // Deploy to appropriate runtime directory
-    std::string stem = spkg_path.stem().string();
-    fs::path target_dir;
-    std::string ext;
-
-    if (hdr.tier == 0)
-    {
-        target_dir = "/etc/sentinel/plugins.d";
-        ext = ".so";
-    }
-    else if (hdr.tier == 1)
-    {
-        target_dir = "/etc/sentinel/wasm.d";
-        ext = ".wasm";
-    }
-    else
-    {
-        target_dir = "/etc/sentinel/rules.d";
-        ext = ".lua";
-    }
-
-    fs::create_directories(target_dir);
-    fs::path dest = target_dir / (stem + ext);
-
-    std::ofstream out(dest, std::ios::binary);
-    out.write(reinterpret_cast<const char *>(pay_ptr), hdr.payload_len);
-    out.close();
-
-    std::cout << "\033[1;32m[+] Successfully deployed " << spkg_path.filename().string()
-              << " -> " << dest.string() << " (" << hdr.payload_len << " bytes)\033[0m\n";
-    return 0;
+    return manifest;
 }
+
+std::string package_id_to_stem(const std::string &pkg_id)
+{
+    auto last_dot = pkg_id.find_last_of('.');
+    return (last_dot != std::string::npos) ? pkg_id.substr(last_dot + 1) : pkg_id;
+}
+
 
 // [PLACEHOLDER: Implementations of load_saved_credentials, resolve_cached_asset, get_enrolled_author_pubkey_hex remain identical to previous turns]
