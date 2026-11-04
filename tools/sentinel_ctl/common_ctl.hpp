@@ -628,5 +628,27 @@ std::string package_id_to_stem(const std::string &pkg_id)
     return (last_dot != std::string::npos) ? pkg_id.substr(last_dot + 1) : pkg_id;
 }
 
+static std::string extract_pubkey_from_privkey_hex(const fs::path &priv_key_path)
+{
+    FILE *fp = fopen(priv_key_path.c_str(), "rb");
+    if (!fp) return "";
+    EVP_PKEY *pkey = PEM_read_PrivateKey(fp, nullptr, nullptr, nullptr);
+    fclose(fp);
+    if (!pkey) return "";
 
-// [PLACEHOLDER: Implementations of load_saved_credentials, resolve_cached_asset, get_enrolled_author_pubkey_hex remain identical to previous turns]
+    size_t len = 32;
+    uint8_t raw_key[32];
+    std::string hex_str = "";
+    if (EVP_PKEY_get_raw_public_key(pkey, raw_key, &len) == 1)
+    {
+        std::ostringstream ss;
+        for (size_t i = 0; i < len; ++i)
+        {
+            ss << std::hex << std::setw(2) << std::setfill('0') << static_cast<int>(raw_key[i]);
+        }
+        hex_str = ss.str();
+    }
+    EVP_PKEY_free(pkey);
+    return hex_str;
+}
+
