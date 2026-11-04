@@ -94,6 +94,34 @@ static std::vector<uint8_t> read_binary_file(const fs::path &p)
     return b;
 }
 
+bool cmd_keygen(const std::string &prefix)
+{
+    EVP_PKEY_CTX *pctx = EVP_PKEY_CTX_new_id(EVP_PKEY_ED25519, nullptr);
+    if (!pctx)
+        return false;
+    EVP_PKEY_keygen_init(pctx);
+    EVP_PKEY *pkey = nullptr;
+    EVP_PKEY_keygen(pctx, &pkey);
+    EVP_PKEY_CTX_free(pctx);
+
+    std::string p_priv = prefix + "_private.pem";
+    std::string p_pub = prefix + "_public.pem";
+
+    FILE *f1 = fopen(p_priv.c_str(), "wb");
+    PEM_write_PrivateKey(f1, pkey, nullptr, nullptr, 0, nullptr, nullptr);
+    fclose(f1);
+
+    FILE *f2 = fopen(p_pub.c_str(), "wb");
+    PEM_write_PUBKEY(f2, pkey);
+    fclose(f2);
+
+    EVP_PKEY_free(pkey);
+    std::cout << "\033[1;32m[+] Generated Ed25519 Keypair:\033[0m\n"
+              << "    Private Key: " << p_priv << "\n"
+              << "    Public Key : " << p_pub << std::endl;
+    return true;
+}
+
 static std::string extract_pubkey_hex(const fs::path &pub_key_path)
 {
     FILE *fp = fopen(pub_key_path.c_str(), "rb");
@@ -290,4 +318,16 @@ static std::string extract_json_field(const std::string &json, const std::string
             return json.substr(start, end - start);
     }
     return "";
+}
+
+static std::vector<uint8_t> hex_to_bytes(const std::string &hex)
+{
+    std::vector<uint8_t> bytes;
+    for (size_t i = 0; i + 1 < hex.length(); i += 2)
+    {
+        std::string byte_str = hex.substr(i, 2);
+        uint8_t b = static_cast<uint8_t>(std::strtoul(byte_str.c_str(), nullptr, 16));
+        bytes.push_back(b);
+    }
+    return bytes;
 }
