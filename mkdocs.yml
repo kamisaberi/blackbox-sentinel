@@ -1,0 +1,199 @@
+site_name: Blackbox Sentinel Documentation
+site_description: Commercial Cyber-Physical Edge XDR & SIEM Appliance Daemon (Tier 3)
+site_author: Aryorithm Technologies B.V.
+site_url: https://docs.aryorithm.com/sentinel/
+repo_name: kamisaberi/blackbox-sentinel
+repo_url: https://github.com/kamisaberi/blackbox-sentinel
+
+theme:
+  name: material
+  language: en
+  palette:
+    - scheme: slate
+      primary: cyan
+      accent: red
+      toggle:
+        icon: material/weather-night
+        name: Switch to light mode
+    - scheme: default
+      primary: cyan
+      accent: red
+      toggle:
+        icon: material/weather-sunny
+        name: Switch to dark mode
+  features:
+    - navigation.instant
+    - navigation.tracking
+    - navigation.tabs
+    - navigation.sections
+    - navigation.expand
+    - navigation.top
+    - search.suggest
+    - search.highlight
+    - content.code.copy
+    - content.code.annotate
+
+plugins:
+  - search
+
+markdown_extensions:
+  - admonition
+  - pymdownx.details
+  - pymdownx.superfences:
+      custom_fences:
+        - name: mermaid
+          class: mermaid
+          format: !!python/name:pymdownx.superfences.fence_code_format
+  - pymdownx.highlight:
+      anchor_linenums: true
+      line_spans: __span
+      pygments_lang_class: true
+  - pymdownx.inlinehilite
+  - pymdownx.tabbed:
+      alternate_style: true
+  - pymdownx.arithmatex:
+      generic: true
+  - tables
+  - attr_list
+  - md_in_html
+
+extra_javascript:
+  - https://polyfill.io/v3/polyfill.min.js?features=es6
+  - https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js
+
+nav:
+  - Home: index.md
+  - Getting Started:
+      - Overview: getting-started/overview.md
+      - Hardware Specifications: getting-started/hardware-specifications.md
+      - System Requirements: getting-started/system-requirements.md
+      - Installation: getting-started/installation.md
+      - Initial Configuration: getting-started/initial-configuration.md
+      - Shadow Mode Evaluation: getting-started/shadow-mode-evaluation.md
+      - First Threat Mitigation: getting-started/first-threat-mitigation.md
+      - Verifying Appliance Health: getting-started/verifying-appliance-health.md
+  - Architecture:
+      - Appliance Architecture: architecture/appliance-architecture.md
+      - Unidirectional Pipeline: architecture/unidirectional-pipeline.md
+      - Memory Safety Invariants: architecture/memory-safety-invariants.md
+      - Dynamic Plugin Loader: architecture/dynamic-plugin-loader.md
+      - Port Arbitration Model: architecture/port-arbitration-model.md
+      - Under-the-Hood Bindings: architecture/under-the-hood-bindings.md
+  - 26 Native Subsystems:
+      - Subsystems Overview: subsystems-26/index.md
+      - Enterprise IT & Detection:
+          - 01 SIEM Core: subsystems-26/enterprise-it/01-siem-core.md
+          - 02 UEBA: subsystems-26/enterprise-it/02-ueba.md
+          - 03 NDR: subsystems-26/enterprise-it/03-ndr.md
+          - 04 IDS/IPS: subsystems-26/enterprise-it/04-ids-ips.md
+          - 15 NGFW: subsystems-26/enterprise-it/15-ngfw.md
+      - Web & Application:
+          - 05 WAF: subsystems-26/web-application/05-waf.md
+          - 10 BAD: subsystems-26/web-application/10-bad.md
+          - 11 RASP: subsystems-26/web-application/11-rasp.md
+      - Host, Workload & Binary:
+          - 06 EDR: subsystems-26/host-endpoint/06-edr.md
+          - 07 EPP/NGAV: subsystems-26/host-endpoint/07-epp-ngav.md
+          - 09 CWPP: subsystems-26/host-endpoint/09-cwpp.md
+          - 16 CDR: subsystems-26/host-endpoint/16-cdr.md
+          - 20 FSE: subsystems-26/host-endpoint/20-fse.md
+      - Identity & Access:
+          - 08 NAC: subsystems-26/identity-access/08-nac.md
+          - 12 ITDR: subsystems-26/identity-access/12-itdr.md
+          - 14 ATO: subsystems-26/identity-access/14-ato.md
+          - 24 ZTNA: subsystems-26/identity-access/24-ztna.md
+      - Cyber-Physical OT:
+          - 17 IoT Security: subsystems-26/cyber-physical-ot/17-iot-sec.md
+          - 18 CPS Security: subsystems-26/cyber-physical-ot/18-cps-sec.md
+          - 21 Side-Channel Defense: subsystems-26/cyber-physical-ot/21-side-channel.md
+      - Forensics, Control & Deception:
+          - 13 DDoS Guard: subsystems-26/forensics-advanced/13-ddos.md
+          - 19 SWG: subsystems-26/forensics-advanced/19-swg.md
+          - 22 DFIR: subsystems-26/forensics-advanced/22-dfir.md
+          - 23 AI-TRiSM: subsystems-26/forensics-advanced/23-ai-trism.md
+          - 25 FDP: subsystems-26/forensics-advanced/25-fdp.md
+          - 26 DDP: subsystems-26/forensics-advanced/26-ddp.md
+  - 30 Protocol Dissectors:
+      - Plugin Architecture: plugins-30/plugin-architecture.md
+      - Industrial OT:
+          - Modbus TCP: plugins-30/industrial-ot/modbus-tcp.md
+          - DNP3 Substation: plugins-30/industrial-ot/dnp3-substation.md
+          - Siemens S7Comm: plugins-30/industrial-ot/siemens-s7comm.md
+          - PROFINET RT: plugins-30/industrial-ot/profinet-rt.md
+          - EtherNet/IP CIP: plugins-30/industrial-ot/ethernet-ip-cip.md
+          - HART-IP: plugins-30/industrial-ot/hart-ip.md
+          - Mitsubishi MELSEC: plugins-30/industrial-ot/mitsubishi-melsec.md
+          - Omron FINS: plugins-30/industrial-ot/omron-fins.md
+      - Energy & Utilities:
+          - IEC 60870-5-104: plugins-30/energy-utilities/iec-60870-5-104.md
+          - IEC 61850 GOOSE: plugins-30/energy-utilities/iec-61850-goose.md
+          - IEC 61850 MMS: plugins-30/energy-utilities/iec-61850-mms.md
+          - OPC UA Binary: plugins-30/energy-utilities/opc-ua-binary.md
+          - BACnet/IP: plugins-30/energy-utilities/bacnet-ip.md
+          - Modbus RTU Serial: plugins-30/energy-utilities/modbus-rtu-serial.md
+          - ENIP CIP: plugins-30/energy-utilities/enip-cip.md
+          - FOUNDATION Fieldbus: plugins-30/energy-utilities/foundation-fieldbus.md
+      - Aviation, Maritime & Defense:
+          - CCSDS Space Guard: plugins-30/aviation-maritime-defense/ccsds-space-guard.md
+          - MAVLink UAV: plugins-30/aviation-maritime-defense/mavlink-uav.md
+          - AIS Maritime: plugins-30/aviation-maritime-defense/ais-maritime.md
+          - NMEA GPS: plugins-30/aviation-maritime-defense/nmea-gps.md
+          - ADS-B Avionics: plugins-30/aviation-maritime-defense/ads-b-avionics.md
+          - STANAG 4586: plugins-30/aviation-maritime-defense/stanag-4586.md
+          - MIL-STD-1553: plugins-30/aviation-maritime-defense/mil-std-1553.md
+          - CAN Bus Automotive: plugins-30/aviation-maritime-defense/canbus-automotive.md
+      - Healthcare & SIEM Forwarders:
+          - DICOM PACS: plugins-30/healthcare-and-siem/dicom-pacs.md
+          - HL7 v2: plugins-30/healthcare-and-siem/hl7-v2.md
+          - CEF Forwarder: plugins-30/healthcare-and-siem/cef-forwarder.md
+          - LEEF Forwarder: plugins-30/healthcare-and-siem/leef-forwarder.md
+          - Syslog RFC 5424: plugins-30/healthcare-and-siem/syslog-rfc5424.md
+          - Kafka Producer: plugins-30/healthcare-and-siem/kafka-producer.md
+          - SNMP v3 Trap: plugins-30/healthcare-and-siem/snmp-v3-trap.md
+          - NetFlow v9/IPFIX: plugins-30/healthcare-and-siem/netflow-v9-ipfix.md
+  - Nexus Uplink:
+      - Uplink Architecture: nexus-uplink/uplink-architecture.md
+      - Hardware Enrollment: nexus-uplink/hardware-enrollment-flow.md
+      - Telemetry & Heartbeats: nexus-uplink/telemetry-and-heartbeats.md
+      - Collective Defense Sync: nexus-uplink/collective-defense-sync.md
+      - Kernel Drop Injector: nexus-uplink/kernel-drop-injector.md
+      - OTA Model Updates: nexus-uplink/ota-model-updates.md
+      - Instant Graceful Disconnect: nexus-uplink/instant-graceful-disconnect.md
+  - Web Command Center (Port 8443):
+      - Web Console Overview: web-command-center/web-console-overview.md
+      - Zero-CDN Guarantee: web-command-center/zero-cdn-guarantee.md
+      - Active Telemetry Monitoring: web-command-center/active-telemetry-monitoring.md
+      - eBPF Drop Table Management: web-command-center/ebpf-drop-table-management.md
+      - XAI Audit Proof Viewer: web-command-center/xai-audit-proof-viewer.md
+      - Compliance Report Viewer: web-command-center/compliance-report-viewer.md
+  - Licensing & Entitlements:
+      - Licensing Architecture: licensing-and-entitlements/licensing-architecture.md
+      - License Manager Engine: licensing-and-entitlements/license-manager-engine.md
+      - Community vs Enterprise: licensing-and-entitlements/community-vs-enterprise.md
+      - Generating Hardware Tokens: licensing-and-entitlements/generating-hardware-tokens.md
+      - Applying License Envelopes: licensing-and-entitlements/applying-license-envelopes.md
+      - TPM PCR Silicon Locking: licensing-and-entitlements/hardware-pcr-silicon-locking.md
+  - Configuration Reference:
+      - sentinel.yaml Specification: configuration-reference/sentinel-yaml-specification.md
+      - Module Tuning Parameters: configuration-reference/module-tuning-parameters.md
+      - SCADA Safety Thresholds: configuration-reference/scada-safety-thresholds.md
+      - Environment Variables: configuration-reference/environment-variables.md
+      - systemd Service Tuning: configuration-reference/systemd-service-tuning.md
+  - Tutorials:
+      - Deploying Shadow Mode Audit: tutorials/deploying-shadow-mode-audit.md
+      - Protecting Modbus Substation PLC: tutorials/protecting-modbus-substation-plc.md
+      - Securing Hospital PACS Enclave: tutorials/securing-hospital-pacs-enclave.md
+      - Container Breakout Prevention: tutorials/container-breakout-prevention.md
+      - Deploying Synthetic Decoy PLCs: tutorials/deploying-synthetic-decoy-plcs.md
+  - Compliance:
+      - IEC 62443 Industrial Audit: compliance/iec-62443-industrial-audit.md
+      - CMMC 2.0 Level 2 Audit: compliance/cmmc-2.0-level-2-audit.md
+      - EU NIS 2 Directive: compliance/eu-nis2-directive.md
+      - Tamper-Evident Evidence Logging: compliance/tamper-evident-evidence-logging.md
+  - Troubleshooting:
+      - Startup & Config Errors: troubleshooting/startup-and-config-errors.md
+      - eBPF Driver Attachment Issues: troubleshooting/ebpf-driver-attachment-issues.md
+      - Plugin Loading Failures: troubleshooting/plugin-loading-failures.md
+      - Nexus Uplink Disconnections: troubleshooting/nexus-uplink-disconnections.md
+      - FAQ: troubleshooting/faq.md
+      - Support & SLAs: troubleshooting/support.md
