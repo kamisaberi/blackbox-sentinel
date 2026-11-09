@@ -504,7 +504,7 @@ int main(int argc, char *argv[])
     {
         std::string sub = argv[2];
 
-// --- ADD INSIDE if (cmd == "blueprint") IN sentinel_ctl.cpp ---
+        // --- ADD INSIDE if (cmd == "blueprint") IN sentinel_ctl.cpp ---
         if (sub == "from-scenario" && argc >= 4)
         {
             std::string scen_path = argv[3];
@@ -516,11 +516,16 @@ int main(int argc, char *argv[])
 
             for (int i = 4; i < argc; ++i)
             {
-                if (std::string(argv[i]) == "--site" && i + 1 < argc) site = argv[++i];
-                else if (std::string(argv[i]) == "--interface" && i + 1 < argc) iface = argv[++i];
-                else if (std::string(argv[i]) == "--af-xdp" && i + 1 < argc) af_xdp = argv[++i];
-                else if (std::string(argv[i]) == "--arch" && i + 1 < argc) arch = argv[++i];
-                else if (std::string(argv[i]) == "--no-pack") pack_archive = false;
+                if (std::string(argv[i]) == "--site" && i + 1 < argc)
+                    site = argv[++i];
+                else if (std::string(argv[i]) == "--interface" && i + 1 < argc)
+                    iface = argv[++i];
+                else if (std::string(argv[i]) == "--af-xdp" && i + 1 < argc)
+                    af_xdp = argv[++i];
+                else if (std::string(argv[i]) == "--arch" && i + 1 < argc)
+                    arch = argv[++i];
+                else if (std::string(argv[i]) == "--no-pack")
+                    pack_archive = false;
             }
             return cmd_blueprint_from_scenario(scen_path, site, iface, af_xdp, arch, pack_archive);
         }
