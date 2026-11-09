@@ -504,32 +504,6 @@ int main(int argc, char *argv[])
     {
         std::string sub = argv[2];
 
-        // --- ADD INSIDE if (cmd == "blueprint") IN sentinel_ctl.cpp ---
-        if (sub == "from-scenario" && argc >= 4)
-        {
-            std::string scen_path = argv[3];
-            std::string site = "";
-            std::string iface = "ens160";
-            std::string af_xdp = "ZEROCOPY";
-            std::string arch = "x86_64";
-            bool pack_archive = true;
-
-            for (int i = 4; i < argc; ++i)
-            {
-                if (std::string(argv[i]) == "--site" && i + 1 < argc)
-                    site = argv[++i];
-                else if (std::string(argv[i]) == "--interface" && i + 1 < argc)
-                    iface = argv[++i];
-                else if (std::string(argv[i]) == "--af-xdp" && i + 1 < argc)
-                    af_xdp = argv[++i];
-                else if (std::string(argv[i]) == "--arch" && i + 1 < argc)
-                    arch = argv[++i];
-                else if (std::string(argv[i]) == "--no-pack")
-                    pack_archive = false;
-            }
-            return cmd_blueprint_from_scenario(scen_path, site, iface, af_xdp, arch, pack_archive);
-        }
-
         if (sub == "new")
         {
             std::string name = (argc >= 4) ? argv[3] : "site_blueprint";
@@ -651,6 +625,31 @@ int main(int argc, char *argv[])
         return cmd_blueprint_raw_dag(argv[3]);
     }
 
+    // --- ADD INSIDE if (cmd == "blueprint") IN sentinel_ctl.cpp ---
+    if ( cmd == "blueprint" && argc >= 4 && std::string(argv[2]) == "from-scenario" )
+    {
+        std::string scen_path = argv[3];
+        std::string site = "";
+        std::string iface = "ens160";
+        std::string af_xdp = "ZEROCOPY";
+        std::string arch = "x86_64";
+        bool pack_archive = true;
+
+        for (int i = 4; i < argc; ++i)
+        {
+            if (std::string(argv[i]) == "--site" && i + 1 < argc)
+                site = argv[++i];
+            else if (std::string(argv[i]) == "--interface" && i + 1 < argc)
+                iface = argv[++i];
+            else if (std::string(argv[i]) == "--af-xdp" && i + 1 < argc)
+                af_xdp = argv[++i];
+            else if (std::string(argv[i]) == "--arch" && i + 1 < argc)
+                arch = argv[++i];
+            else if (std::string(argv[i]) == "--no-pack")
+                pack_archive = false;
+        }
+        return cmd_blueprint_from_scenario(scen_path, site, iface, af_xdp, arch, pack_archive);
+    }
     // Gap 8: Appliance Pull
     if (cmd == "appliance" && argc >= 4 && std::string(argv[2]) == "pull")
     {
