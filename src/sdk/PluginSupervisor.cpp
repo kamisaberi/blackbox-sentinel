@@ -38,7 +38,29 @@ void PluginSupervisor::shutdown() {
 }
 
 
+static void extract_packet_origin(const SentinelRawPacket& packet, std::string& out_ip, uint32_t& out_port) {
+    out_ip = "0.0.0.0";
+    out_port = 0;
+    if (!packet.data || packet.length < 28) return;
 
+    const uint8_t* ip_ptr = nullptr;
+    // Check if Ethernet header is present (14 bytes, EtherType 0x0800) or raw IP
+    if (packet.length >= 34 && packet.data[12] == 0x08 && packet.data[13] == 0x00) {
+        ip_ptr = packet.data + 14;
+    } else if ((packet.data[0] >> 4) == 4) {
+        ip_ptr = packet.data;
+    }
+
+    if (ip_ptr && (ip_ptr + 20 <= packet.data + packet.length)) {
+        out_ip = std::to_string(ip_ptr[12]) + "." + std::to_string(ip_ptr[13]) + "." +
+                 std::to_string(ip_ptr[14]) + "." + std::to_string(ip_ptr[15]);
+        const uint8_t ihl = (ip_ptr[0] & 0x0F) * 4;
+        if (ip_ptr + ihl + 4 <= packet.data + packet.length) {
+            const uint8_t* transport_ptr = ip_ptr + ihl;
+            out_port = (transport_ptr[0] << 8) | transport_ptr[1];
+        }
+    }
+}
 
 
 
