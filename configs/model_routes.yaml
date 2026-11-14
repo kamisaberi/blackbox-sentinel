@@ -146,6 +146,29 @@ routes:
             - model_id: "aryo-netflow-mae-v2"
               silicon_target: "INTEL_NPU"
 
+# ----------------------------------------------------------------------
+      # RULE 1E: Autonomous UAV Swarm & Satcom Telecommand (STANAG / CCSDS)
+      # ----------------------------------------------------------------------
+      - match:
+          transport: "udp"
+          port: 50050
+
+        # [STAGE 2: SENSORY DISSECTOR] (Dynamically Loaded from ccsds-guard)
+        dissector_plugin:
+          plugin_id: "ccsds_guard_dissector_plugin.so"
+          emits_event: "SECURITY_EVENT_AEROSPACE_TELECOMMAND"
+          feature_dimension: 32
+
+        # [STAGE 3: SUBSYSTEM & SILICON MODEL CHAIN]
+        subsystem_pipeline:
+          owner_subsystem: "18_cps_sec"
+          execution_mode: "CASCADE_SHORT_CIRCUIT"
+          model_stages:
+            - model_id: "aryo-scada-kinematic-v1"
+              silicon_target: "INTEL_NPU"
+              latency_budget_ns: 25000
+              threshold_drop: 0.90
+
   # ==========================================================================
   # SENSOR 2: Optical Thermal Camera (Infrared Substation Monitor)
   # ==========================================================================
