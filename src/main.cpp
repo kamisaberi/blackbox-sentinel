@@ -254,6 +254,9 @@ int main(int argc, char *argv[])
             "/etc/sentinel/wasm.d");
         plugin_supervisor.initialize();
 
+        plugin_supervisor.set_threat_reporter([](const std::string &attacker_ip, uint32_t port, uint32_t threat_type)
+                                              { sentinel::nexus_client::NexusUplink::instance().report_local_threat(attacker_ip, port, threat_type); });
+
         // 5. Initialize Hierarchical Sensor-to-Model Routing DAG from user-specified YAML file
         sentinel::ai::ModelRouter model_router;
         if (!model_router.load_routes(routes_file))
