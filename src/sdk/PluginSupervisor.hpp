@@ -68,6 +68,9 @@ namespace sentinel::sdk
         mutable std::mutex stats_mutex_;
         std::atomic<uint64_t> total_frames_{0};
         std::atomic<uint64_t> total_drops_{0};
+
+        ThreatReporterFn threat_reporter_{nullptr};
+
     };
 
 } // namespace sentinel::sdk
