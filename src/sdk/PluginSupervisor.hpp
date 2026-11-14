@@ -7,6 +7,7 @@
 #include <string>
 #include <atomic>
 #include <chrono>
+#include <functional>
 
 namespace sentinel::sdk
 {
