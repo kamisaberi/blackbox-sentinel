@@ -67,10 +67,17 @@ static void extract_packet_origin(const SentinelRawPacket& packet, std::string& 
 SentinelDissectorResult PluginSupervisor::evaluate_frame(const SentinelRawPacket& packet) {
     total_frames_.fetch_add(1, std::memory_order_relaxed);
 
-    // 1. Tier A: Native C++20
+    // 1. Tier A: Native C++20 (including ccsds_guard_dissector_plugin.so)
     SentinelDissectorResult res = native_loader_.dispatch_packet(packet);
     if (res.verdict == SENTINEL_VERDICT_KERNEL_DROP) {
         total_drops_.fetch_add(1, std::memory_order_relaxed);
+
+        // Forward dropped threat directly to Sentinel-Nexus Telemetry Bus & PCAP Carver
+        std::string attacker_ip;
+        uint32_t port = 0;
+        extract_packet_origin(packet, attacker_ip, port);
+        sentinel::nexus_client::NexusUplink::instance().report_local_threat(attacker_ip, port, res.rule_id);
+
         return res;
     }
 
@@ -78,6 +85,12 @@ SentinelDissectorResult PluginSupervisor::evaluate_frame(const SentinelRawPacket
     SentinelDissectorResult lua_res = lua_engine_.inspect_packet(packet);
     if (lua_res.verdict == SENTINEL_VERDICT_KERNEL_DROP) {
         total_drops_.fetch_add(1, std::memory_order_relaxed);
+
+        std::string attacker_ip;
+        uint32_t port = 0;
+        extract_packet_origin(packet, attacker_ip, port);
+        sentinel::nexus_client::NexusUplink::instance().report_local_threat(attacker_ip, port, lua_res.rule_id);
+
         return lua_res;
     }
     if (lua_res.verdict != SENTINEL_VERDICT_PASS) res = lua_res;
@@ -86,12 +99,19 @@ SentinelDissectorResult PluginSupervisor::evaluate_frame(const SentinelRawPacket
     SentinelDissectorResult wasm_res = wasm_sandbox_.inspect_packet(packet);
     if (wasm_res.verdict == SENTINEL_VERDICT_KERNEL_DROP) {
         total_drops_.fetch_add(1, std::memory_order_relaxed);
+
+        std::string attacker_ip;
+        uint32_t port = 0;
+        extract_packet_origin(packet, attacker_ip, port);
+        sentinel::nexus_client::NexusUplink::instance().report_local_threat(attacker_ip, port, wasm_res.rule_id);
+
         return wasm_res;
     }
     if (wasm_res.verdict != SENTINEL_VERDICT_PASS) res = wasm_res;
 
     return res;
 }
+
 
 std::vector<ExtensionStats> PluginSupervisor::get_telemetry_snapshot() const {
     std::lock_guard<std::mutex> lock(stats_mutex_);
