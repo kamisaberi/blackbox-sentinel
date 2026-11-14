@@ -47,6 +47,12 @@ namespace sentinel::sdk
 
         /// Renders an ANSI colorized performance table to console
         void print_status_table(std::ostream &os) const;
+        using ThreatReporterFn = std::function<void(const std::string &attacker_ip, uint32_t port, uint32_t threat_type)>;
+
+        void set_threat_reporter(ThreatReporterFn reporter)
+        {
+            threat_reporter_ = std::move(reporter);
+        }
 
     private:
         SentinelHostInterface host_iface_;
