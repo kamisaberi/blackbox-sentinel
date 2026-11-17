@@ -1,3 +1,5 @@
+// File: /home/kami/blackbox-sentinel/src/ai/ModelRouter.hpp
+
 #pragma once
 
 #include <string>
@@ -6,6 +8,8 @@
 #include <memory>
 #include <filesystem>
 #include <chrono>
+#include <mutex>
+#include <xinfer/xinfer.hpp>
 #include "sentinel/sdk/abi.hpp"
 #include "sdk/PluginSupervisor.hpp"
 #include "ThreatCorrelator.hpp"
@@ -98,7 +102,14 @@ namespace sentinel::ai
         std::vector<CrossModalRule> fusion_rules_;
         std::shared_ptr<ThreatCorrelator> correlator_;
 
+        // Tier-2 xInfer ONNX Engines (Key: "model_id@silicon_target")
+        std::unordered_map<std::string, std::unique_ptr<xinfer::Engine>> stage_engines_;
+        std::unordered_map<std::string, bool> stage_engine_failed_;
+        std::mutex engine_mutex_;
+
         const TrafficRule *match_rule(const SensorRouteConfig &route, uint16_t port, const std::string &transport);
+        xinfer::Engine *get_or_load_engine(const ModelStageConfig &stage);
+        float execute_onnx_inference(xinfer::Engine *engine, const SentinelRawPacket &packet, float tier1_score);
     };
 
 } // namespace sentinel::ai
