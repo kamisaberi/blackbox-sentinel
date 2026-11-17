@@ -22,7 +22,7 @@ services:
         FROM ubuntu:22.04
         ENV DEBIAN_FRONTEND=noninteractive
         RUN apt-get update -qq && apt-get install -y -qq curl python3 python3-pip && rm -rf /var/lib/apt/lists/*
-        RUN pip install --no-cache-dir requests
+        RUN pip install requests
     container_name: sim-adversary-web
     networks:
       redteam_net:
@@ -48,7 +48,7 @@ services:
       dockerfile_inline: |
         FROM python:3.10-slim
         RUN apt-get update -qq && apt-get install -y -qq netcat-openbsd && rm -rf /var/lib/apt/lists/*
-        RUN pip install --no-cache-dir pymodbus
+        RUN pip install pymodbus
     container_name: sim-adversary-scada
     networks:
       redteam_net:
@@ -113,7 +113,7 @@ services:
       context: .
       dockerfile_inline: |
         FROM python:3.10-slim
-        RUN pip install --no-cache-dir pymodbus
+        RUN pip install pymodbus
     container_name: sim-modbus-controller
     networks:
       ot_scada_net:

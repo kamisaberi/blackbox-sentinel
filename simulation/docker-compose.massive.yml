@@ -45,7 +45,7 @@ services:
       context: .
       dockerfile_inline: |
         FROM python:3.10-slim
-        RUN pip install --no-cache-dir pymodbus
+        RUN pip install pymodbus
     container_name: sim-modbus-plc-1
     networks:
       sentinel_massive_net:
@@ -59,7 +59,7 @@ services:
       context: .
       dockerfile_inline: |
         FROM python:3.10-slim
-        RUN pip install --no-cache-dir pymodbus
+        RUN pip install pymodbus
     container_name: sim-modbus-plc-2
     networks:
       sentinel_massive_net:
@@ -148,7 +148,7 @@ services:
       dockerfile_inline: |
         FROM python:3.10-slim
         RUN apt-get update -qq && apt-get install -y -qq netcat-openbsd curl && rm -rf /var/lib/apt/lists/*
-        RUN pip install --no-cache-dir pymodbus
+        RUN pip install pymodbus
     container_name: sim-attacker-scada
     networks:
       sentinel_massive_net:
