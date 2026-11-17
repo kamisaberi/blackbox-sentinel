@@ -8,7 +8,6 @@
 #include <chrono>
 #include "sentinel/sdk/abi.hpp"
 #include "sdk/PluginSupervisor.hpp"
-#include "ThreatCorrelator.hpp"
 
 namespace sentinel::ai
 {
@@ -67,21 +66,17 @@ namespace sentinel::ai
     class ModelRouter
     {
     public:
-        explicit ModelRouter(std::shared_ptr<ThreatCorrelator> correlator = nullptr);
+        ModelRouter() = default;
         ~ModelRouter() = default;
 
         /// Load and parse configs/model_routes.yaml (zero external dependencies)
         bool load_routes(const std::filesystem::path &yaml_path);
 
-        /// Attach dynamic ThreatCorrelator instance
-        void set_threat_correlator(std::shared_ptr<ThreatCorrelator> correlator);
-
-        /// Main 4-stage pipeline execution on an incoming frame (accepts optional true dynamic port)
+        /// Main 4-stage pipeline execution on an incoming frame
         RouteExecutionResult dispatch_and_evaluate(
             const std::string &sensor_id,
             const SentinelRawPacket &packet,
-            sentinel::sdk::PluginSupervisor &supervisor,
-            uint16_t override_port = 0);
+            sentinel::sdk::PluginSupervisor &supervisor);
 
         /// Multi-Modal Fusion: cross-evaluates cyber state against physical sensor telemetry
         RouteExecutionResult evaluate_cross_modal_fusion(
@@ -96,7 +91,6 @@ namespace sentinel::ai
     private:
         std::unordered_map<std::string, SensorRouteConfig> routes_;
         std::vector<CrossModalRule> fusion_rules_;
-        std::shared_ptr<ThreatCorrelator> correlator_;
 
         const TrafficRule *match_rule(const SensorRouteConfig &route, uint16_t port, const std::string &transport);
     };
