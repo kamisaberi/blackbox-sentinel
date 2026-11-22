@@ -21,6 +21,8 @@
 #include "sdk/PluginSupervisor.hpp"
 #include "nexus/KernelDropInjector.hpp"
 #include "ai/ModelRouter.hpp"
+#include "sentinel/ingress/IngressManager.hpp"
+
 
 std::atomic<bool> g_appliance_running{true};
 
