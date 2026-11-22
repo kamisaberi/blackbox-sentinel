@@ -1,3 +1,5 @@
+// File: /home/kami/blackbox-sentinel/src/main.cpp
+
 #include <iostream>
 #include <thread>
 #include <chrono>
@@ -5,6 +7,7 @@
 #include <atomic>
 #include <string>
 #include <filesystem>
+#include <cstdlib>
 
 #include <blackbox/blackbox.hpp>
 #include "core/orchestrator.hpp"
@@ -17,12 +20,11 @@
 #include "core/ZtpTokenAgent.hpp"
 #include "sbom/SbomScanner.hpp"
 
-// Extensibility & eBPF Subsystem Headers
+// Extensibility, Ingress & eBPF Subsystem Headers
 #include "sdk/PluginSupervisor.hpp"
 #include "nexus/KernelDropInjector.hpp"
 #include "ai/ModelRouter.hpp"
 #include "sentinel/ingress/IngressManager.hpp"
-
 
 std::atomic<bool> g_appliance_running{true};
 
@@ -315,51 +317,97 @@ int main(int argc, char *argv[])
 
         sentinel::nexus_client::NexusUplink::instance().start(n_cfg);
 
-        // 9. Main Pipeline Event Ingestion Loop
+        // 9. Initialize Universal Ingress Manager (Live AF_PACKET Raw L2 + IPv4 Capture)
+        sentinel::ingress::IngressManager ingress_manager;
+        ingress_manager.start();
+
+        const char *env_fallback = std::getenv("SENTINEL_SIM_FALLBACK");
+        const bool sim_fallback_enabled = (!env_fallback || std::string(env_fallback) != "0");
+
         uint64_t counter = 0;
+        auto last_heartbeat = std::chrono::steady_clock::now();
+
         while (g_appliance_running)
         {
-            counter++;
+            // Poll live wire frames (25 ms wait, up to 64 frames per batch)
+            size_t live_count = ingress_manager.poll_frames(
+                [&](const SentinelRawPacket &raw_pkt, const sentinel::ingress::CapturedFrameMeta &meta)
+                {
+                    counter++;
+                    auto pipeline_res = model_router.dispatch_and_evaluate(
+                        "auto",
+                        raw_pkt,
+                        plugin_supervisor,
+                        meta.dst_port);
 
-            blackbox::SecurityEvent event;
-            event.event_id = counter;
-            event.timestamp = std::chrono::system_clock::now();
-            event.type = blackbox::EventType::NetworkPacket;
-            event.source_ip = "192.168.1." + std::to_string(100 + (counter % 30));
-            event.features = {0.15f, 0.88f, (counter % 5 == 0 ? 0.95f : 0.1f), 0.2f};
+                    blackbox::SecurityEvent event;
+                    event.event_id = counter;
+                    event.timestamp = std::chrono::system_clock::now();
+                    event.type = blackbox::EventType::NetworkPacket;
+                    event.source_ip = meta.src_ip_str;
+                    event.features = {0.15f, 0.25f, pipeline_res.anomaly_score, 0.2f};
 
-            // Evaluate incoming frames across 3-tier extension pipeline & ModelRouter DAG
-            uint8_t dummy_frame[16] = {0x00, 0x01, 0x00, 0x00, 0x00, 0x06, 0x01, 0x03, 0x00, 0x00, 0x00, 0x01};
-            SentinelRawPacket raw_pkt{
-                .data = dummy_frame,
-                .length = sizeof(dummy_frame),
-                .timestamp_ns = plugin_host.get_monotonic_time_ns(),
-                .ingress_ifindex = 1,
-                .network_proto = 0x0800,
-                .transport_proto = 6,
-                .reserved = 0};
+                    if (pipeline_res.verdict == SENTINEL_VERDICT_KERNEL_DROP)
+                    {
+                        if (meta.ethertype == 0x0800 && meta.src_ip_net_order != 0)
+                        {
+                            sentinel::nexus::KernelDropInjector::instance().inject_drop_ipv4(
+                                meta.src_ip_net_order, 300, pipeline_res.rule_or_model_id);
+                        }
+                        sentinel::nexus_client::NexusUplink::instance().report_local_threat(
+                            meta.src_ip_str, meta.dst_port, 1);
+                    }
 
-            auto pipeline_res = model_router.dispatch_and_evaluate(
-                "sensor_nic_10gbe_lan0",
-                raw_pkt,
-                plugin_supervisor);
+                    sentinel::EventBus::instance().publish(event);
+                    security_engine.submit_event(event);
+                },
+                25,
+                64);
 
-            if (pipeline_res.verdict == SENTINEL_VERDICT_KERNEL_DROP)
+            // 1 Hz periodic heartbeat / simulation telemetry continuity when idle
+            auto now = std::chrono::steady_clock::now();
+            if (std::chrono::duration_cast<std::chrono::milliseconds>(now - last_heartbeat).count() >= 1000)
             {
-                // Instantly offload to in-kernel eBPF driver ring
-                sentinel::nexus::KernelDropInjector::instance().inject_drop_ipv4(
-                    0x6300F00A, 300, pipeline_res.rule_or_model_id);
+                last_heartbeat = now;
+                if (live_count == 0 && sim_fallback_enabled)
+                {
+                    counter++;
+
+                    blackbox::SecurityEvent event;
+                    event.event_id = counter;
+                    event.timestamp = std::chrono::system_clock::now();
+                    event.type = blackbox::EventType::NetworkPacket;
+                    event.source_ip = "192.168.1." + std::to_string(100 + (counter % 30));
+                    event.features = {0.15f, 0.88f, (counter % 5 == 0 ? 0.95f : 0.1f), 0.2f};
+
+                    uint8_t dummy_frame[16] = {0x00, 0x01, 0x00, 0x00, 0x00, 0x06, 0x01, 0x03, 0x00, 0x00, 0x00, 0x01};
+                    SentinelRawPacket raw_pkt{
+                        .data = dummy_frame,
+                        .length = sizeof(dummy_frame),
+                        .timestamp_ns = plugin_host.get_monotonic_time_ns(),
+                        .ingress_ifindex = 1,
+                        .network_proto = 0x0800,
+                        .transport_proto = 6,
+                        .reserved = 0};
+
+                    auto pipeline_res = model_router.dispatch_and_evaluate(
+                        "sensor_nic_10gbe_lan0",
+                        raw_pkt,
+                        plugin_supervisor);
+
+                    if (pipeline_res.verdict == SENTINEL_VERDICT_KERNEL_DROP)
+                    {
+                        sentinel::nexus::KernelDropInjector::instance().inject_drop_ipv4(
+                            0x6300F00A, 300, pipeline_res.rule_or_model_id);
+                    }
+
+                    sentinel::EventBus::instance().publish(event);
+                    security_engine.submit_event(event);
+                }
             }
-
-            // Dispatch event across the EventBus to all 26 modules asynchronously
-            sentinel::EventBus::instance().publish(event);
-
-            // Submit event to core security engine
-            security_engine.submit_event(event);
-
-            std::this_thread::sleep_for(std::chrono::seconds(1));
         }
 
+        ingress_manager.stop();
         api_server.stop();
         plugin_supervisor.shutdown();
         orchestrator.shutdown_all_modules();
