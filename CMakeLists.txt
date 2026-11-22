@@ -225,6 +225,7 @@ set(SENTINEL_SOURCES
     src/nexus/DynamicRuleReceiver.cpp
     src/ai/ModelRouter.cpp
     src/ai/ThreatCorrelator.cpp
+    src/ingress/IngressManager.cpp
     ${PROTO_GEN_SRCS}
     ${GRPC_GEN_SRCS}
 )
