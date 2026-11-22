@@ -11,7 +11,7 @@
 #include <linux/can.h>
 #include <linux/can/raw.h>
 #include <linux/if_ether.h>
-#include <linux/if_packet.h>
+// #include <linux/if_packet.h>
 #include <net/if.h>
 #include <netpacket/packet.h>
 #include <poll.h>
