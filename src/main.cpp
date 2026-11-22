@@ -320,6 +320,8 @@ int main(int argc, char *argv[])
         // 9. Initialize Universal Ingress Manager (Live AF_PACKET Raw L2 + IPv4 Capture)
         sentinel::ingress::IngressManager ingress_manager;
         ingress_manager.start();
+        ingress_manager.start_can();
+        ingress_manager.start_shm_ring();
 
         const char *env_fallback = std::getenv("SENTINEL_SIM_FALLBACK");
         const bool sim_fallback_enabled = (!env_fallback || std::string(env_fallback) != "0");

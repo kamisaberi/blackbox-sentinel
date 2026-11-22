@@ -405,10 +405,6 @@ namespace sentinel::ai
         return nullptr;
     }
 
-
-    
-
-
     RouteExecutionResult ModelRouter::dispatch_and_evaluate(
         const std::string &sensor_id,
         const SentinelRawPacket &packet,
@@ -419,6 +415,14 @@ namespace sentinel::ai
         auto t_start = std::chrono::steady_clock::now();
 
         std::string transport = "tcp";
+        if (packet.reserved == 1)
+        {
+            transport = "can";
+        }
+        else if (packet.reserved == 2)
+        {
+            transport = "shm_ring";
+        }
         if (packet.network_proto == 0x88B8 || packet.network_proto == 0x88BA || packet.network_proto == 0x88A4)
         {
             transport = "l2_raw";
@@ -468,7 +472,7 @@ namespace sentinel::ai
             }
         }
 
-        if (target_port == 0 && transport != "l2_raw")
+        if (target_port == 0 && transport != "l2_raw" && transport != "can" && transport != "shm_ring")
         {
             for (const auto &r : it->second.rules)
             {
@@ -545,9 +549,7 @@ namespace sentinel::ai
                                    .count();
         return res;
     }
-    
-    
-    
+
     RouteExecutionResult ModelRouter::evaluate_cross_modal_fusion(
         const std::string &cyber_sensor_id,
         float cyber_anomaly_score,
