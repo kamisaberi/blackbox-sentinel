@@ -405,6 +405,10 @@ namespace sentinel::ai
         return nullptr;
     }
 
+
+    
+
+
     RouteExecutionResult ModelRouter::dispatch_and_evaluate(
         const std::string &sensor_id,
         const SentinelRawPacket &packet,
@@ -414,6 +418,21 @@ namespace sentinel::ai
         RouteExecutionResult res;
         auto t_start = std::chrono::steady_clock::now();
 
+        std::string transport = "tcp";
+        if (packet.network_proto == 0x88B8 || packet.network_proto == 0x88BA || packet.network_proto == 0x88A4)
+        {
+            transport = "l2_raw";
+        }
+        else if (packet.transport_proto == 132)
+        {
+            transport = "sctp";
+        }
+        else if (packet.transport_proto == 17)
+        {
+            transport = "udp";
+        }
+
+        uint16_t target_port = override_port;
         auto it = routes_.find(sensor_id);
         if (it == routes_.end())
         {
@@ -422,12 +441,34 @@ namespace sentinel::ai
                 res.verdict = SENTINEL_VERDICT_PASS;
                 return res;
             }
-            // Fallback to first configured node route so custom node YAMLs execute actively
-            it = routes_.begin();
+
+            // Dynamic wire dispatch: match exact (port, transport) across all configured sensor routes
+            it = routes_.end();
+            for (auto cand = routes_.begin(); cand != routes_.end(); ++cand)
+            {
+                for (const auto &r : cand->second.rules)
+                {
+                    if ((target_port != 0 && r.port == target_port &&
+                         (r.transport == transport || r.transport == "any")) ||
+                        (target_port == 0 && r.transport == transport))
+                    {
+                        it = cand;
+                        break;
+                    }
+                }
+                if (it != routes_.end())
+                {
+                    break;
+                }
+            }
+
+            if (it == routes_.end())
+            {
+                it = routes_.begin();
+            }
         }
 
-        uint16_t target_port = override_port;
-        if (target_port == 0)
+        if (target_port == 0 && transport != "l2_raw")
         {
             for (const auto &r : it->second.rules)
             {
@@ -439,9 +480,8 @@ namespace sentinel::ai
             }
         }
 
-        std::string transport = (packet.transport_proto == 17) ? "udp" : "tcp";
         const TrafficRule *rule = match_rule(it->second, target_port, transport);
-        if (!rule)
+        if (!rule && transport != "l2_raw")
         {
             rule = match_rule(it->second, target_port, "tcp");
         }
@@ -505,7 +545,9 @@ namespace sentinel::ai
                                    .count();
         return res;
     }
-
+    
+    
+    
     RouteExecutionResult ModelRouter::evaluate_cross_modal_fusion(
         const std::string &cyber_sensor_id,
         float cyber_anomaly_score,
