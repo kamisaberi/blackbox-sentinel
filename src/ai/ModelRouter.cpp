@@ -477,7 +477,7 @@ namespace sentinel::ai
             }
         }
 
-        if (target_port == 0 && transport != "l2_raw" && transport != "can" && transport != "shm_ring")
+        if (target_port == 0 && transport != "l2_raw" && transport != "can" && transport != "shm_ring" && transport != "v4l2")
         {
             for (const auto &r : it->second.rules)
             {
