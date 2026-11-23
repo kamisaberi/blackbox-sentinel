@@ -128,7 +128,8 @@ namespace sentinel::ai
         }
     }
 
-    float ModelRouter::execute_onnx_inference(
+
+        float ModelRouter::execute_onnx_inference(
         xinfer::Engine *engine,
         const SentinelRawPacket &packet,
         float tier1_score)
@@ -138,14 +139,18 @@ namespace sentinel::ai
 
         try
         {
-            xinfer::Tensor &in_tensor = engine->get_input_tensor("input");
+            const auto in_names = engine->input_names();
+            const auto out_names = engine->output_names();
+            const std::string in_name = in_names.empty() ? "input" : in_names.front();
+            const std::string out_name = out_names.empty() ? "scores" : out_names.front();
+
+            xinfer::Tensor &in_tensor = engine->get_input_tensor(in_name);
             float *in_ptr = in_tensor.data<float>();
             const size_t in_count = in_tensor.element_count();
 
             if (!in_ptr || in_count == 0)
                 return tier1_score;
 
-            // Populate normalized packet & kinematic feature vector
             for (size_t i = 0; i < in_count; ++i)
             {
                 if (packet.data && i < packet.length)
@@ -160,14 +165,14 @@ namespace sentinel::ai
 
             engine->infer();
 
-            xinfer::Tensor &out_tensor = engine->get_output_tensor("scores");
+            xinfer::Tensor &out_tensor = engine->get_output_tensor(out_name);
             const float *out_ptr = out_tensor.data<float>();
             const size_t out_count = out_tensor.element_count();
 
             if (!out_ptr || out_count == 0)
                 return tier1_score;
 
-            // If Autoencoder (output dims == input dims), compute MSE reconstruction loss
+            // Case 1: Autoencoder (output dims == input dims) -> RMSE reconstruction loss
             if (out_count == in_count && in_count > 1)
             {
                 double mse = 0.0;
@@ -180,15 +185,48 @@ namespace sentinel::ai
                 return std::clamp(std::max(tier1_score, recon_loss), 0.0f, 1.0f);
             }
 
-            // Classifier / Anomaly Scorer
-            const float raw_score = std::abs(out_ptr[0]);
-            return std::clamp(std::max(tier1_score, raw_score), 0.0f, 1.0f);
+            // Case 2: Scalar anomaly output (sigmoid if outside [0, 1])
+            if (out_count == 1)
+            {
+                const float v = out_ptr[0];
+                const float prob = (v >= 0.0f && v <= 1.0f) ? v : (1.0f / (1.0f + std::exp(-v)));
+                return std::clamp(std::max(tier1_score, prob), 0.0f, 1.0f);
+            }
+
+            // Case 3: Multi-class classifier (e.g. 2-class threat logits or ImageNet 1000-class ONNX Model Zoo)
+            float max_logit = out_ptr[0];
+            for (size_t i = 1; i < out_count; ++i)
+                max_logit = std::max(max_logit, out_ptr[i]);
+
+            double sum_exp = 0.0;
+            for (size_t i = 0; i < out_count; ++i)
+                sum_exp += std::exp(static_cast<double>(out_ptr[i] - max_logit));
+
+            if (out_count == 2 && sum_exp > 0.0)
+            {
+                const float attack_prob = static_cast<float>(std::exp(static_cast<double>(out_ptr[1] - max_logit)) / sum_exp);
+                return std::clamp(std::max(tier1_score, attack_prob), 0.0f, 1.0f);
+            }
+
+            // Normalized Shannon entropy [0, 1] for multi-class public models (prevents logit > 1 clamping!)
+            double entropy = 0.0;
+            for (size_t i = 0; i < out_count; ++i)
+            {
+                const double p = std::exp(static_cast<double>(out_ptr[i] - max_logit)) / sum_exp;
+                if (p > 1e-9)
+                    entropy -= p * std::log(p);
+            }
+            const float norm_entropy = static_cast<float>(entropy / std::log(static_cast<double>(out_count)));
+            return std::clamp(std::max(tier1_score, norm_entropy), 0.0f, 1.0f);
         }
         catch (...)
         {
             return tier1_score;
         }
     }
+
+
+
 
     bool ModelRouter::load_routes(const std::filesystem::path &yaml_path)
     {
