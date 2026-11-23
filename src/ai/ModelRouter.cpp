@@ -423,6 +423,11 @@ namespace sentinel::ai
         {
             transport = "shm_ring";
         }
+        else if (packet.reserved == 4)
+        {
+            transport = "v4l2";
+        }
+
         if (packet.network_proto == 0x88B8 || packet.network_proto == 0x88BA || packet.network_proto == 0x88A4)
         {
             transport = "l2_raw";
