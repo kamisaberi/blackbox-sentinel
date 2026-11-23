@@ -322,6 +322,7 @@ int main(int argc, char *argv[])
         ingress_manager.start();
         ingress_manager.start_can();
         ingress_manager.start_shm_ring();
+        ingress_manager.start_v4l2();
 
         const char *env_fallback = std::getenv("SENTINEL_SIM_FALLBACK");
         const bool sim_fallback_enabled = (!env_fallback || std::string(env_fallback) != "0");
