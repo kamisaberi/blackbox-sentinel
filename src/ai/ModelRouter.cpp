@@ -6,6 +6,7 @@
 #include <iostream>
 #include <algorithm>
 #include <cmath>
+#include <cstdlib>
 
 namespace sentinel::ai
 {
