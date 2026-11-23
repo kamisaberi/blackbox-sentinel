@@ -63,12 +63,17 @@ namespace sentinel::ai
         if (model_id.empty())
             return "";
         std::error_code ec;
-        const std::vector<std::filesystem::path> candidates = {
+        std::vector<std::filesystem::path> candidates = {
             std::filesystem::path(model_id),
             std::filesystem::path("/etc/sentinel/models") / model_id,
             std::filesystem::path("/opt/sentinel/models") / model_id,
+            std::filesystem::path("/var/lib/sentinel/models") / model_id,
             std::filesystem::path("models") / model_id,
             std::filesystem::path("/home/kami/sentinel-matrix/shared/models") / model_id};
+        if (const char *home = std::getenv("HOME"))
+        {
+            candidates.push_back(std::filesystem::path(home) / ".sentinel" / "models" / model_id);
+        }
         for (const auto &p : candidates)
         {
             if (std::filesystem::exists(p, ec) && !ec)
