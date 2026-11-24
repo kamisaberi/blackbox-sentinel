@@ -858,7 +858,82 @@ int cmd_generic_list(const std::string &category, const std::string &stage_dir =
 
 
 
+int cmd_auth_update_key(const std::string &key_file_path = "")
+{
+    fs::path target_pem = key_file_path;
+    if (target_pem.empty())
+    {
+        const fs::path pki_certs = sentinel::fs::PathResolver::resolve_dir(sentinel::fs::ObjectClass::PkiCerts);
+        target_pem = pki_certs / "developer_private.pem";
+        if (!fs::exists(target_pem))
+            target_pem = sentinel::fs::PathResolver::resolve_root() / "keys" / "developer_private.pem";
+        if (!fs::exists(target_pem))
+            target_pem = fs::path("/etc/sentinel/keys/developer_private.pem");
+    }
 
+    if (!fs::exists(target_pem))
+    {
+        std::cerr << "[-] Error: Private key file not found: " << target_pem.string() << "\n";
+        return 1;
+    }
+
+    std::string new_pub_hex = extract_pubkey_from_privkey_hex(target_pem);
+    if (new_pub_hex.empty())
+    {
+        std::cerr << "[-] Error: Failed to derive Ed25519 public key from " << target_pem.string() << "\n";
+        return 1;
+    }
+
+    SavedCredentials creds = load_saved_credentials();
+    std::string token = !creds.jwt_token.empty() ? creds.jwt_token : creds.api_key;
+    if (token.empty())
+    {
+        std::cerr << "[-] Error: Authentication required. Run 'aryo login' first.\n";
+        return 1;
+    }
+
+    std::string base_api = normalize_registry_url(!creds.hub_url.empty() ? creds.hub_url : g_hub_url);
+    std::string endpoint = base_api + "/hub/author/key";
+
+    std::cout << "[*] Rotating author public key on backend to: " << new_pub_hex << "...\n";
+
+    std::string req_json = "{\"author_public_key\":\"" + new_pub_hex + "\"}";
+    std::string resp_file = "/tmp/sentinel_rotate_resp.json";
+    std::string curl_cmd = "curl -sSL -w \"\\n%{http_code}\" -X PUT \"" + endpoint + "\" " +
+                           "-H \"Authorization: Bearer " + token + "\" " +
+                           "-H \"Content-Type: application/json\" " +
+                           "-d '" + req_json + "' > " + resp_file + " 2>&1";
+
+    std::system(curl_cmd.c_str());
+
+    std::ifstream in(resp_file);
+    std::string line, last_line, body;
+    while (std::getline(in, line)) { if (!line.empty()) { last_line = line; body += line + "\n"; } }
+    in.close();
+    fs::remove(resp_file);
+
+    int code = 0;
+    try { code = std::stoi(last_line); } catch (...) {}
+
+    if (code == 200)
+    {
+        fs::path c_path = get_credentials_path();
+        std::ofstream out(c_path);
+        out << "{\n"
+            << "  \"api_key\": \"" << creds.api_key << "\",\n"
+            << "  \"jwt_token\": \"" << creds.jwt_token << "\",\n"
+            << "  \"hub_url\": \"" << creds.hub_url << "\",\n"
+            << "  \"author_public_key\": \"" << new_pub_hex << "\"\n"
+            << "}\n";
+        out.close();
+
+        std::cout << "\033[1;32m[+] Author Public Key Successfully Rotated on Backend & Saved Locally!\033[0m\n"
+                  << "    New Author Key : " << new_pub_hex << "\n";
+        return 0;
+    }
+    std::cerr << "\033[1;31m[-] Error (HTTP " << code << "): Key rotation rejected.\033[0m\n" << body << "\n";
+    return 1;
+}
 
 
 
