@@ -19,7 +19,8 @@
 #include "core/LicenseManager.hpp"
 #include "core/ZtpTokenAgent.hpp"
 #include "sbom/SbomScanner.hpp"
-
+#include <sentinel/fs/PathResolver.hpp>
+#include <unistd.h>
 // Extensibility, Ingress & eBPF Subsystem Headers
 #include "sdk/PluginSupervisor.hpp"
 #include "nexus/KernelDropInjector.hpp"
