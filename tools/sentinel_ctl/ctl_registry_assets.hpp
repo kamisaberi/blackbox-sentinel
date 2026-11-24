@@ -793,26 +793,10 @@ int cmd_pcap_pack(const std::string &pcap_path_str,
     return 0;
 }
 
-int cmd_pcap_pull(const std::string &slug)
-{
-    std::string filename = slug;
-    if (filename.size() < 5 || filename.substr(filename.size() - 5) != ".pcap")
-        filename += ".pcap";
 
-    fs::path cached_path;
-    if (!resolve_cached_asset("pcaps", filename, cached_path))
-    {
-        return 1;
-    }
 
-    fs::path dest_dir = "/etc/sentinel/pcaps";
-    fs::create_directories(dest_dir);
-    fs::path dest_path = dest_dir / filename;
-    fs::copy_file(cached_path, dest_path, fs::copy_options::overwrite_existing);
 
-    std::cout << "\033[1;32m[+] Deployed to active runtime: " << dest_path.string() << "\033[0m\n";
-    return 0;
-}
+
 
 int cmd_generic_list(const std::string &category, const std::string &stage_dir = "", const std::string &ext = "")
 {
