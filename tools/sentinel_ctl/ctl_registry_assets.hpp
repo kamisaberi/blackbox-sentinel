@@ -636,25 +636,10 @@ int cmd_model_pack(const std::string &model_path_str,
     return 0;
 }
 
-int cmd_model_pull(const std::string &model_slug)
-{
-    std::string filename = model_slug;
-    if (filename.size() < 5 || filename.substr(filename.size() - 5) != ".onnx")
-        filename += ".onnx";
 
-    fs::path cached_path;
-    if (!resolve_cached_asset("models", filename, cached_path))
-    {
-        return 1;
-    }
 
-    fs::path dest = fs::path("models") / filename;
-    fs::create_directories("models");
-    fs::copy_file(cached_path, dest, fs::copy_options::overwrite_existing);
 
-    std::cout << "\033[1;32m[+] Staged AI model to active runtime: " << dest.string() << "\033[0m\n";
-    return 0;
-}
+
 
 int cmd_dataset_pull(const std::string &slug)
 {
