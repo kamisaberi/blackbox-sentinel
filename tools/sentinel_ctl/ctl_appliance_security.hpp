@@ -146,6 +146,24 @@ int cmd_hardware_enroll()
 }
 
 
+int cmd_license_apply(const fs::path &lic_path)
+{
+    if (!fs::exists(lic_path))
+    {
+        std::cerr << "[-] Error: License file not found: " << lic_path << std::endl;
+        return 1;
+    }
+
+    const fs::path target_dir = (geteuid() == 0)
+        ? fs::path("/etc/sentinel")
+        : sentinel::fs::PathResolver::resolve_dir(sentinel::fs::ObjectClass::Config);
+
+    fs::create_directories(target_dir);
+    const fs::path dest = target_dir / "license.lic";
+    fs::copy_file(lic_path, dest, fs::copy_options::overwrite_existing);
+    std::cout << "\033[1;32m[+] Successfully applied commercial license to " << dest.string() << "\033[0m\n";
+    return 0;
+}
 
 
 
