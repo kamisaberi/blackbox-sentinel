@@ -44,6 +44,8 @@ pkg_check_modules(LUAJIT REQUIRED luajit)
 
 find_library(BLACKBOX_LIB blackbox REQUIRED PATHS /usr/local/lib /usr/lib)
 find_library(XINFER_LIB xinfer REQUIRED PATHS /usr/local/lib /usr/lib)
+find_library(SENTINELFS_LIB sentinelfs REQUIRED PATHS /usr/local/lib /usr/lib)
+
 
 # Protobuf / gRPC generation for client stubs
 file(GLOB PROTO_SRCS "${CMAKE_CURRENT_SOURCE_DIR}/proto/*.proto")
@@ -243,6 +245,8 @@ target_link_libraries(sentinel PRIVATE
     ${SENTINEL_MODULE_LIBRARIES}
     ${BLACKBOX_LIB}
     ${XINFER_LIB}
+    ${SENTINELFS_LIB}
+
     ${SQLITE3_LIB}
     ${BPF_LIB}
     ${ELF_LIB}
@@ -400,6 +404,7 @@ add_executable(sentinel_plugin_pack
     tools/sdk/sentinel_plugin_pack.cpp
 )
 target_link_libraries(sentinel_plugin_pack PRIVATE
+    ${SENTINELFS_LIB}
     OpenSSL::Crypto
 )
 set_target_properties(sentinel_plugin_pack PROPERTIES
@@ -431,6 +436,7 @@ add_executable(sentinel_artifact
     tools/sdk/sentinel_artifact.cpp
 )
 target_link_libraries(sentinel_artifact PRIVATE
+    ${SENTINELFS_LIB}
     OpenSSL::Crypto
 )
 set_target_properties(sentinel_artifact PROPERTIES
@@ -454,6 +460,7 @@ endif()
 
 add_executable(sentinel_ctl ${SENTINEL_CTL_SOURCES})
 target_link_libraries(sentinel_ctl PRIVATE
+    ${SENTINELFS_LIB}
     Threads::Threads
     OpenSSL::SSL
     OpenSSL::Crypto
