@@ -96,7 +96,6 @@ static std::vector<uint8_t> sha256_buffer(const uint8_t *data, size_t len)
     return ss.str();
 }
 
-
 static std::vector<uint8_t> read_binary_file(const fs::path &p)
 {
     std::ifstream f(p, std::ios::binary | std::ios::ate);
@@ -108,7 +107,6 @@ static std::vector<uint8_t> read_binary_file(const fs::path &p)
     f.read(reinterpret_cast<char *>(b.data()), sz);
     return b;
 }
-
 
 static SbomArtifact compute_artifact_sbom(const fs::path &p)
 {
@@ -127,7 +125,6 @@ static SbomArtifact compute_artifact_sbom(const fs::path &p)
     a.sha256 = sha256_hex(bytes.data(), bytes.size());
     return a;
 }
-
 
 static std::string trim(const std::string &s)
 {
@@ -212,24 +209,18 @@ static std::string normalize_registry_url(std::string url)
 
     return url;
 }
+
+
+
 fs::path get_cache_root()
 {
     const char *env_cache = std::getenv("SENTINEL_CACHE_DIR");
     if (env_cache && std::strlen(env_cache) > 0)
         return fs::path(env_cache);
 
-    if (geteuid() == 0)
-    {
-        return fs::path("/var/cache/sentinel");
-    }
-
-    const char *home = std::getenv("HOME");
-    if (home)
-    {
-        return fs::path(home) / ".cache" / "sentinel";
-    }
-    return fs::path("/tmp/sentinel_cache");
+    return sentinel::fs::PathResolver::resolve_dir(sentinel::fs::ObjectClass::ArtifactDownload);
 }
+
 
 static std::string get_enrolled_author_pubkey_hex()
 {
@@ -240,19 +231,20 @@ static std::string get_enrolled_author_pubkey_hex()
         return creds.author_public_key;
     }
 
-    // 2. Fallback: Search developer keys on disk (supports both public and private PEM)
-    const char *home = std::getenv("HOME");
-    std::vector<fs::path> candidates;
-    if (home)
-    {
-        candidates.push_back(fs::path(home) / ".sentinel" / "keys" / "developer_public.pem");
-        candidates.push_back(fs::path(home) / ".sentinel" / "keys" / "developer_private.pem");
-    }
-    candidates.push_back("/home/kami/.sentinel/keys/developer_public.pem");
-    candidates.push_back("/home/kami/.sentinel/keys/developer_private.pem");
-    candidates.push_back("/etc/sentinel/keys/developer_public.pem");
-    candidates.push_back("/etc/sentinel/keys/developer_private.pem");
+// 2. Fallback: Search developer keys across canonical SSFS locations
+    const fs::path pki_certs = sentinel::fs::PathResolver::resolve_dir(sentinel::fs::ObjectClass::PkiCerts);
+    const fs::path root = sentinel::fs::PathResolver::resolve_root();
 
+    std::vector<fs::path> candidates = {
+        pki_certs / "developer_public.pem",
+        pki_certs / "developer_private.pem",
+        root / "keys" / "developer_public.pem",
+        root / "keys" / "developer_private.pem",
+        fs::path("/etc/sentinel/keys/developer_public.pem"),
+        fs::path("/etc/sentinel/keys/developer_private.pem")
+    };
+
+    
     for (const auto &p : candidates)
     {
         if (fs::exists(p))
@@ -289,6 +281,11 @@ static std::string get_enrolled_author_pubkey_hex()
     }
     return "";
 }
+
+
+
+
+
 bool resolve_cached_asset(const std::string &category,
                           const std::string &filename,
                           fs::path &out_staged_path,
@@ -374,8 +371,6 @@ bool resolve_cached_asset(const std::string &category,
     out_staged_path = cached_file;
     return true;
 }
-
-
 
 static std::string execute_http_get(const std::string &url, const std::string &token = "")
 {
@@ -627,10 +622,12 @@ std::string package_id_to_stem(const std::string &pkg_id)
 std::string extract_pubkey_from_privkey_hex(const fs::path &priv_key_path)
 {
     FILE *fp = fopen(priv_key_path.c_str(), "rb");
-    if (!fp) return "";
+    if (!fp)
+        return "";
     EVP_PKEY *pkey = PEM_read_PrivateKey(fp, nullptr, nullptr, nullptr);
     fclose(fp);
-    if (!pkey) return "";
+    if (!pkey)
+        return "";
 
     size_t len = 32;
     uint8_t raw_key[32];
@@ -647,4 +644,3 @@ std::string extract_pubkey_from_privkey_hex(const fs::path &priv_key_path)
     EVP_PKEY_free(pkey);
     return hex_str;
 }
-
