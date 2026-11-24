@@ -637,6 +637,26 @@ int cmd_model_pack(const std::string &model_path_str,
 }
 
 
+int cmd_model_pull(const std::string &model_slug)
+{
+    std::string filename = model_slug;
+    if (filename.size() < 5 || filename.substr(filename.size() - 5) != ".onnx")
+        filename += ".onnx";
+
+    fs::path cached_path;
+    if (!resolve_cached_asset("models", filename, cached_path))
+    {
+        return 1;
+    }
+
+    fs::path dest_dir = sentinel::fs::PathResolver::resolve_dir(sentinel::fs::ObjectClass::ModelRegistry);
+    fs::create_directories(dest_dir);
+    fs::path dest = dest_dir / filename;
+    fs::copy_file(cached_path, dest, fs::copy_options::overwrite_existing);
+
+    std::cout << "\033[1;32m[+] Staged AI model into SSFS registry: " << dest.string() << "\033[0m\n";
+    return 0;
+}
 
 
 
