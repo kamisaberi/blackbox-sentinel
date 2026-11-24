@@ -425,7 +425,63 @@ int cmd_sbom_test_drift()
 
 
 
+int cmd_sbom_attest()
+{
+    const fs::path mf_sys  = "/etc/sentinel/live_sbom.json";
+    const fs::path mf_ssfs = sentinel::fs::PathResolver::resolve_dir(sentinel::fs::ObjectClass::Config) / "live_sbom.json";
+    const fs::path mf = fs::exists(mf_sys) ? mf_sys : mf_ssfs;
 
+    if (!fs::exists(mf))
+    {
+        std::cerr << "[-] Error: " << mf.string() << " not found. Run 'aryo sbom generate' first.\n";
+        return 1;
+    }
+
+    SavedCredentials creds = load_saved_credentials();
+    if (creds.api_key.empty())
+    {
+        std::cerr << "[-] Error: Authentication required. Run 'aryo login' first.\n";
+        return 1;
+    }
+
+    std::string base_api = normalize_registry_url(g_hub_url);
+    std::string endpoint = base_api + "/compliance/sbom/attest";
+    std::cout << "[*] Attesting Live-SBOM to compliance dashboard at " << endpoint << "...\n";
+
+    std::string resp_file = "/tmp/sentinel_sbom_attest_resp.json";
+    std::string curl_cmd = "curl -sSL -w \"\\n%{http_code}\" -X POST \"" + endpoint + "\" " +
+                           "-H \"Authorization: Bearer " + creds.api_key + "\" " +
+                           "-F \"file=@" + mf.string() + "\" > " + resp_file + " 2>&1";
+
+    int ret = std::system(curl_cmd.c_str());
+    (void)ret;
+
+    std::ifstream in(resp_file);
+    std::string line, last_line, body;
+    while (std::getline(in, line))
+    {
+        if (!line.empty())
+        {
+            last_line = line;
+            body += line + "\n";
+        }
+    }
+    in.close();
+    fs::remove(resp_file);
+
+    int http_code = 0;
+    try { http_code = std::stoi(last_line); } catch (...) {}
+
+    if (http_code == 200 || http_code == 201)
+    {
+        std::cout << "\033[1;32m[+] Live-SBOM Attestation Accepted by Cloud Compliance Engine!\033[0m\n"
+                  << "    Audit status recorded for NIS2 / IEC 62443 verification.\n";
+        return 0;
+    }
+    std::cerr << "[-] Attestation failed (HTTP " << http_code << ")\n"
+              << body << "\n";
+    return 1;
+}
 
 
 
