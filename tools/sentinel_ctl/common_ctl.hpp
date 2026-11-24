@@ -23,6 +23,7 @@
 
 #include "sentinel/hardware/tpm_enrollment.hpp"
 #include "sentinel/subsystems/trism_firewall.hpp"
+#include <sentinel/fs/PathResolver.hpp>
 #include <openssl/evp.h>
 #include <openssl/pem.h>
 
@@ -139,14 +140,9 @@ static std::string trim(const std::string &s)
 
 fs::path get_credentials_path()
 {
-    const char *home = std::getenv("HOME");
-    if (home)
-    {
-        fs::path p = fs::path(home) / ".sentinel";
-        fs::create_directories(p);
-        return p / "credentials.json";
-    }
-    return fs::path("/etc/sentinel/credentials.json");
+    fs::path config_dir = sentinel::fs::PathResolver::resolve_dir(sentinel::fs::ObjectClass::Config);
+    fs::create_directories(config_dir);
+    return config_dir / "credentials.json";
 }
 
 static SavedCredentials load_saved_credentials()
