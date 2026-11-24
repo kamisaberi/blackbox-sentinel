@@ -244,7 +244,7 @@ static std::string get_enrolled_author_pubkey_hex()
         fs::path("/etc/sentinel/keys/developer_private.pem")
     };
 
-    
+
     for (const auto &p : candidates)
     {
         if (fs::exists(p))
@@ -307,12 +307,20 @@ bool resolve_cached_asset(const std::string &category,
     // STEP 2: CACHE MISS -> ATTEMPT PULL FROM REGISTRY
     std::cout << "  \033[1;33m[CACHE MISS]\033[0m Resolving " << filename << "...\n";
 
+
+    
+    const fs::path root = sentinel::fs::PathResolver::resolve_root();
+    const fs::path installed_spkg = sentinel::fs::PathResolver::resolve_dir(sentinel::fs::ObjectClass::SpkgInstalled);
+
     std::vector<fs::path> local_fallbacks = {
-        fs::path("/home/kami/sentinel-hub/dist") / category / filename,
-        fs::path("/home/kami/sentinel-hub/dist") / filename,
-        fs::path("/home/kami/sentinel-matrix/shared/datasets") / filename,
+        installed_spkg / category / filename,
+        installed_spkg / filename,
+        sentinel::fs::PathResolver::resolve_dir(sentinel::fs::ObjectClass::ModelRegistry) / filename,
+        root / "artifacts" / "pcaps" / filename,
         fs::path("rules/lua") / filename,
-        fs::path("models") / filename};
+        fs::path("models") / filename
+    };
+
 
     bool resolved = false;
     for (const auto &fb : local_fallbacks)
