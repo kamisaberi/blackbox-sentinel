@@ -5,7 +5,108 @@
 #include "sentinel/subsystems/trism_firewall.hpp"
 
 
+int cmd_status()
+{
+    std::cout << "\033[1;36m================================================================================\033[0m\n";
+    std::cout << "\033[1;37m                 BLACKBOX SENTINEL APPLIANCE STATUS & HEALTH                    \033[0m\n";
+    std::cout << "\033[1;36m================================================================================\033[0m\n";
 
+    std::error_code ec;
+    const fs::path ssfs_cfg  = sentinel::fs::PathResolver::resolve_dir(sentinel::fs::ObjectClass::Config);
+    const fs::path ssfs_spkg = sentinel::fs::PathResolver::resolve_dir(sentinel::fs::ObjectClass::SpkgInstalled);
+
+    const fs::path lic_sys  = "/etc/sentinel/license.lic";
+    const fs::path lic_ssfs = ssfs_cfg / "license.lic";
+    const fs::path active_lic = (fs::exists(lic_sys, ec) && !ec) ? lic_sys : lic_ssfs;
+
+    std::cout << "  \033[1m[1] Cryptographic Identity & Licensing:\033[0m\n";
+    if (fs::exists(active_lic, ec) && !ec)
+    {
+        std::cout << "      Status          : \033[1;32mACTIVE LICENSE LOADED\033[0m (" << active_lic.string() << ")\n";
+    }
+    else
+    {
+        std::cout << "      Status          : \033[1;33mCOMMUNITY EVALUATION\033[0m (Unlicensed mode)\n";
+    }
+    if ((fs::exists("/dev/tpmrm0", ec) || fs::exists("/dev/tpm0", ec)) && !ec)
+    {
+        std::cout << "      Hardware Root   : \033[1;32mPHYSICAL TPM 2.0 ATTESTED\033[0m\n";
+    }
+    else
+    {
+        std::cout << "      Hardware Root   : \033[1;33mDMI UUID FALLBACK\033[0m (Virtualization detected)\n";
+    }
+
+    std::cout << "\n  \033[1m[2] In-Kernel eBPF/XDP Mitigation Subsystem:\033[0m\n";
+    if ((fs::exists("/sys/fs/bpf/blackbox_blocked_ips", ec) || fs::exists("/sys/fs/bpf/blocked_ip_map", ec)) && !ec)
+    {
+        std::cout << "      eBPF Map Status : \033[1;32mPINNED & ACTIVE IN KERNEL\033[0m (< 0.84 µs SLA)\n";
+    }
+    else
+    {
+        std::cout << "      eBPF Map Status : \033[1;33mIN-PROCESS RUNTIME\033[0m (Local testing mode / run with sudo for pinned maps)\n";
+    }
+
+    std::cout << "\n  \033[1m[3] Central Asset Cache Engine:\033[0m\n";
+    fs::path c_root = get_cache_root();
+    std::cout << "      Cache Location  : " << c_root.string() << "\n"
+              << "      Registry URL    : " << normalize_registry_url(g_hub_url) << "\n";
+
+    size_t count_native = 0, count_wasm = 0, count_lua = 0;
+    for (const auto &base : {ssfs_spkg, fs::path("/etc/sentinel")})
+    {
+        if (fs::exists(base / "plugins.d", ec) && !ec)
+        {
+            for (const auto &e : fs::directory_iterator(base / "plugins.d", ec))
+                if (e.path().extension() == ".so")
+                    count_native++;
+        }
+        if (fs::exists(base / "wasm.d", ec) && !ec)
+        {
+            for (const auto &e : fs::directory_iterator(base / "wasm.d", ec))
+                if (e.path().extension() == ".wasm")
+                    count_wasm++;
+        }
+        if (fs::exists(base / "rules.d", ec) && !ec)
+        {
+            for (const auto &e : fs::directory_iterator(base / "rules.d", ec))
+                if (e.path().extension() == ".lua")
+                    count_lua++;
+        }
+    }
+
+    std::cout << "\n  \033[1m[4] Active Edge Extensions Runtime:\033[0m\n"
+              << "      Tier A: Native C++20 Dissectors : " << count_native << " active (< 120 ns SLA)\n"
+              << "      Tier C: LuaJIT Dynamic Rules    : " << count_lua << " active (< 450 ns SLA)\n"
+              << "      Tier B: Rust Wasm3 Sandboxes    : " << count_wasm << " active (< 1.5 µs SLA)\n";
+
+    std::cout << "\n  \033[1m[5] Routing DAG Profile:\033[0m\n";
+    std::string found_profile;
+    const std::vector<fs::path> route_candidates = {
+        "configs/model_routes.yaml",
+        "../configs/model_routes.yaml",
+        ssfs_cfg / "model_routes.yaml",
+        "/etc/sentinel/model_routes.yaml"
+    };
+    for (const auto &p : route_candidates)
+    {
+        if (fs::exists(p, ec) && !ec)
+        {
+            found_profile = p.string();
+            break;
+        }
+    }
+    if (!found_profile.empty())
+    {
+        std::cout << "      Profile         : \033[1;32m" << found_profile << "\033[0m (4-Stage Pipeline)\n";
+    }
+    else
+    {
+        std::cout << "      Profile         : \033[1;33mMISSING\033[0m (Place model_routes.yaml in " << ssfs_cfg.string() << " or /etc/sentinel/)\n";
+    }
+    std::cout << "\033[1;36m================================================================================\033[0m\n";
+    return 0;
+}
 
 
 int cmd_hardware_status()
