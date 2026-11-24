@@ -2,7 +2,8 @@
 
 #include "common_ctl.hpp"
 
-// --- FUNCTION PROTOTYPES ---
+
+
 int cmd_login(const std::string &jwt_token, const std::string &raw_hub_url)
 {
     if (jwt_token.empty())
@@ -15,7 +16,6 @@ int cmd_login(const std::string &jwt_token, const std::string &raw_hub_url)
     std::string token_endpoint = base_api + "/registry/tokens";
     std::cout << "[*] Authenticating with Registry Token API at " << token_endpoint << "...\n";
 
-    // Backend contract: POST /api/v1/registry/tokens requires {name, scopes, expires_in_days}
     std::string req_json = "{\"name\":\"sentinel-cli\",\"scopes\":[\"packages:publish\",\"packages:validate\"],\"expires_in_days\":365}";
     std::string response_file = "/tmp/sentinel_login_resp.json";
     std::string curl_cmd = "curl -sSL -w \"\\n%{http_code}\" -X POST \"" + token_endpoint + "\" " +
@@ -48,7 +48,6 @@ int cmd_login(const std::string &jwt_token, const std::string &raw_hub_url)
     {
     }
 
-    // --- REPLACE SUCCESS BLOCK IN cmd_login() ---
     if (http_code == 200 || http_code == 201)
     {
         std::string api_key = "";
@@ -92,11 +91,15 @@ int cmd_login(const std::string &jwt_token, const std::string &raw_hub_url)
                   << "    ├── Hub Enrolled Key : " << (author_pub_key.empty() ? "(None enrolled yet - will pin on first publish)" : author_pub_key.substr(0, 24) + "...") << "\n"
                   << "    └── Saved to         : " << cred_path.string() << "\n";
 
-        // Pre-validate local developer private key if enrolled key exists
         if (!author_pub_key.empty())
         {
-            const char *home = std::getenv("HOME");
-            fs::path dev_priv = home ? (fs::path(home) / ".sentinel" / "keys" / "developer_private.pem") : fs::path("/etc/sentinel/keys/developer_private.pem");
+            const fs::path pki_certs = sentinel::fs::PathResolver::resolve_dir(sentinel::fs::ObjectClass::PkiCerts);
+            fs::path dev_priv = pki_certs / "developer_private.pem";
+            if (!fs::exists(dev_priv))
+                dev_priv = sentinel::fs::PathResolver::resolve_root() / "keys" / "developer_private.pem";
+            if (!fs::exists(dev_priv))
+                dev_priv = fs::path("/etc/sentinel/keys/developer_private.pem");
+
             if (fs::exists(dev_priv))
             {
                 FILE *fp = fopen(dev_priv.c_str(), "rb");
@@ -134,6 +137,12 @@ int cmd_login(const std::string &jwt_token, const std::string &raw_hub_url)
         std::cerr << "    Server message: " << full_body.substr(0, 200) << "\n";
     return 1;
 }
+
+
+
+
+
+
 int cmd_whoami()
 {
     fs::path cred_path = get_credentials_path();
@@ -234,7 +243,6 @@ int cmd_hub_info(const std::string &type, const std::string &slug, std::string r
     std::cout << "\033[1;36m================================================================================\033[0m\n";
     return 0;
 }
-
 
 int cmd_hub_visibility(const std::string &raw_type, const std::string &slug, std::string mode = "public")
 {
@@ -370,8 +378,10 @@ int cmd_install_spkg(const fs::path &spkg_path)
     // -------------------------------------------------------------------------
     // TIER 1: Check Official Authority Root Key
     // -------------------------------------------------------------------------
+
     std::vector<fs::path> key_candidates = {
-        "/home/kami/sentinel-hub/keys/authority_key_public.pem",
+        sentinel::fs::PathResolver::resolve_dir(sentinel::fs::ObjectClass::PkiCa) / "authority_key_public.pem",
+        sentinel::fs::PathResolver::resolve_root() / "keys" / "authority_key_public.pem",
         "/etc/sentinel/authority_key_public.pem",
         "keys/authority_key_public.pem"};
 
@@ -551,7 +561,6 @@ int cmd_package_list()
     std::cout << "\033[1;36m========================================================================================================\033[0m\n";
     return 0;
 }
-
 
 int cmd_model_pack(const std::string &model_path_str,
                    const std::string &precision_override = "",
@@ -771,7 +780,6 @@ int cmd_pcap_pack(const std::string &pcap_path_str,
     return 0;
 }
 
-
 int cmd_pcap_pull(const std::string &slug)
 {
     std::string filename = slug;
@@ -881,12 +889,25 @@ int cmd_auth_update_key(const std::string &key_file_path = "")
 
     std::ifstream in(resp_file);
     std::string line, last_line, body;
-    while (std::getline(in, line)) { if (!line.empty()) { last_line = line; body += line + "\n"; } }
+    while (std::getline(in, line))
+    {
+        if (!line.empty())
+        {
+            last_line = line;
+            body += line + "\n";
+        }
+    }
     in.close();
     fs::remove(resp_file);
 
     int code = 0;
-    try { code = std::stoi(last_line); } catch (...) {}
+    try
+    {
+        code = std::stoi(last_line);
+    }
+    catch (...)
+    {
+    }
 
     if (code == 200)
     {
@@ -905,7 +926,8 @@ int cmd_auth_update_key(const std::string &key_file_path = "")
                   << "    New Author Key : " << new_pub_hex << "\n";
         return 0;
     }
-    std::cerr << "\033[1;31m[-] Error (HTTP " << code << "): Key rotation rejected.\033[0m\n" << body << "\n";
+    std::cerr << "\033[1;31m[-] Error (HTTP " << code << "): Key rotation rejected.\033[0m\n"
+              << body << "\n";
     return 1;
 }
 
@@ -936,18 +958,32 @@ int cmd_hub_yank(const std::string &raw_type, const std::string &slug)
 
     std::ifstream in(resp_file);
     std::string line, last_line, body;
-    while (std::getline(in, line)) { if (!line.empty()) { last_line = line; body += line + "\n"; } }
+    while (std::getline(in, line))
+    {
+        if (!line.empty())
+        {
+            last_line = line;
+            body += line + "\n";
+        }
+    }
     in.close();
     fs::remove(resp_file);
 
     int code = 0;
-    try { code = std::stoi(last_line); } catch (...) {}
+    try
+    {
+        code = std::stoi(last_line);
+    }
+    catch (...)
+    {
+    }
 
     if (code == 200 || code == 204)
     {
         std::cout << "\033[1;32m[+] Successfully yanked/deleted " << asset_type << "/" << slug << " from Hub!\033[0m\n";
         return 0;
     }
-    std::cerr << "\033[1;31m[-] Error (HTTP " << code << "): Failed to yank artifact.\033[0m\n" << body << "\n";
+    std::cerr << "\033[1;31m[-] Error (HTTP " << code << "): Failed to yank artifact.\033[0m\n"
+              << body << "\n";
     return 1;
 }
