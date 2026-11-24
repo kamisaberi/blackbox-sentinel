@@ -1,6 +1,7 @@
 // File: /home/kami/blackbox-sentinel/src/ai/ModelRouter.cpp
 
 #include "ModelRouter.hpp"
+#include <sentinel/fs/PathResolver.hpp>
 #include <fstream>
 #include <sstream>
 #include <iostream>
@@ -63,23 +64,29 @@ namespace sentinel::ai
     {
         if (model_id.empty())
             return "";
+
         std::error_code ec;
-        std::vector<std::filesystem::path> candidates = {
-            std::filesystem::path(model_id),
-            std::filesystem::path("/etc/sentinel/models") / model_id,
-            std::filesystem::path("/opt/sentinel/models") / model_id,
-            std::filesystem::path("/var/lib/sentinel/models") / model_id,
+        const auto root = sentinel::fs::PathResolver::resolve_root();
+
+        // 1. Check if model_id is already a valid absolute or relative path
+        const std::filesystem::path raw_path(model_id);
+        if (std::filesystem::exists(raw_path, ec) && !ec && std::filesystem::is_regular_file(raw_path))
+            return raw_path.string();
+
+        // 2. Query canonical SSFS model locations
+        const std::vector<std::filesystem::path> candidates = {
+            sentinel::fs::PathResolver::resolve_dir(sentinel::fs::ObjectClass::ModelCalibrated) / model_id,
+            sentinel::fs::PathResolver::resolve_dir(sentinel::fs::ObjectClass::ModelRegistry) / model_id,
+            root / "models" / model_id,
             std::filesystem::path("models") / model_id,
-            std::filesystem::path("/home/kami/sentinel-matrix/shared/models") / model_id};
-        if (const char *home = std::getenv("HOME"))
-        {
-            candidates.push_back(std::filesystem::path(home) / ".sentinel" / "models" / model_id);
-        }
+            std::filesystem::path("/etc/sentinel/models") / model_id};
+
         for (const auto &p : candidates)
         {
-            if (std::filesystem::exists(p, ec) && !ec)
+            if (std::filesystem::exists(p, ec) && !ec && std::filesystem::is_regular_file(p))
                 return p.string();
         }
+
         return "";
     }
 
@@ -128,8 +135,7 @@ namespace sentinel::ai
         }
     }
 
-
-        float ModelRouter::execute_onnx_inference(
+    float ModelRouter::execute_onnx_inference(
         xinfer::Engine *engine,
         const SentinelRawPacket &packet,
         float tier1_score)
@@ -224,9 +230,6 @@ namespace sentinel::ai
             return tier1_score;
         }
     }
-
-
-
 
     bool ModelRouter::load_routes(const std::filesystem::path &yaml_path)
     {
