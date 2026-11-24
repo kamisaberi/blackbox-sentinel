@@ -652,53 +652,11 @@ int cmd_trism_policy_push(const std::string &policy_file_path = "configs/trism_p
     return 1;
 }
 
-int cmd_trism_policy(const std::string &action = "show", const std::string &path = "configs/trism_policy.yaml")
-{
-    if (action == "push")
-    {
-        return cmd_trism_policy_push(path);
-    }
 
-    SavedCredentials creds = load_saved_credentials();
-    std::string effective_url = !creds.hub_url.empty() ? creds.hub_url : g_hub_url;
-    std::string base_api = normalize_registry_url(effective_url);
 
-    // Use JWT token first (required by get_current_user on /ai/trism/policy)
-    std::string token = !creds.jwt_token.empty() ? creds.jwt_token : creds.api_key;
-    std::string auth_hdr = !token.empty() ? ("-H \"Authorization: Bearer " + token + "\" ") : "";
 
-    if (action == "pull")
-    {
-        std::string endpoint = base_api + "/ai/trism/policy";
-        std::cout << "[*] Pulling fleet-wide AI TRiSM policy from " << endpoint << "...\n";
-        fs::create_directories("configs");
-        std::string curl_cmd = "curl -sSL " + auth_hdr + "\"" + endpoint + "\" | jq -r '.policy_yaml // .yaml // empty' > configs/trism_policy.yaml";
-        int ret = std::system(curl_cmd.c_str());
-        if (ret == 0 && fs::exists("configs/trism_policy.yaml") && fs::file_size("configs/trism_policy.yaml") > 0)
-        {
-            std::cout << "\033[1;32m[+] Synced fleet policy -> configs/trism_policy.yaml\033[0m\n";
-            return 0;
-        }
-        std::cerr << "[-] Failed to pull policy from backend.\n";
-        return 1;
-    }
 
-    fs::path p = path.empty() ? fs::path("configs/trism_policy.yaml") : fs::path(path);
-    if (fs::exists(p))
-    {
-        std::ifstream f(p);
-        std::cout << f.rdbuf() << std::endl;
-        return 0;
-    }
-    if (fs::exists("/etc/sentinel/configs/trism_policy.yaml"))
-    {
-        std::ifstream f("/etc/sentinel/configs/trism_policy.yaml");
-        std::cout << f.rdbuf() << std::endl;
-        return 0;
-    }
-    std::cerr << "[-] Error: Policy file not found at " << p.string() << ". Run 'aryo trism policy pull'.\n";
-    return 1;
-}
+
 
 
 // -----------------------------------------------------------------------------
