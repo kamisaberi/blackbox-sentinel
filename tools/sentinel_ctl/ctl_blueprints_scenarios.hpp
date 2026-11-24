@@ -5,11 +5,9 @@
 // --- FUNCTION PROTOTYPES ---
 int cmd_scenario_new(const std::string &name, const std::string &sector_override = "")
 {
-    fs::path target_dir = fs::path("/home/kami/sentinel-matrix/scenarios") / name;
-    if (!fs::exists("/home/kami/sentinel-matrix/scenarios"))
-    {
-        target_dir = fs::current_path() / name;
-    }
+    fs::path catalog_dir = sentinel::fs::PathResolver::resolve_dir(sentinel::fs::ObjectClass::ScenarioCatalog);
+    fs::create_directories(catalog_dir);
+    fs::path target_dir = catalog_dir / name;
 
     if (fs::exists(target_dir))
     {
@@ -110,12 +108,13 @@ int cmd_scenario_new(const std::string &name, const std::string &sector_override
               << "    └── run_demo.sh     (1-Click orchestration script)\n";
     return 0;
 }
+
 int cmd_scenario_add(const std::string &scenario_dir_str, const std::string &asset_id, bool embed_binary = false)
 {
     fs::path target_dir(scenario_dir_str);
     if (!fs::exists(target_dir))
     {
-        target_dir = fs::path("/home/kami/sentinel-matrix/scenarios") / scenario_dir_str;
+        target_dir = sentinel::fs::PathResolver::resolve_dir(sentinel::fs::ObjectClass::ScenarioCatalog) / scenario_dir_str;
     }
     if (!fs::exists(target_dir) || !fs::is_directory(target_dir))
     {
@@ -130,7 +129,7 @@ int cmd_scenario_add(const std::string &scenario_dir_str, const std::string &ass
         return 1;
     }
 
-    // Smart Resolution Order: File Path -> Installed Runtime -> Local Cache
+    // Smart Resolution Order: Direct Path -> SSFS Stores -> Installed Runtime -> Local Cache
     std::string detected_type = "unknown";
     fs::path resolved_source;
     std::string clean_slug = asset_id;
@@ -151,10 +150,25 @@ int cmd_scenario_add(const std::string &scenario_dir_str, const std::string &ass
     }
     else
     {
-        // Search Installed Runtime
-        if (fs::exists("/etc/sentinel/rules.d/" + asset_id + ".lua"))
+        const fs::path spkg_dir = sentinel::fs::PathResolver::resolve_dir(sentinel::fs::ObjectClass::SpkgInstalled);
+        const fs::path mod_cal = sentinel::fs::PathResolver::resolve_dir(sentinel::fs::ObjectClass::ModelCalibrated);
+        const fs::path mod_reg = sentinel::fs::PathResolver::resolve_dir(sentinel::fs::ObjectClass::ModelRegistry);
+        const fs::path pcap_dir = sentinel::fs::PathResolver::resolve_dir(sentinel::fs::ObjectClass::ArtifactPcap);
+
+        // Search SSFS & Installed Runtime
+        if (fs::exists(spkg_dir / "rules.d" / (asset_id + ".lua")))
+        {
+            resolved_source = spkg_dir / "rules.d" / (asset_id + ".lua");
+            detected_type = "package";
+        }
+        else if (fs::exists("/etc/sentinel/rules.d/" + asset_id + ".lua"))
         {
             resolved_source = "/etc/sentinel/rules.d/" + asset_id + ".lua";
+            detected_type = "package";
+        }
+        else if (fs::exists(spkg_dir / "plugins.d" / (asset_id + ".so")))
+        {
+            resolved_source = spkg_dir / "plugins.d" / (asset_id + ".so");
             detected_type = "package";
         }
         else if (fs::exists("/etc/sentinel/plugins.d/" + asset_id + ".so"))
@@ -162,19 +176,39 @@ int cmd_scenario_add(const std::string &scenario_dir_str, const std::string &ass
             resolved_source = "/etc/sentinel/plugins.d/" + asset_id + ".so";
             detected_type = "package";
         }
-        else if (fs::exists("/etc/sentinel/models/" + asset_id + ".onnx") || fs::exists("models/" + asset_id + ".onnx"))
+        else if (fs::exists(mod_cal / (asset_id + ".onnx")))
         {
-            resolved_source = fs::exists("models/" + asset_id + ".onnx") ? fs::path("models/" + asset_id + ".onnx") : fs::path("/etc/sentinel/models/" + asset_id + ".onnx");
+            resolved_source = mod_cal / (asset_id + ".onnx");
             detected_type = "model";
+        }
+        else if (fs::exists(mod_reg / (asset_id + ".onnx")))
+        {
+            resolved_source = mod_reg / (asset_id + ".onnx");
+            detected_type = "model";
+        }
+        else if (fs::exists("models/" + asset_id + ".onnx"))
+        {
+            resolved_source = fs::path("models") / (asset_id + ".onnx");
+            detected_type = "model";
+        }
+        else if (fs::exists("/etc/sentinel/models/" + asset_id + ".onnx"))
+        {
+            resolved_source = fs::path("/etc/sentinel/models") / (asset_id + ".onnx");
+            detected_type = "model";
+        }
+        else if (fs::exists(pcap_dir / (asset_id + ".pcap")))
+        {
+            resolved_source = pcap_dir / (asset_id + ".pcap");
+            detected_type = "pcap";
         }
         else if (fs::exists("/etc/sentinel/pcaps/" + asset_id + ".pcap"))
         {
-            resolved_source = "/etc/sentinel/pcaps/" + asset_id + ".pcap";
+            resolved_source = fs::path("/etc/sentinel/pcaps") / (asset_id + ".pcap");
             detected_type = "pcap";
         }
         else
         {
-            // Search Cache
+            // Search SSFS Download Cache
             fs::path c_root = get_cache_root();
             if (fs::exists(c_root / "packages" / (asset_id + ".spkg")))
             {
@@ -258,7 +292,7 @@ int cmd_scenario_pack(const std::string &dir_str, const std::string &out_overrid
     fs::path target_dir = dir_str.empty() ? fs::current_path() : fs::path(dir_str);
     if (!fs::exists(target_dir))
     {
-        target_dir = fs::path("/home/kami/sentinel-matrix/scenarios") / dir_str;
+        target_dir = sentinel::fs::PathResolver::resolve_dir(sentinel::fs::ObjectClass::ScenarioCatalog) / dir_str;
     }
     if (!fs::exists(target_dir) || !fs::is_directory(target_dir))
     {
@@ -347,12 +381,7 @@ int cmd_scenario_pull(const std::string &slug)
     if (pure_slug.rfind("scenario_", 0) == 0)
         pure_slug = pure_slug.substr(9);
 
-    fs::path target_matrix_dir = fs::path("/home/kami/sentinel-matrix/scenarios") / pure_slug;
-
-    if (!fs::exists("/home/kami/sentinel-matrix/scenarios"))
-    {
-        target_matrix_dir = fs::path("/etc/sentinel/scenarios") / pure_slug;
-    }
+    fs::path target_matrix_dir = sentinel::fs::PathResolver::resolve_dir(sentinel::fs::ObjectClass::ScenarioCatalog) / pure_slug;
 
     fs::create_directories(target_matrix_dir);
 
@@ -407,8 +436,9 @@ int cmd_scenario_list()
         std::cout << "  (No cached scenario archives found)\n";
     }
 
-    fs::path matrix_scen_dir = "/home/kami/sentinel-matrix/scenarios";
-    std::cout << "\nStaged Scenarios for Sentinel-Matrix (" << matrix_scen_dir.string() << "):\n";
+    fs::path matrix_scen_dir = sentinel::fs::PathResolver::resolve_dir(sentinel::fs::ObjectClass::ScenarioCatalog);
+    std::cout << "\nStaged Scenarios in SSFS Catalog (" << matrix_scen_dir.string() << "):\n";
+
     if (fs::exists(matrix_scen_dir))
     {
         for (const auto &entry : fs::directory_iterator(matrix_scen_dir))
@@ -853,7 +883,6 @@ int cmd_blueprint_pull(const std::string &slug)
     return 0;
 }
 
-
 int cmd_blueprint_list()
 {
     std::cout << "\033[1;36m========================================================================================================\033[0m\n";
@@ -904,7 +933,6 @@ int cmd_blueprint_raw_dag(const std::string &slug)
     return ret == 0 ? 0 : 1;
 }
 
-
 // -----------------------------------------------------------------------------
 // SCENARIO -> PRODUCTION BLUEPRINT CONVERSION ENGINE
 // -----------------------------------------------------------------------------
@@ -919,7 +947,7 @@ int cmd_blueprint_from_scenario(const std::string &scenario_path_or_slug,
     fs::path src_dir = scenario_path_or_slug;
     if (!fs::exists(src_dir) || !fs::is_directory(src_dir))
     {
-        src_dir = fs::path("/home/kami/sentinel-matrix/scenarios") / scenario_path_or_slug;
+        src_dir = sentinel::fs::PathResolver::resolve_dir(sentinel::fs::ObjectClass::ScenarioCatalog) / scenario_path_or_slug;
     }
     if (!fs::exists(src_dir) || !fs::is_directory(src_dir))
     {
@@ -928,8 +956,10 @@ int cmd_blueprint_from_scenario(const std::string &scenario_path_or_slug,
     }
 
     std::string scen_slug = src_dir.filename().string();
-    if (scen_slug.rfind("scen_", 0) == 0) scen_slug = scen_slug.substr(5);
-    if (scen_slug.rfind("scenario_", 0) == 0) scen_slug = scen_slug.substr(9);
+    if (scen_slug.rfind("scen_", 0) == 0)
+        scen_slug = scen_slug.substr(5);
+    if (scen_slug.rfind("scenario_", 0) == 0)
+        scen_slug = scen_slug.substr(9);
 
     std::string bp_name = "bp_" + scen_slug;
     std::string site_name = site_override.empty() ? ("Site-" + scen_slug) : site_override;
