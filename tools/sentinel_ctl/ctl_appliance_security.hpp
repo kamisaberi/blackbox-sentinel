@@ -654,7 +654,56 @@ int cmd_trism_policy_push(const std::string &policy_file_path = "configs/trism_p
 
 
 
+int cmd_trism_policy(const std::string &action = "show", const std::string &path = "configs/trism_policy.yaml")
+{
+    if (action == "push")
+    {
+        return cmd_trism_policy_push(path);
+    }
 
+    SavedCredentials creds = load_saved_credentials();
+    std::string effective_url = !creds.hub_url.empty() ? creds.hub_url : g_hub_url;
+    std::string base_api = normalize_registry_url(effective_url);
+
+    std::string token = !creds.jwt_token.empty() ? creds.jwt_token : creds.api_key;
+    std::string auth_hdr = !token.empty() ? ("-H \"Authorization: Bearer " + token + "\" ") : "";
+    const fs::path ssfs_cfg = sentinel::fs::PathResolver::resolve_dir(sentinel::fs::ObjectClass::Config);
+
+    if (action == "pull")
+    {
+        std::string endpoint = base_api + "/ai/trism/policy";
+        std::cout << "[*] Pulling fleet-wide AI TRiSM policy from " << endpoint << "...\n";
+        fs::create_directories(ssfs_cfg);
+        fs::path out_policy = ssfs_cfg / "trism_policy.yaml";
+        std::string curl_cmd = "curl -sSL " + auth_hdr + "\"" + endpoint + "\" | jq -r '.policy_yaml // .yaml // empty' > \"" + out_policy.string() + "\"";
+        int ret = std::system(curl_cmd.c_str());
+        if (ret == 0 && fs::exists(out_policy) && fs::file_size(out_policy) > 0)
+        {
+            std::cout << "\033[1;32m[+] Synced fleet policy -> " << out_policy.string() << "\033[0m\n";
+            return 0;
+        }
+        std::cerr << "[-] Failed to pull policy from backend.\n";
+        return 1;
+    }
+
+    const std::vector<fs::path> candidates = {
+        path.empty() ? fs::path("configs/trism_policy.yaml") : fs::path(path),
+        ssfs_cfg / "trism_policy.yaml",
+        fs::path("/etc/sentinel/configs/trism_policy.yaml")
+    };
+
+    for (const auto &p : candidates)
+    {
+        if (fs::exists(p))
+        {
+            std::ifstream f(p);
+            std::cout << f.rdbuf() << std::endl;
+            return 0;
+        }
+    }
+    std::cerr << "[-] Error: Policy file not found. Run 'aryo trism policy pull'.\n";
+    return 1;
+}
 
 
 
