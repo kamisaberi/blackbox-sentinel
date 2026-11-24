@@ -98,7 +98,11 @@ void print_help(const char *prog_name)
               << std::endl;
 }
 
-int main(int argc, char *argv[])
+
+
+
+
+
 {
     std::string routes_file = "configs/model_routes.yaml";
 
