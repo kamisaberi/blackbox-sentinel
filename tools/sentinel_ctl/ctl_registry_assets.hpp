@@ -660,7 +660,26 @@ int cmd_model_pull(const std::string &model_slug)
 
 
 
+int cmd_dataset_pull(const std::string &slug)
+{
+    std::string filename = slug;
+    if (filename.size() < 5 || filename.substr(filename.size() - 5) != ".slab")
+        filename += ".slab";
 
+    fs::path cached_path;
+    if (!resolve_cached_asset("datasets", filename, cached_path))
+    {
+        return 1;
+    }
+
+    fs::path dest_dir = sentinel::fs::PathResolver::resolve_dir(sentinel::fs::ObjectClass::ArtifactDownload) / "datasets";
+    fs::create_directories(dest_dir);
+    fs::path dest_path = dest_dir / filename;
+    fs::copy_file(cached_path, dest_path, fs::copy_options::overwrite_existing);
+
+    std::cout << "\033[1;32m[+] Deployed SLAB dataset into SSFS: " << dest_path.string() << "\033[0m\n";
+    return 0;
+}
 
 
 
