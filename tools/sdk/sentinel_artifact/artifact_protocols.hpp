@@ -107,24 +107,23 @@ bool cmd_slab_convert(const std::string &in_csv_path, const std::string &out_sla
     SavedCredentials saved = load_saved_credentials();
     std::string author_pub_hex = saved.author_public_key;
 
-    // 2. Fallback: Search developer keys on disk
+
+    
+    // 2. Fallback: Search developer keys on disk via SSFS
     if (author_pub_hex.empty())
     {
-        const char *home_env = std::getenv("HOME");
-        fs::path home_path = home_env ? fs::path(home_env) : fs::path("");
+        const fs::path pki_certs = sentinel::fs::PathResolver::resolve_dir(sentinel::fs::ObjectClass::PkiCerts);
+        const fs::path ssfs_root = sentinel::fs::PathResolver::resolve_root();
 
-        std::vector<fs::path> pub_candidates;
-        pub_candidates.push_back(fs::path(out_slab_path).parent_path() / "keys" / "developer_private.pem");
-        pub_candidates.push_back(fs::path(out_slab_path).parent_path() / "developer_private.pem");
-
-        if (!home_path.empty())
-        {
-            pub_candidates.push_back(home_path / ".sentinel" / "keys" / "developer_private.pem");
-            pub_candidates.push_back(home_path / ".sentinel" / "keys" / "developer_public.pem");
-        }
-        pub_candidates.push_back("/home/kami/.sentinel/keys/developer_private.pem");
-        pub_candidates.push_back("/home/kami/.sentinel/keys/developer_public.pem");
-        pub_candidates.push_back("/etc/sentinel/keys/developer_private.pem");
+        std::vector<fs::path> pub_candidates = {
+            fs::path(out_slab_path).parent_path() / "keys" / "developer_private.pem",
+            fs::path(out_slab_path).parent_path() / "developer_private.pem",
+            pki_certs / "developer_private.pem",
+            pki_certs / "developer_public.pem",
+            ssfs_root / "keys" / "developer_private.pem",
+            ssfs_root / "keys" / "developer_public.pem",
+            fs::path("/etc/sentinel/keys/developer_private.pem")
+        };
 
         for (const auto &p : pub_candidates)
         {
@@ -138,6 +137,7 @@ bool cmd_slab_convert(const std::string &in_csv_path, const std::string &out_sla
             }
         }
     }
+
 
     auto write_manifest_file = [&](const fs::path &target_path) {
         std::ofstream mf(target_path);
