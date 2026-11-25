@@ -14,6 +14,7 @@
 #include <openssl/evp.h>
 #include <openssl/pem.h>
 #include <netinet/in.h>
+#include <sentinel/fs/PathResolver.hpp>
 
 #define SPKG_MAGIC 0x474B50534F595241ULL // "ARYOSPKG"
 #define SPKG_VERSION 1
