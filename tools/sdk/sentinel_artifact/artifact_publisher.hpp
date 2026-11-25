@@ -68,24 +68,24 @@ bool cmd_publish(const std::string &file_path, std::string token, std::string hu
         upload_endpoint = base_no_pub + "/blueprints/publish";
     }
 
-    // 1. Search for Signing Key
-    const char *home_env = std::getenv("HOME");
-    fs::path home_path = home_env ? fs::path(home_env) : fs::path("");
+
+    
+    // 1. Search for Signing Key via SSFS PKI hierarchy
+    const fs::path pki_certs = sentinel::fs::PathResolver::resolve_dir(sentinel::fs::ObjectClass::PkiCerts);
+    const fs::path ssfs_root = sentinel::fs::PathResolver::resolve_root();
 
     std::vector<fs::path> key_candidates = {
         fs::path(file_path).parent_path() / "keys" / "developer_private.pem",
         fs::path(file_path).parent_path() / "keys" / "ed25519_private.pem",
         fs::path(file_path).parent_path() / "ed25519_private.pem",
-        fs::path(file_path).parent_path() / "developer_private.pem"};
-
-    if (!home_path.empty())
-    {
-        key_candidates.push_back(home_path / ".sentinel" / "keys" / "developer_private.pem");
-        key_candidates.push_back(home_path / ".sentinel" / "keys" / "ed25519_private.pem");
-    }
-
-    key_candidates.push_back("/etc/sentinel/keys/developer_private.pem");
-    key_candidates.push_back("/etc/sentinel/keys/ed25519_private.pem");
+        fs::path(file_path).parent_path() / "developer_private.pem",
+        pki_certs / "developer_private.pem",
+        pki_certs / "ed25519_private.pem",
+        ssfs_root / "keys" / "developer_private.pem",
+        ssfs_root / "keys" / "ed25519_private.pem",
+        fs::path("/etc/sentinel/keys/developer_private.pem"),
+        fs::path("/etc/sentinel/keys/ed25519_private.pem")
+    };
 
     fs::path priv_key_path;
     for (const auto &k : key_candidates)
@@ -97,16 +97,17 @@ bool cmd_publish(const std::string &file_path, std::string token, std::string hu
         }
     }
 
-    // Auto-generate developer keypair if none found
+    // Auto-generate developer keypair in SSFS PkiCerts if none found
     if (priv_key_path.empty())
     {
-        fs::path dev_dir = !home_path.empty() ? (home_path / ".sentinel" / "keys") : fs::path("/tmp/.sentinel_keys");
-        fs::create_directories(dev_dir);
-        std::string key_prefix = (dev_dir / "developer").string();
+        fs::create_directories(pki_certs);
+        std::string key_prefix = (pki_certs / "developer").string();
         std::cout << "[*] No signing key found. Auto-generating developer Ed25519 keypair at " << key_prefix << "...\n";
         cmd_keygen(key_prefix);
         priv_key_path = key_prefix + "_private.pem";
     }
+
+
 
     std::string sig_hex = "";
     if (!priv_key_path.empty())
