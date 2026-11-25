@@ -2,117 +2,13 @@
 
 #include "common_artifact.hpp"
 
-// --- FUNCTION PROTOTYPES ---
-bool cmd_new(const std::string &name, std::string lang)
-{
-    std::transform(lang.begin(), lang.end(), lang.begin(), ::tolower);
-    if (lang == "c++" || lang == "native")
-        lang = "cpp";
-    if (lang == "wasm")
-        lang = "rust";
 
-    if (lang != "cpp" && lang != "rust" && lang != "lua")
-    {
-        std::cerr << "[-] Error: Unsupported language. Use 'rust', 'cpp', or 'lua'." << std::endl;
-        return false;
-    }
 
-    fs::path dir = name;
-    if (fs::exists(dir))
-    {
-        std::cerr << "[-] Error: Directory '" << name << "' already exists." << std::endl;
-        return false;
-    }
-    fs::create_directories(dir);
-    fs::create_directories(dir / "tests");
 
-    std::string tier_str = (lang == "cpp") ? "native" : (lang == "rust") ? "wasm"
-                                                                         : "lua";
 
-    {
-        std::ofstream mf(dir / "manifest.json");
-        mf << "{\n"
-           << "  \"id\": \"org.aryorithm.package." << name << "\",\n"
-           << "  \"name\": \"" << name << "\",\n"
-           << "  \"slug\": \"" << name << "\",\n"
-           << "  \"version\": \"1.0.0\",\n"
-           << "  \"tier\": \"" << tier_str << "\",\n"
-           << "  \"author\": \"Aryorithm Certified Developer\",\n"
-           << "  \"target_protocol\": \"CUSTOM\",\n"
-           << "  \"default_port\": 502,\n"
-           << "  \"latency_sla_ns\": " << (lang == "cpp" ? "120" : lang == "rust" ? "1500"
-                                                                                  : "450")
-           << ",\n"
-           << "  \"compliance\": [\"IEC-62443-4-2\", \"CMMC-SI.L2-3.14.1\"]\n"
-           << "}\n";
-    }
 
-    {
-        std::ofstream tf(dir / "tests" / "preflight_frame.bin", std::ios::binary);
-        uint8_t sample_frame[] = {0xDE, 0xAD, 0xBE, 0xEF, 0x01, 0x02, 0x03, 0x04};
-        tf.write(reinterpret_cast<const char *>(sample_frame), sizeof(sample_frame));
-    }
 
-    if (lang == "rust")
-    {
-        fs::create_directories(dir / "src");
-        std::ofstream(dir / "Cargo.toml") << "[package]\nname = \"" << name << "\"\nversion = \"1.0.0\"\nedition = \"2021\"\n\n"
-                                          << "[lib]\ncrate-type = [\"cdylib\"]\n\n"
-                                          << "[dependencies]\nsentinel-sdk-rs = { path = \"/home/kami/blackbox-sentinel/tools/sdk/rust/sentinel-sdk-rs\" }\n\n"
-                                          << "[profile.release]\nopt-level = 3\nlto = true\npanic = \"abort\"\nstrip = true\n";
 
-        std::ofstream(dir / "src" / "lib.rs") << "#![no_std]\nuse core::panic::PanicInfo;\nuse sentinel_sdk_rs::{PacketView, Verdict};\n\n"
-                                              << "#[panic_handler]\nfn panic(_info: &PanicInfo) -> ! { loop {} }\n\n"
-                                              << "#[no_mangle]\npub extern \"C\" fn sentinel_dissect(pkt_ptr: *const u8, len: u32) -> i32 {\n"
-                                              << "    let pkt = unsafe { PacketView::from_raw(pkt_ptr, len as usize) };\n"
-                                              << "    if pkt.is_empty() { return Verdict::Pass as i32; }\n"
-                                              << "    if pkt.len() >= 4 && pkt.read_be32(0) == Some(0xDEADBEEF) {\n"
-                                              << "        return Verdict::KernelDrop as i32;\n"
-                                              << "    }\n"
-                                              << "    Verdict::Pass as i32\n"
-                                              << "}\n";
-    }
-    else if (lang == "cpp")
-    {
-        fs::create_directories(dir / "src");
-        std::ofstream(dir / "CMakeLists.txt") << "cmake_minimum_required(VERSION 3.20)\nproject(" << name << " CXX)\n"
-                                              << "set(CMAKE_CXX_STANDARD 20)\nset(CMAKE_CXX_VISIBILITY_PRESET hidden)\n"
-                                              << "include_directories(/home/kami/blackbox-sentinel/include)\n"
-                                              << "add_library(" << name << " SHARED src/plugin.cpp)\n"
-                                              << "set_target_properties(" << name << " PROPERTIES PREFIX \"\")\n";
-
-        std::ofstream(dir / "src" / "plugin.cpp") << "#include <sentinel/sdk/plugin.hpp>\n\nusing namespace sentinel::sdk;\n\n"
-                                                  << "static SentinelDissectorResult " << name << "_dissect(const SentinelRawPacket* raw_pkt) {\n"
-                                                  << "    if (!raw_pkt || !raw_pkt->data || raw_pkt->length < 4) return VerdictBuilder::Pass();\n"
-                                                  << "    PacketView pkt(*raw_pkt);\n"
-                                                  << "    if (pkt.read_be32(0) == 0xDEADBEEF) {\n"
-                                                  << "        return VerdictBuilder::Drop(9001, \"PREFLIGHT_TEST_MATCH\").build();\n"
-                                                  << "    }\n"
-                                                  << "    return VerdictBuilder::Pass();\n"
-                                                  << "}\n\n"
-                                                  << "static SentinelPluginDescriptor g_descriptor = {\n"
-                                                  << "    SENTINEL_SDK_MAGIC, SENTINEL_SDK_VERSION_MAJOR, SENTINEL_SDK_VERSION_MINOR,\n"
-                                                  << "    SENTINEL_TIER_NATIVE_CPP, \"org.aryorithm.package." << name << "\",\n"
-                                                  << "    \"" << name << "\", \"1.0.0\", \"CUSTOM\", 502, 0, nullptr, nullptr, " << name << "_dissect\n"
-                                                  << "};\nSENTINEL_REGISTER_PLUGIN(g_descriptor)\n";
-    }
-    else if (lang == "lua")
-    {
-        std::ofstream(dir / (name + ".lua")) << "local ffi = ffi or require(\"ffi\")\n\nRule = { id = 9001, name = \"" << name << "\", port = 502 }\n\n"
-                                             << "function Rule.inspect(pkt)\n"
-                                             << "    if not pkt or not pkt.data then return 0 end\n"
-                                             << "    local len = tonumber(pkt.length)\n"
-                                             << "    if not len or len < 4 then return 0 end\n"
-                                             << "    if pkt.data[0] == 0xDE and pkt.data[1] == 0xAD and pkt.data[2] == 0xBE and pkt.data[3] == 0xEF then\n"
-                                             << "        return 3\n"
-                                             << "    end\n"
-                                             << "    return 0\n"
-                                             << "end\n";
-    }
-
-    std::cout << "\033[1;32m[+] Successfully scaffolded artifact project in ./" << name << "/\033[0m\n";
-    return true;
-}
 
 
 bool cmd_pack_raw(const std::string &priv_key_path,
