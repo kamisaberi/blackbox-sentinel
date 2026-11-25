@@ -107,8 +107,6 @@ bool cmd_slab_convert(const std::string &in_csv_path, const std::string &out_sla
     SavedCredentials saved = load_saved_credentials();
     std::string author_pub_hex = saved.author_public_key;
 
-
-    
     // 2. Fallback: Search developer keys on disk via SSFS
     if (author_pub_hex.empty())
     {
@@ -122,8 +120,7 @@ bool cmd_slab_convert(const std::string &in_csv_path, const std::string &out_sla
             pki_certs / "developer_public.pem",
             ssfs_root / "keys" / "developer_private.pem",
             ssfs_root / "keys" / "developer_public.pem",
-            fs::path("/etc/sentinel/keys/developer_private.pem")
-        };
+            fs::path("/etc/sentinel/keys/developer_private.pem")};
 
         for (const auto &p : pub_candidates)
         {
@@ -138,8 +135,8 @@ bool cmd_slab_convert(const std::string &in_csv_path, const std::string &out_sla
         }
     }
 
-
-    auto write_manifest_file = [&](const fs::path &target_path) {
+    auto write_manifest_file = [&](const fs::path &target_path)
+    {
         std::ofstream mf(target_path);
         mf << "{\n"
            << "  \"name\": \"" << slug_val << "\",\n"
@@ -320,7 +317,9 @@ bool cmd_synthesize_vaccine(const std::string &input_target, const std::string &
     std::string pkg_name = "vaccine_" + proto + "_" + timestamp_str;
     std::transform(pkg_name.begin(), pkg_name.end(), pkg_name.begin(), ::tolower);
 
-    fs::path out_root = out_dir_override.empty() ? fs::path("/tmp") / pkg_name : fs::path(out_dir_override) / pkg_name;
+    fs::path out_root = out_dir_override.empty()
+                            ? (sentinel::fs::PathResolver::resolve_dir(sentinel::fs::ObjectClass::SpkgStaging) / pkg_name)
+                            : (fs::path(out_dir_override) / pkg_name);
     fs::create_directories(out_root);
     fs::create_directories(out_root / "tests");
     fs::create_directories(out_root / "keys");
@@ -430,4 +429,3 @@ bool cmd_synthesize_vaccine(const std::string &input_target, const std::string &
 
     return false;
 }
-
