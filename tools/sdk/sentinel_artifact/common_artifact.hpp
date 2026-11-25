@@ -219,7 +219,45 @@ static std::string sign_file_bytes_hex(const fs::path &file_path, const fs::path
 
 
 
+static SavedCredentials load_saved_credentials()
+{
+    SavedCredentials creds{};
+    const fs::path ssfs_cfg = sentinel::fs::PathResolver::resolve_dir(sentinel::fs::ObjectClass::Config);
+    std::vector<fs::path> cred_paths = {
+        ssfs_cfg / "credentials.json",
+        sentinel::fs::PathResolver::resolve_root() / "credentials.json",
+        fs::path("/etc/sentinel/credentials.json")
+    };
 
+    for (const auto &p : cred_paths)
+    {
+        if (fs::exists(p))
+        {
+            std::ifstream f(p);
+            std::string line;
+            while (std::getline(f, line))
+            {
+                auto extract_field = [&](const std::string &key, std::string &target) {
+                    size_t pos = line.find("\"" + key + "\"");
+                    if (pos != std::string::npos) {
+                        size_t colon = line.find(':', pos);
+                        size_t start = line.find('"', colon + 1);
+                        size_t end = line.find('"', start + 1);
+                        if (start != std::string::npos && end != std::string::npos) {
+                            target = line.substr(start + 1, end - start - 1);
+                        }
+                    }
+                };
+                extract_field("api_key", creds.api_key);
+                extract_field("hub_url", creds.hub_url);
+                extract_field("author_public_key", creds.author_public_key);
+            }
+            if (!creds.api_key.empty())
+                break;
+        }
+    }
+    return creds;
+}
 
 
 
